@@ -81,7 +81,7 @@ public class AuthService {
             throw new ApiException(HttpStatus.CONFLICT, "이미 사용 중인 아이디입니다.");
         }
 
-        UserEntity user = userRepository.saveAndFlush(UserEntity.registeredWorker(
+        UserEntity user = userRepository.saveAndFlush(UserEntity.registeredUser(
             employee.getId(),
             employee.getEmployeeNo(),
             username,
@@ -93,12 +93,12 @@ public class AuthService {
         int assignedRoles = jdbcTemplate.update(
             """
                 INSERT INTO user_roles (user_id, role_id, site_id)
-                SELECT ?, id, NULL FROM roles WHERE role_code = 'WORKER'
+                SELECT ?, id, NULL FROM roles WHERE role_code = 'ADMIN'
                 """,
             userId
         );
         if (assignedRoles != 1) {
-            throw new IllegalStateException("기본 WORKER 역할이 준비되지 않았습니다.");
+            throw new IllegalStateException("기본 ADMIN 역할이 준비되지 않았습니다.");
         }
 
         return Map.of(
@@ -106,7 +106,7 @@ public class AuthService {
             "employeeNo", employee.getEmployeeNo(),
             "username", username,
             "name", employee.getName(),
-            "roles", List.of("WORKER")
+            "roles", List.of("ADMIN")
         );
     }
 

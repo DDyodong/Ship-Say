@@ -44,7 +44,7 @@ public class UserEntity {
         this.status = "active";
     }
 
-    public static UserEntity registeredWorker(
+    public static UserEntity registeredUser(
         Long employeeId,
         String employeeNo,
         String username,
