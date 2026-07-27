@@ -13,7 +13,9 @@ function App() {
   const [session, setSession] = useState(() => {
     try {
       const stored = JSON.parse(sessionStorage.getItem("safety-session"));
-      if (stored?.role === "admin" || stored?.role === "worker") return stored;
+      const roles = (stored?.roles || []).map(role => String(role).toUpperCase());
+      const role = roles.includes("ADMIN") ? "admin" : roles.includes("WORKER") ? "worker" : null;
+      if (stored?.token && role) return { ...stored, roles, role };
       sessionStorage.removeItem("safety-session");
       return null;
     } catch { return null; }
@@ -40,8 +42,8 @@ function App() {
   };
   const registered = (username) => { setRegisteredUsername(username); navigate("/login", { replace: true }); notify("회원가입이 완료되었습니다. 로그인해 주세요."); };
   const homePath = session ? (session.role === "admin" ? "/admin/dashboard" : "/worker/mobile-app") : "/login";
-  const canUseWorker = session && (session.role === "worker" || session.roles?.some(role => String(role).toUpperCase() === "WORKER"));
-  const canUseAdmin = session && (session.role === "admin" || session.roles?.some(role => role === "ADMIN" || role === "SAFETY_MANAGER"));
+  const canUseWorker = session && session.roles?.includes("WORKER");
+  const canUseAdmin = session && session.roles?.includes("ADMIN");
   return <><Routes>
     <Route path="/login" element={session ? <Navigate to={homePath} replace/> : <Login initialUsername={registeredUsername} onRegister={() => navigate("/register")} onLogin={login} notify={notify} theme={theme} onToggleTheme={toggleTheme} />}/>
     <Route path="/register" element={session ? <Navigate to={homePath} replace/> : <Register onBack={() => navigate("/login")} onRegistered={registered} notify={notify} theme={theme} onToggleTheme={toggleTheme} />}/>

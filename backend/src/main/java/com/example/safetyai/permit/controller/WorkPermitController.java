@@ -178,9 +178,7 @@ public class WorkPermitController {
         }
 
         long applicantId = ((Number) permits.get(0).get("applicant_id")).longValue();
-        if (applicantId != user.id()
-            && !user.roles().contains("SAFETY_MANAGER")
-            && !user.roles().contains("ADMIN")) {
+        if (applicantId != user.id() && !user.roles().contains("ADMIN")) {
             throw new ApiException(HttpStatus.FORBIDDEN, "허가서를 수정할 권한이 없습니다.");
         }
 
@@ -301,9 +299,7 @@ public class WorkPermitController {
         }
 
         long applicantId = ((Number) permits.get(0).get("applicant_id")).longValue();
-        if (applicantId != user.id()
-            && !user.roles().contains("SAFETY_MANAGER")
-            && !user.roles().contains("ADMIN")) {
+        if (applicantId != user.id() && !user.roles().contains("ADMIN")) {
             throw new ApiException(HttpStatus.FORBIDDEN, "허가서를 관리할 권한이 없습니다.");
         }
         if (mustBeDeleted && !"deleted".equals(permits.get(0).get("status"))) {

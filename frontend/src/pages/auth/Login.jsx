@@ -17,8 +17,9 @@ function Login({ initialUsername, onLogin, onRegister, notify, theme, onToggleTh
     try {
       const result = await apiRequest("/api/auth/login", { method: "POST", body: JSON.stringify(form) });
       const roles = (result.user.roles || []).map(role => String(role).toUpperCase());
-      const isControlUser = roles.includes("ADMIN") || roles.includes("SAFETY_MANAGER");
-      onLogin({ token: result.accessToken, role: isControlUser ? "admin" : "worker", roles, name: result.user.name, username: result.user.username });
+      const role = roles.includes("ADMIN") ? "admin" : roles.includes("WORKER") ? "worker" : null;
+      if (!role) throw new Error("웹 화면에 접근할 수 있는 사용자 역할이 없습니다.");
+      onLogin({ token: result.accessToken, role, roles, name: result.user.name, username: result.user.username });
     } catch (error) { notify(error.message); } finally { setSubmitting(false); }
   };
   return <div className={`auth-theme-shell ${theme}-theme`}>
