@@ -47,3 +47,7 @@ coverage/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+ai/**/.venv/
+ai/**/__pycache__/
+*.pyc

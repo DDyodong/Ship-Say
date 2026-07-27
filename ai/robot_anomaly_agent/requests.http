@@ -1,0 +1,16 @@
+GET http://127.0.0.1:8000/health
+
+###
+GET http://127.0.0.1:8000/model-info
+
+###
+POST http://127.0.0.1:8000/predict
+Content-Type: application/json
+
+{"assetCode":"RB-WELD-01","operatingState":"WELDING","voltage":27.8,"current_amp":238,"wire_feed":8.6,"travel_speed":42,"torque_percent":48,"temperature_c":53,"gas_flow":18}
+
+###
+POST http://127.0.0.1:8000/predict
+Content-Type: application/json
+
+{"assetCode":"RB-WELD-01","operatingState":"WELDING","voltage":27.8,"current_amp":378,"wire_feed":8.6,"travel_speed":42,"torque_percent":48,"temperature_c":53,"gas_flow":18}

@@ -1,12 +1,14 @@
 package com.example.safetyai.digitaltwin.service;
 
 import com.example.safetyai.common.exception.ApiException;
+import com.example.safetyai.digitaltwin.client.RobotAnomalyClient;
 import com.example.safetyai.digitaltwin.dto.DigitalTwinDtos.Alarm;
 import com.example.safetyai.digitaltwin.dto.DigitalTwinDtos.Asset;
 import com.example.safetyai.digitaltwin.dto.DigitalTwinDtos.AxisAngles;
 import com.example.safetyai.digitaltwin.dto.DigitalTwinDtos.Facility;
 import com.example.safetyai.digitaltwin.dto.DigitalTwinDtos.HistoryPoint;
 import com.example.safetyai.digitaltwin.dto.DigitalTwinDtos.ProcessStep;
+import com.example.safetyai.digitaltwin.dto.DigitalTwinDtos.RobotAnomalyAnalysis;
 import com.example.safetyai.digitaltwin.dto.DigitalTwinDtos.RobotTelemetry;
 import com.example.safetyai.digitaltwin.dto.DigitalTwinDtos.ScenarioRequest;
 import com.example.safetyai.digitaltwin.dto.DigitalTwinDtos.ScenarioResult;
@@ -28,10 +30,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class DigitalTwinService {
     private static final String T_BAR_SHOP = "T-BAR-SHOP";
     private final DigitalTwinRepository repository;
+    private final RobotAnomalyClient robotAnomalyClient;
     private final AtomicLong lastHistoryWrite = new AtomicLong(0);
 
-    public DigitalTwinService(DigitalTwinRepository repository) {
+    public DigitalTwinService(
+        DigitalTwinRepository repository,
+        RobotAnomalyClient robotAnomalyClient
+    ) {
         this.repository = repository;
+        this.robotAnomalyClient = robotAnomalyClient;
     }
 
     public YardSnapshot yardSnapshot() {
@@ -69,7 +76,11 @@ public class DigitalTwinService {
         List<ProcessStep> process = buildProcess(overallProgress);
         List<RobotTelemetry> robots = new ArrayList<>();
         for (int i = 0; i < robotAssets.size(); i++) {
-            robots.add(generateTelemetry(robotAssets.get(i), i, scenario, overallProgress));
+            RobotTelemetry telemetry = generateTelemetry(
+                robotAssets.get(i), i, scenario, overallProgress);
+            RobotAnomalyAnalysis analysis = robotAnomalyClient.analyze(telemetry)
+                .orElse(RobotAnomalyAnalysis.unavailable());
+            robots.add(withAnalysis(telemetry, analysis));
         }
 
         persistHistoryAtInterval(robots);
@@ -168,7 +179,26 @@ public class DigitalTwinService {
             LocalDateTime.now(), state, !"OFFLINE".equals(state), "T-BAR_WELD_MAIN",
             "SEAM-" + (index + 1), overallProgress, round(voltage), round(current),
             round(wireFeed), round(travelSpeed), round(torque), round(temperature),
-            round(gasFlow), axes, affected ? scenario.type() : "NORMAL", risk, alarmCode);
+            round(gasFlow), axes, affected ? scenario.type() : "NORMAL", risk, alarmCode,
+            RobotAnomalyAnalysis.unavailable());
+    }
+
+    private RobotTelemetry withAnalysis(
+        RobotTelemetry value,
+        RobotAnomalyAnalysis analysis
+    ) {
+        String riskLevel = value.riskLevel();
+        String alarmCode = value.alarmCode();
+        if (analysis.available() && analysis.confirmed()) {
+            riskLevel = "CRITICAL".equalsIgnoreCase(analysis.severity()) ? "critical" : "high";
+            alarmCode = analysis.anomalyType();
+        }
+        return new RobotTelemetry(
+            value.assetId(), value.assetCode(), value.assetName(), value.modelName(),
+            value.recordedAt(), value.operatingState(), value.servoOn(), value.jobName(),
+            value.seamNo(), value.progressPercent(), value.voltage(), value.currentAmp(),
+            value.wireFeed(), value.travelSpeed(), value.torquePercent(), value.temperatureC(),
+            value.gasFlow(), value.axes(), value.scenarioType(), riskLevel, alarmCode, analysis);
     }
 
     private List<ProcessStep> buildProcess(int overall) {
@@ -187,7 +217,10 @@ public class DigitalTwinService {
         long now = System.currentTimeMillis();
         long previous = lastHistoryWrite.get();
         if (now - previous >= 5_000 && lastHistoryWrite.compareAndSet(previous, now)) {
-            telemetry.forEach(repository::saveTelemetry);
+            telemetry.forEach(value -> {
+                repository.saveTelemetry(value);
+                repository.saveAnomalyAnalysis(value);
+            });
         }
     }
 

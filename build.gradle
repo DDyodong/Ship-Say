@@ -13,3 +13,37 @@ tasks.register('backendTest') {
     description = 'Runs backend tests.'
     dependsOn(':backend:test')
 }
+
+tasks.register('robotAnomalyAgent', Exec) {
+    group = 'application'
+    description = 'Runs the Robot Anomaly Agent FastAPI service.'
+
+    def agentDirectory = file("$rootDir/ai/robot_anomaly_agent")
+    def pythonExecutable = file("$agentDirectory/.venv/python.exe")
+    def modelFile = file("$agentDirectory/models/robot_anomaly_agent_v2.joblib")
+
+    workingDir(agentDirectory)
+    commandLine(
+        pythonExecutable.absolutePath,
+        '-m',
+        'uvicorn',
+        'main:app',
+        '--host',
+        '127.0.0.1',
+        '--port',
+        '8000'
+    )
+
+    doFirst {
+        if (!pythonExecutable.exists()) {
+            throw new GradleException(
+                "Robot Anomaly Agent Python environment is missing: ${pythonExecutable}"
+            )
+        }
+        if (!modelFile.exists()) {
+            throw new GradleException(
+                "Robot Anomaly Agent model is missing: ${modelFile}"
+            )
+        }
+    }
+}
