@@ -58,6 +58,9 @@ GET  /api/work-permits/trash                                 ADMIN
 POST /api/work-permits/{id}/restore                          WORKER | ADMIN (본인 또는 ADMIN)
 DELETE /api/work-permits/{id}/permanent                      WORKER | ADMIN (본인 또는 ADMIN)
 
+GET  /api/worker/tbm/today?language=ko                       WORKER | ADMIN
+POST /api/worker/tbm/confirm                                 WORKER | ADMIN
+
 GET  /api/safety-events                                      ADMIN
 GET  /api/safety-events/reports                              ADMIN
 GET  /api/safety-events/my                                   WORKER | ADMIN

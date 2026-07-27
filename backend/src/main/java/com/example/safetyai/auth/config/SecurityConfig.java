@@ -55,6 +55,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/safety-events/*/actions").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/safety-events/my").hasAnyRole(HUMAN_ROLES)
                 .requestMatchers(HttpMethod.POST, "/api/safety-events").hasAnyRole(HUMAN_ROLES)
+                .requestMatchers("/api/worker/tbm/**").hasAnyRole(HUMAN_ROLES)
 
                 // Administrators create permits. Human users may read permits and may modify only
                 // resources allowed by the ownership checks in WorkPermitController.
