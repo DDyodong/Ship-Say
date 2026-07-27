@@ -21,8 +21,7 @@
 - `PUBLIC`: 인증 불필요
 - `AUTHENTICATED`: 역할과 관계없이 로그인 필요
 - `WORKER`: 회원가입 시 기본 부여되는 일반 작업자
-- `SAFETY_MANAGER`: 전체 관제 및 분석 결과 조회
-- `ADMIN`: 운영 데이터 조회 및 기준정보 변경
+- `ADMIN`: 전체 관제, 작업허가, 분석 결과 조회 및 기준정보 변경
 - `AI_SERVICE`: AI 결과 등록 전용 기계 계정
 
 ## 주요 엔드포인트와 권한
@@ -36,38 +35,48 @@ GET  /api/auth/usernames/{username}/availability             PUBLIC
 POST /api/auth/login                                         PUBLIC
 POST /api/auth/logout                                        AUTHENTICATED
 
-POST /api/files                                              AUTHENTICATED
-GET  /api/files/{id}                                         AUTHENTICATED
-GET  /api/files/{id}/download                                AUTHENTICATED
+POST /api/files                                              WORKER | ADMIN
+GET  /api/files/{id}                                         WORKER | ADMIN
+GET  /api/files/{id}/download                                WORKER | ADMIN
 
-GET  /api/board/posts?category=general                       AUTHENTICATED
-GET  /api/board/posts/{id}                                   AUTHENTICATED
-POST /api/board/posts                                        AUTHENTICATED
-POST /api/board/posts/{id}/comments                          AUTHENTICATED
+GET  /api/board/posts?category=general                       WORKER | ADMIN
+GET  /api/board/posts/{id}                                   WORKER | ADMIN
+POST /api/board/posts                                        WORKER | ADMIN
+POST /api/board/posts/{id}/comments                          WORKER | ADMIN
 
-GET  /api/master/sites                                       AUTHENTICATED
+GET  /api/master/sites                                       WORKER | ADMIN
 POST /api/master/sites                                       ADMIN
-GET  /api/master/blocks                                      AUTHENTICATED
-GET  /api/master/cameras                                     AUTHENTICATED
+GET  /api/master/blocks                                      WORKER | ADMIN
+GET  /api/master/cameras                                     WORKER | ADMIN
 
-GET  /api/work-permits                                       AUTHENTICATED
-GET  /api/work-permits/{id}                                  AUTHENTICATED
-POST /api/work-permits                                       AUTHENTICATED
+GET  /api/work-permits                                       WORKER | ADMIN
+GET  /api/work-permits/{id}                                  WORKER | ADMIN
+POST /api/work-permits                                       ADMIN
+PUT  /api/work-permits/{id}                                  WORKER | ADMIN (본인 또는 ADMIN)
+DELETE /api/work-permits/{id}                                WORKER | ADMIN (본인 또는 ADMIN)
+GET  /api/work-permits/trash                                 ADMIN
+POST /api/work-permits/{id}/restore                          WORKER | ADMIN (본인 또는 ADMIN)
+DELETE /api/work-permits/{id}/permanent                      WORKER | ADMIN (본인 또는 ADMIN)
 
-GET  /api/safety-events                                      ADMIN | SAFETY_MANAGER
-GET  /api/safety-events/my                                   AUTHENTICATED
-POST /api/safety-events                                      AUTHENTICATED
+GET  /api/safety-events                                      ADMIN
+GET  /api/safety-events/reports                              ADMIN
+GET  /api/safety-events/my                                   WORKER | ADMIN
+POST /api/safety-events                                      WORKER | ADMIN
+POST /api/safety-events/{id}/actions                         ADMIN
 
-GET  /api/ai/model-runs                                      ADMIN | SAFETY_MANAGER
+GET  /api/ai/model-runs                                      ADMIN
 POST /api/ai/model-runs                                      ADMIN | AI_SERVICE
 POST /api/ai/work-permits/{permitId}/analysis-results        ADMIN | AI_SERVICE
 
-GET  /api/risks/scores                                       ADMIN | SAFETY_MANAGER
+GET  /api/risks/scores                                       ADMIN
 POST /api/risks/scores                                       ADMIN | AI_SERVICE
-POST /api/risks/simulations                                  AUTHENTICATED
+POST /api/risks/simulations                                  WORKER | ADMIN
 
-GET  /api/dashboard/summary                                  ADMIN | SAFETY_MANAGER
+GET  /api/dashboard/summary                                  ADMIN
+GET|POST|PATCH /api/digital-twin/**                          ADMIN
 ```
+
+게시판과 파일 API는 대화형 사용자 역할인 `WORKER`, `ADMIN`만 사용할 수 있습니다. `AI_SERVICE`는 AI 모델 결과와 위험 점수를 등록하는 API에만 접근할 수 있으며, 위에 명시되지 않은 API는 기본적으로 거부됩니다.
 
 인증이 필요한 API는 로그인 응답의 `accessToken`을 아래처럼 전달합니다.
 

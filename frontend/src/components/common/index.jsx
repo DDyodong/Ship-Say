@@ -7,6 +7,4 @@ function SectionHead({eyebrow,title,desc,action}) { return <div className="secti
 function Stat({icon:Icon,label,value,sub,tone="blue"}) { return <article className={`stat ${tone}`}><div><Icon/></div><span><small>{label}</small><b>{value}</b><em>{sub}</em></span></article>; }
 function Panel({title,action,children}) { return <article className="panel"><div className="panel-head"><h3>{title}</h3><span>{action}</span></div>{children}</article>; }
 function Task({done,text,time,onClick}) { return <button className={`task ${done?"done":""}`} onClick={onClick}><span>{done?<Check/>:""}</span><div><b>{text}</b><small>{time}</small></div><ChevronDown/></button>; }
-function Setting({icon:Icon,title,text,value}) { return <article className="setting-card"><div><Icon/></div><span><b>{title}</b><p>{text}</p><small>{value}</small></span><ChevronDown/></article>; }
-
-export { Feature, SectionHead, Stat, Panel, Task, Setting };
+export { Feature, SectionHead, Stat, Panel, Task };

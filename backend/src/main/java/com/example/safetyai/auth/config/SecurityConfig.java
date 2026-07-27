@@ -18,6 +18,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 public class SecurityConfig {
+    private static final String[] HUMAN_ROLES = {"WORKER", "ADMIN"};
+
     private final BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter;
 
     public SecurityConfig(BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter) {
@@ -41,23 +43,40 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/health", "/api/auth/register", "/api/auth/login").permitAll()
                 .requestMatchers("/api/auth/employees/verify", "/api/auth/usernames/*/availability").permitAll()
+                .requestMatchers("/api/auth/logout").authenticated()
 
-                // Master data may be read by signed-in users, but only administrators may change it.
+                // Human users may read master data, but only administrators may change it.
                 .requestMatchers(HttpMethod.POST, "/api/master/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/master/**").hasAnyRole(HUMAN_ROLES)
 
-                // Operational dashboards and the complete event feed contain site-wide information.
-                .requestMatchers("/api/dashboard/**").hasAnyRole("ADMIN", "SAFETY_MANAGER")
-                .requestMatchers(HttpMethod.GET, "/api/safety-events").hasAnyRole("ADMIN", "SAFETY_MANAGER")
+                // Site-wide operational data and event actions are administrator features.
+                .requestMatchers("/api/dashboard/**", "/api/digital-twin/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/safety-events", "/api/safety-events/reports").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/safety-events/*/actions").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/safety-events/my").hasAnyRole(HUMAN_ROLES)
+                .requestMatchers(HttpMethod.POST, "/api/safety-events").hasAnyRole(HUMAN_ROLES)
+
+                // Administrators create permits. Human users may read permits and may modify only
+                // resources allowed by the ownership checks in WorkPermitController.
+                .requestMatchers(HttpMethod.POST, "/api/work-permits").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/work-permits/trash").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/work-permits", "/api/work-permits/**").hasAnyRole(HUMAN_ROLES)
+                .requestMatchers(HttpMethod.PUT, "/api/work-permits/**").hasAnyRole(HUMAN_ROLES)
+                .requestMatchers(HttpMethod.DELETE, "/api/work-permits/**").hasAnyRole(HUMAN_ROLES)
+                .requestMatchers(HttpMethod.POST, "/api/work-permits/*/restore").hasAnyRole(HUMAN_ROLES)
+
+                // Board and file features are for interactive human accounts.
+                .requestMatchers("/api/board/**", "/api/files/**").hasAnyRole(HUMAN_ROLES)
 
                 // AI_SERVICE is a machine account used only to submit model outputs.
                 .requestMatchers(HttpMethod.POST, "/api/ai/**").hasAnyRole("ADMIN", "AI_SERVICE")
-                .requestMatchers(HttpMethod.GET, "/api/ai/**").hasAnyRole("ADMIN", "SAFETY_MANAGER")
+                .requestMatchers(HttpMethod.GET, "/api/ai/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/risks/scores").hasAnyRole("ADMIN", "AI_SERVICE")
-                .requestMatchers(HttpMethod.GET, "/api/risks/scores").hasAnyRole("ADMIN", "SAFETY_MANAGER")
+                .requestMatchers(HttpMethod.GET, "/api/risks/scores").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/risks/simulations").hasAnyRole(HUMAN_ROLES)
 
-                // Reports, permits, simulations, files, and board features remain available to every
-                // authenticated account. Resource-level ownership rules are handled separately.
-                .anyRequest().authenticated()
+                // New APIs must be assigned to a role explicitly.
+                .anyRequest().denyAll()
             )
             .exceptionHandling(exceptions -> exceptions
                 .authenticationEntryPoint((request, response, exception) -> {
@@ -78,7 +97,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("http://localhost:*", "http://127.0.0.1:*"));
+        configuration.setAllowedOriginPatterns(List.of("http://localhost:*", "http://127.0.0.1:*", "https://df47xszv4nn0z.cloudfront.net"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         configuration.setExposedHeaders(List.of("Authorization"));

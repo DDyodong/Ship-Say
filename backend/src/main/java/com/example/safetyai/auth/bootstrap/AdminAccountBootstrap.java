@@ -42,8 +42,8 @@ public class AdminAccountBootstrap implements ApplicationRunner {
         if (!username.matches("^[A-Za-z0-9._-]{4,30}$")) {
             throw new IllegalStateException("BOOTSTRAP_ADMIN_USERNAME가 아이디 규칙에 맞지 않습니다.");
         }
-        if (password.length() < 12 || password.length() > 72) {
-            throw new IllegalStateException("BOOTSTRAP_ADMIN_PASSWORD는 12~72자여야 합니다.");
+        if (password.length() < 8 || password.length() > 72) {
+            throw new IllegalStateException("BOOTSTRAP_ADMIN_PASSWORD는 8~72자여야 합니다.");
         }
 
         Long userId = jdbcTemplate.query(

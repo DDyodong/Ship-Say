@@ -3,6 +3,7 @@ package com.example.safetyai.auth.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.AssertTrue;
 
 public record RegisterRequest(
     @NotBlank String employeeNo,
@@ -12,6 +13,7 @@ public record RegisterRequest(
     String username,
     @NotBlank @Size(min = 8, max = 72) String password,
     @NotBlank String passwordConfirm,
-    @NotBlank String name
+    @NotBlank String name,
+    @AssertTrue(message = "필수 약관에 동의해야 합니다.") boolean termsAgreed
 ) {
 }

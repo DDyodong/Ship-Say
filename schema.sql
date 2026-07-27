@@ -54,8 +54,7 @@ CREATE TABLE roles (
 -- 애플리케이션 RBAC 기본 역할. 사용자별 역할은 user_roles에서 별도로 배정한다.
 INSERT INTO roles (role_code, name, description) VALUES
   ('WORKER', '현장 작업자', '게시판, 파일, 작업허가서, 본인 위험 신고 기능을 사용합니다.'),
-  ('SAFETY_MANAGER', '안전 관리자', '전체 위험 이벤트, 관제 대시보드, 위험 분석 결과를 조회합니다.'),
-  ('ADMIN', '관리자', '기준정보와 운영 기능을 관리합니다.'),
+  ('ADMIN', '관리자', '관제, 작업허가, 위험 분석, 기준정보와 운영 기능을 관리합니다.'),
   ('AI_SERVICE', 'AI 서비스', 'AI 모델 실행 결과와 위험 점수를 등록하는 기계 계정입니다.');
 
 CREATE TABLE user_roles (

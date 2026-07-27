@@ -1,40 +1,71 @@
 # Safety AI Control
 
-현장 안전 AI 관제 시스템 Spring Boot 프로젝트 초안입니다.
+조선소·산업 현장의 안전 데이터를 통합 관리하는 AI 안전 관제 시스템입니다. 작업자는 작업 전 점검과 위험 신고를 수행하고, 관리자는 위험 이벤트·작업허가·AI 분석 결과를 조회하고 관리할 수 있습니다.
 
-## 구성
+## 주요 기능
 
-- Java 17
-- Spring Boot 3.3.5
-- Spring Web
-- Spring Data JPA
-- MySQL Connector/J
-- Flyway
-- React/Vite frontend mockup
+- 회원가입, 사원 확인, 로그인·로그아웃
+- DB 세션 기반 Bearer 토큰 인증 및 역할별 접근 제어
+- 작업허가서, 안전 이벤트, 위험 점수 관리
+- AI 모델 실행 및 작업허가 분석 결과 저장
+- 게시글·댓글 및 파일 업로드·다운로드
+- 관리자용 안전 현황 대시보드
+- 작업자·관리자 역할별 React 화면
 
-## DB 스키마
+## 기술 스택
 
-- 설계 설명: `db_design.md`
-- 원본 SQL: `schema.sql`
-- Spring Boot 마이그레이션 SQL: `backend/src/main/resources/db/migration/`
-- 역할 확장 마이그레이션: `V3__add_operational_roles.sql`
+| 영역 | 기술 |
+| --- | --- |
+| Backend | Java 17, Spring Boot 3.3.5, Spring Web, Spring Security, Spring Data JPA |
+| Database | MySQL 8.4, Flyway |
+| Frontend | React 18, Vite 6, Lucide React |
+| Build | Gradle Wrapper, npm |
 
-## 프론트 목업
+## 프로젝트 구조
 
-- 원본 React/Vite 목업: `frontend/`
-
-프론트는 현재 백엔드에 통합하지 않고 목업 소스로만 보관합니다.
-화면을 확인하려면 `frontend` 폴더에서 의존성을 설치한 뒤 Vite 개발 서버를 실행합니다.
-
-```powershell
-cd frontend
-npm install
-npm run dev
+```text
+.
+├── backend/                       # Spring Boot 애플리케이션
+│   └── src/main/resources/
+│       └── db/migration/          # Flyway 마이그레이션
+├── frontend/                      # React/Vite 프런트엔드
+│   └── src/
+│       ├── api/                   # API 클라이언트
+│       ├── components/            # 공통 UI와 레이아웃
+│       └── pages/                 # 인증·작업자·관리자 화면
+├── compose.yml                    # 로컬 MySQL 구성
+├── API_SPEC.md                    # API와 접근 권한 명세
+├── db_design.md                   # 데이터베이스 설계 문서
+└── schema.sql                     # 전체 스키마 참고본
 ```
 
-## 실행 전 준비
+## 로컬 실행
 
-MySQL 8 DB를 만들고 환경변수를 설정합니다. Docker가 설치된 로컬 환경에서는 `docker compose up -d mysql`로 실행할 수 있습니다.
+### 1. 사전 요구사항
+
+- Java 17
+- Node.js와 npm
+- Docker Desktop 또는 별도의 MySQL 8 인스턴스
+
+### 2. MySQL 실행
+
+프로젝트 루트에서 다음 명령을 실행합니다.
+
+```powershell
+docker compose up -d mysql
+```
+
+기본 연결 정보는 다음과 같습니다.
+
+| 항목 | 기본값 |
+| --- | --- |
+| Host | `localhost` |
+| Port | `3307` |
+| Database | `safety_smartyard_control` |
+| Username | `admin123` |
+| Password | `admin123` |
+
+별도 DB를 사용하려면 백엔드 실행 전에 환경변수를 설정합니다.
 
 ```powershell
 $env:DB_URL="jdbc:mysql://localhost:3307/safety_smartyard_control?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC"
@@ -42,40 +73,91 @@ $env:DB_USERNAME="admin123"
 $env:DB_PASSWORD="admin123"
 ```
 
-Gradle Wrapper를 추가하거나 IntelliJ에서 Gradle 프로젝트로 열어 실행하면 됩니다.
+### 3. 백엔드 실행
 
 ```powershell
 .\gradlew.bat :backend:bootRun
 ```
 
-## 확인 API
+백엔드는 기본적으로 `http://localhost:8080`에서 실행되며, 시작 시 Flyway가 DB 마이그레이션을 적용합니다.
+
+정상 실행 여부는 다음 API로 확인할 수 있습니다.
 
 ```text
-GET /api/health
+GET http://localhost:8080/api/health
 ```
+
+### 4. 프런트엔드 실행
+
+새 터미널에서 실행합니다.
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+프런트엔드는 기본적으로 `http://localhost:8080`의 API를 호출합니다. 다른 주소를 사용한다면 `frontend/.env.local`에 다음 값을 지정합니다.
+
+```dotenv
+VITE_API_BASE_URL=http://localhost:8080
+```
+
+## 최초 관리자 계정
+
+기본 테스트 관리자 계정 대신 별도 관리자 계정을 사용하려면 백엔드를 처음 실행하기 전에 다음 환경변수를 설정합니다.
+
+```powershell
+$env:BOOTSTRAP_ADMIN_USERNAME="admin"
+$env:BOOTSTRAP_ADMIN_PASSWORD="change-this-password"
+$env:BOOTSTRAP_ADMIN_NAME="관리자"
+.\gradlew.bat :backend:bootRun
+```
+
+환경변수를 지정하지 않은 개발 환경에서는 테스트 관리자 계정
+`aivle` / `aivle123`이 자동으로 생성됩니다.
+
 
 ## 인증 및 역할
 
-로그인 성공 시 반환되는 `accessToken`은 DB 세션 기반 Bearer 토큰입니다. 인증이 필요한 API에는 다음 헤더를 전달합니다.
+로그인 성공 응답의 `accessToken`을 인증이 필요한 요청에 전달합니다.
 
 ```http
 Authorization: Bearer {accessToken}
 ```
 
-| 역할 | 용도 |
+| 역할 | 권한 |
 | --- | --- |
-| `WORKER` | 게시판, 파일, 작업허가서, 본인 위험 신고 등 일반 작업자 기능 |
-| `SAFETY_MANAGER` | 관제 대시보드, 전체 위험 이벤트, AI 분석 및 위험 점수 조회 |
-| `ADMIN` | 모든 운영 조회와 기준정보·AI 결과·위험 점수 변경 |
-| `AI_SERVICE` | AI 결과와 위험 점수를 등록하는 기계 계정 |
+| `WORKER` | 회원가입 시 기본 부여되는 일반 작업자 권한 |
+| `ADMIN` | 전체 관제, 작업허가, 운영 데이터, 기준정보·AI 결과·위험 점수 관리 |
+| `AI_SERVICE` | AI 결과와 위험 점수를 등록하는 서비스 계정 |
 
-회원가입 계정에는 `WORKER` 역할이 자동 부여됩니다. `ADMIN`은 `BOOTSTRAP_ADMIN_*` 환경변수로 최초 생성할 수 있으며, `SAFETY_MANAGER`와 `AI_SERVICE`는 관리자가 DB에서 명시적으로 배정해야 합니다.
+`AI_SERVICE` 역할은 자동 배정되지 않으므로 관리자가 DB에서 명시적으로 배정해야 합니다. `SAFETY_MANAGER` 역할은 Flyway V8에서 기존 배정 범위를 유지한 채 `ADMIN`으로 통합됩니다. 전체 엔드포인트와 역할별 권한은 [API_SPEC.md](API_SPEC.md)를 참고하세요.
 
-```sql
-INSERT INTO user_roles (user_id, role_id, site_id)
-SELECT :user_id, id, NULL
-FROM roles
-WHERE role_code = 'SAFETY_MANAGER';
+## 테스트와 빌드
+
+백엔드 테스트:
+
+```powershell
+.\gradlew.bat :backend:test
 ```
 
-역할 정의는 Flyway가 자동 등록하지만 사용자 배정은 자동으로 수행하지 않습니다.
+프런트엔드 프로덕션 빌드:
+
+```powershell
+cd frontend
+npm run build
+```
+
+## 관련 문서
+
+- [API 명세](API_SPEC.md)
+- [DB 설계](db_design.md)
+- [전체 스키마 참고본](schema.sql)
+- [SQL 교차 검증 결과](sql_cross_validation.md)
+
+## 현재 구현 참고사항
+
+- 업로드 파일은 기본적으로 백엔드 실행 위치의 `uploads/` 디렉터리에 저장됩니다.
+- 프런트엔드 화면은 역할별 페이지 구조로 분리되어 있으며, 일부 화면은 후속 API 연동과 기능 구현이 필요합니다.
+- 운영 배포 전에는 비밀번호·DB 접속 정보의 외부 비밀 저장소 관리, 로그인 제한, 감사 로그, 객체 스토리지 적용을 권장합니다.

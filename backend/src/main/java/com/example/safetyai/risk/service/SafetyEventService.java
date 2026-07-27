@@ -3,6 +3,8 @@ package com.example.safetyai.risk.service;
 import com.example.safetyai.auth.service.AuthService;
 import com.example.safetyai.common.exception.ApiException;
 import com.example.safetyai.risk.dto.CreateSafetyEventRequest;
+import com.example.safetyai.risk.dto.SafetyEventActionRequest;
+import com.example.safetyai.risk.dto.SafetyEventAnalysisRequest;
 import com.example.safetyai.risk.repository.SafetyEventRepository;
 import java.time.Year;
 import java.util.LinkedHashMap;
@@ -59,6 +61,47 @@ public class SafetyEventService {
 
     public List<Map<String, Object>> getAll(String status) {
         return safetyEventRepository.findAll(status);
+    }
+
+    public List<Map<String, Object>> getWorkerReports(String status) {
+        return safetyEventRepository.findWorkerReports(status);
+    }
+
+    @Transactional
+    public Map<String, Object> saveAiAnalysis(long eventId, SafetyEventAnalysisRequest request) {
+        boolean updated = safetyEventRepository.saveAiAnalysis(
+            eventId,
+            request.severity(),
+            request.estimatedLocation().trim(),
+            request.riskScore(),
+            request.summary().trim(),
+            request.recommendedAction().trim(),
+            request.confidence(),
+            request.modelVersion().trim()
+        );
+        if (!updated) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "작업자 위험 신고를 찾을 수 없습니다.");
+        }
+        return Map.of("id", eventId, "analysisStatus", "completed");
+    }
+
+    @Transactional
+    public Map<String, Object> updateReportStatus(
+        String authorization,
+        long eventId,
+        SafetyEventActionRequest request
+    ) {
+        long actorId = authService.requireUserId(authorization);
+        boolean updated = safetyEventRepository.updateReportStatus(
+            eventId,
+            actorId,
+            request.status(),
+            request.comment() == null ? "" : request.comment().trim()
+        );
+        if (!updated) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "작업자 위험 신고를 찾을 수 없습니다.");
+        }
+        return Map.of("id", eventId, "status", request.status());
     }
 
     private static Map<String, String> eventTypes() {
