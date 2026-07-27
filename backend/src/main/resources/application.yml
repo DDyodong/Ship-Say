@@ -37,6 +37,6 @@ app:
       bucket: ${S3_BUCKET:}
       region: ${S3_REGION:${AWS_REGION:ap-northeast-2}}
   bootstrap-admin:
-    username: ${BOOTSTRAP_ADMIN_USERNAME:}
-    password: ${BOOTSTRAP_ADMIN_PASSWORD:}
-    name: ${BOOTSTRAP_ADMIN_NAME:관리자}
+    username: ${BOOTSTRAP_ADMIN_USERNAME:aivle}
+    password: ${BOOTSTRAP_ADMIN_PASSWORD:aivle123}
+    name: ${BOOTSTRAP_ADMIN_NAME:테스트 관리자}
