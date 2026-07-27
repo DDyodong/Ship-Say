@@ -1,4 +1,7 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+const API_BASE = import.meta.env.VITE_API_BASE_URL
+  || (import.meta.env.DEV
+    ? "http://localhost:8080"
+    : "https://df47xszv4nn0z.cloudfront.net");
 
 async function apiRequest(path, options = {}) {
   let response;
