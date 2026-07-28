@@ -451,14 +451,18 @@ body,
   display: block;
   color: #edf5f8;
   font-size: 11px;
-  letter-spacing: -.01em;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1.35;
 }
 
 .password-rule-title small {
   display: block;
-  margin-top: 1px;
+  margin-top: 2px;
   color: #7f96a7;
   font-size: 9px;
+  font-weight: 400;
+  line-height: 1.4;
 }
 
 .password-rule-list {
@@ -477,6 +481,10 @@ body,
   border-radius: 7px;
   background: rgba(255, 255, 255, .025);
   color: #8298a8;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
   transition: border-color .18s ease, background-color .18s ease, color .18s ease;
 }
 
@@ -513,7 +521,15 @@ body,
   margin-top: 10px;
   color: #718999;
   font-size: 8px;
+  font-weight: 400;
+  line-height: 1.45;
   letter-spacing: .015em;
+}
+
+.password-rule-example b {
+  margin-right: 5px;
+  color: #8fa4b2;
+  font-weight: 600;
 }
 
 .password-field:focus-within .password-rule-tooltip {
@@ -539,6 +555,10 @@ body,
 .auth-theme-shell.light-theme .password-rule-title small,
 .auth-theme-shell.light-theme .password-rule-example {
   color: #718491;
+}
+
+.auth-theme-shell.light-theme .password-rule-example b {
+  color: #526879;
 }
 
 .auth-theme-shell.light-theme .password-rule-list > span {
