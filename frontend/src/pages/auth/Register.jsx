@@ -7,21 +7,28 @@ import VisualPanel from "../../components/auth/VisualPanel";
 function Register({ onBack, onRegistered, notify, theme, onToggleTheme }) {
   const [form, setForm] = useState({ name:"", employeeNo:"", username:"", password:"", passwordConfirm:"" });
   const [employeeVerified, setEmployeeVerified] = useState(false);
+  const [employeeRole, setEmployeeRole] = useState("");
   const [usernameAvailable, setUsernameAvailable] = useState(false);
   const [termsAgreed, setTermsAgreed] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const setField = (field, value) => {
     setForm(current => ({...current, [field]: value}));
-    if (field === "name" || field === "employeeNo") setEmployeeVerified(false);
+    if (field === "name" || field === "employeeNo") {
+      setEmployeeVerified(false);
+      setEmployeeRole("");
+    }
     if (field === "username") setUsernameAvailable(false);
   };
   const verifyEmployee = async () => {
     if (!form.name || !form.employeeNo) return notify("이름과 사번을 입력해 주세요.");
     try {
-      await apiRequest("/api/auth/employees/verify", { method:"POST", body:JSON.stringify({name:form.name, employeeNo:form.employeeNo}) });
-      setEmployeeVerified(true); notify("사번 인증이 완료되었습니다.");
-    } catch (error) { setEmployeeVerified(false); notify(error.message); }
+      const result = await apiRequest("/api/auth/employees/verify", { method:"POST", body:JSON.stringify({name:form.name, employeeNo:form.employeeNo}) });
+      if (result.verified !== true || !["ADMIN", "WORKER"].includes(result.role)) throw new Error("사번 인증 응답이 올바르지 않습니다.");
+      setEmployeeRole(result.role);
+      setEmployeeVerified(true);
+      notify(`${result.role === "ADMIN" ? "관리자" : "작업자"} 사번 인증이 완료되었습니다.`);
+    } catch (error) { setEmployeeVerified(false); setEmployeeRole(""); notify(error.message); }
   };
   const checkUsername = async () => {
     if (!form.username) return notify("아이디를 입력해 주세요.");
@@ -31,7 +38,13 @@ function Register({ onBack, onRegistered, notify, theme, onToggleTheme }) {
       notify(result.available ? "사용할 수 있는 아이디입니다." : "이미 사용 중인 아이디입니다.");
     } catch (error) { setUsernameAvailable(false); notify(error.message); }
   };
-  const passwordValid = form.password.length >= 8;
+  const passwordRules = {
+    length: form.password.length >= 10 && form.password.length <= 16,
+    letter: /[A-Za-z]/.test(form.password),
+    number: /\d/.test(form.password),
+    special: /[!@#$%^&*_\-+=?]/.test(form.password),
+  };
+  const passwordValid = Object.values(passwordRules).every(Boolean);
   const passwordMatches = passwordValid && form.password === form.passwordConfirm;
   const canSubmit = employeeVerified && usernameAvailable && passwordMatches && termsAgreed;
   const submit = async (e) => {
@@ -52,14 +65,27 @@ function Register({ onBack, onRegistered, notify, theme, onToggleTheme }) {
       <div className="register-row employee-row">
         <label><span>이름</span><div className="input-box"><UserRound/><input value={form.name} onChange={e=>setField("name",e.target.value)}/>{employeeVerified&&<CheckCircle2 className="field-check"/>}</div></label>
         <label><span>사번</span><div className="input-box"><input value={form.employeeNo} onChange={e=>setField("employeeNo",e.target.value)}/>{employeeVerified&&<CheckCircle2 className="field-check"/>}</div></label>
-        <button type="button" className={employeeVerified?"verify-btn verified":"verify-btn"} onClick={verifyEmployee}>사번인증{employeeVerified&&<Check/>}</button>
+        <button type="button" className={employeeVerified?"verify-btn verified":"verify-btn"} onClick={verifyEmployee}>{employeeVerified ? `${employeeRole === "ADMIN" ? "관리자" : "작업자"} 인증` : "사번인증"}{employeeVerified&&<Check/>}</button>
       </div>
       <div className="register-row username-row">
         <label><span>아이디</span><div className="input-box"><UserRound/><input value={form.username} onChange={e=>setField("username",e.target.value)}/>{usernameAvailable&&<CheckCircle2 className="field-check"/>}</div></label>
         <button type="button" className={usernameAvailable?"verify-btn verified":"verify-btn"} onClick={checkUsername}>중복체크{usernameAvailable&&<Check/>}</button>
       </div>
       <div className="register-row password-row">
-        <label><span>비밀번호</span><div className="input-box"><LockKeyhole/><input type="password" autoComplete="new-password" value={form.password} onChange={e=>setField("password",e.target.value)}/>{passwordValid&&<CheckCircle2 className="field-check"/>}</div></label>
+        <label className="password-field">
+          <span>비밀번호</span>
+          <div className="input-box"><LockKeyhole/><input type="password" autoComplete="new-password" value={form.password} onChange={e=>setField("password",e.target.value)}/>{passwordValid&&<CheckCircle2 className="field-check"/>}</div>
+          <span className="password-rule-tooltip" role="tooltip">
+            <span className="password-rule-title"><LockKeyhole/><span><b>안전한 비밀번호 만들기</b><small>아래 조건을 모두 충족해 주세요.</small></span></span>
+            <span className="password-rule-list">
+              <span className={passwordRules.length ? "valid" : ""}><i><Check/></i>10~16자</span>
+              <span className={passwordRules.letter ? "valid" : ""}><i><Check/></i>영문 포함</span>
+              <span className={passwordRules.number ? "valid" : ""}><i><Check/></i>숫자 포함</span>
+              <span className={passwordRules.special ? "valid" : ""}><i><Check/></i>특수문자 포함</span>
+            </span>
+            <small className="password-rule-example">사용 가능 특수문자&nbsp; ! @ # $ % ^ &amp; * _ - + = ?</small>
+          </span>
+        </label>
         <label><span>비밀번호 확인</span><div className="input-box"><LockKeyhole/><input type="password" autoComplete="new-password" value={form.passwordConfirm} onChange={e=>setField("passwordConfirm",e.target.value)}/>{passwordMatches&&<CheckCircle2 className="field-check"/>}</div></label>
       </div>
       <div className="terms-consent">
