@@ -76,14 +76,14 @@ function Register({ onBack, onRegistered, notify, theme, onToggleTheme }) {
           <span>비밀번호</span>
           <div className="input-box"><LockKeyhole/><input type="password" autoComplete="new-password" value={form.password} onChange={e=>setField("password",e.target.value)}/>{passwordValid&&<CheckCircle2 className="field-check"/>}</div>
           <span className="password-rule-tooltip" role="tooltip">
-            <span className="password-rule-title"><LockKeyhole/><span><b>안전한 비밀번호 만들기</b><small>아래 조건을 모두 충족해 주세요.</small></span></span>
+            <span className="password-rule-title"><LockKeyhole/><span><b>비밀번호 입력 안내</b><small>다음 4가지 조건을 확인해 주세요.</small></span></span>
             <span className="password-rule-list">
               <span className={passwordRules.length ? "valid" : ""}><i><Check/></i>10~16자</span>
-              <span className={passwordRules.letter ? "valid" : ""}><i><Check/></i>영문 포함</span>
-              <span className={passwordRules.number ? "valid" : ""}><i><Check/></i>숫자 포함</span>
-              <span className={passwordRules.special ? "valid" : ""}><i><Check/></i>특수문자 포함</span>
+              <span className={passwordRules.letter ? "valid" : ""}><i><Check/></i>영문</span>
+              <span className={passwordRules.number ? "valid" : ""}><i><Check/></i>숫자</span>
+              <span className={passwordRules.special ? "valid" : ""}><i><Check/></i>특수문자</span>
             </span>
-            <small className="password-rule-example">사용 가능 특수문자&nbsp; ! @ # $ % ^ &amp; * _ - + = ?</small>
+            <small className="password-rule-example"><b>사용 가능</b> ! @ # $ % ^ &amp; * _ - + = ?</small>
           </span>
         </label>
         <label><span>비밀번호 확인</span><div className="input-box"><LockKeyhole/><input type="password" autoComplete="new-password" value={form.passwordConfirm} onChange={e=>setField("passwordConfirm",e.target.value)}/>{passwordMatches&&<CheckCircle2 className="field-check"/>}</div></label>
