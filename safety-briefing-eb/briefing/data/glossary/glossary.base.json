@@ -1,0 +1,525 @@
+[
+  {
+    "term_id": "TERM-0001",
+    "ko": "위험성평가",
+    "synonyms": ["위험성 평가", "리스크 평가"],
+    "definition": "작업에 내재된 유해·위험요인을 찾아내어 위험의 크기를 추정하고 감소대책을 수립·실행하는 일련의 과정",
+    "safety_categories": ["RISK_ASSESSMENT"],
+    "source": "산업안전보건법 제36조",
+    "criticality": "medium"
+  },
+  {
+    "term_id": "TERM-0002",
+    "ko": "출입통제",
+    "synonyms": ["출입 통제", "통제구역"],
+    "definition": "작업으로 인한 위험이 미치는 범위에 관계자 외 출입을 금지하고 경고표지·방책으로 구획하는 조치",
+    "safety_categories": ["WORK_AREA_CONTROL"],
+    "source": "산업안전보건기준에 관한 규칙 제20조",
+    "criticality": "medium"
+  },
+  {
+    "term_id": "TERM-0003",
+    "ko": "블록",
+    "synonyms": ["선체 블록"],
+    "definition": "선박을 구획 단위로 나누어 제작한 대형 구조물. 조선소 작업 위치를 지정하는 기본 단위",
+    "safety_categories": ["WORK_AREA_CONTROL"],
+    "source": "조선업 도메인 용어 (팀 정의)",
+    "criticality": "medium"
+  },
+  {
+    "term_id": "TERM-0004",
+    "ko": "가연성물질",
+    "synonyms": ["가연물", "가연성 물질"],
+    "definition": "불이 붙기 쉬운 고체·액체·기체. 화기작업 반경 내에서는 제거하거나 격리해야 한다",
+    "safety_categories": ["FIRE_EXPLOSION", "HAZARDOUS_MATERIAL"],
+    "source": "산업안전보건기준에 관한 규칙 제236조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0005",
+    "ko": "비산불티",
+    "synonyms": ["불티", "스패터"],
+    "definition": "용접·용단 작업 시 튀어 흩어지는 고온의 금속 입자. 인접 가연물에 착화해 화재를 일으킨다",
+    "safety_categories": ["FIRE_EXPLOSION"],
+    "source": "산업안전보건기준에 관한 규칙 제241조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0006",
+    "ko": "산소농도",
+    "synonyms": ["산소 농도", "산소 농도측정"],
+    "definition": "공기 중 산소가 차지하는 부피 비율. 밀폐공간 진입 전 반드시 측정하며 양식 기준은 18% 이상이다",
+    "safety_categories": ["GAS_ATMOSPHERE", "CONFINED_SPACE"],
+    "source": "산업안전보건기준에 관한 규칙 제618조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0007",
+    "ko": "밀폐공간",
+    "synonyms": ["밀폐 공간", "폐쇄공간"],
+    "definition": "산소결핍·유해가스 위험이 있는 밀폐되거나 통풍이 불충분한 장소",
+    "safety_categories": ["CONFINED_SPACE", "GAS_ATMOSPHERE"],
+    "source": "산업안전보건기준에 관한 규칙 제618조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0008",
+    "ko": "감시인",
+    "synonyms": ["감시자", "외부 감시인"],
+    "definition": "밀폐공간 외부에 배치되어 내부 작업자의 상태를 지속 확인하고 이상 시 즉시 구조를 요청하는 사람",
+    "safety_categories": ["CONFINED_SPACE"],
+    "source": "산업안전보건기준에 관한 규칙 제640조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0009",
+    "ko": "송기마스크",
+    "synonyms": ["공기공급식 마스크", "에어라인 마스크"],
+    "definition": "외부의 신선한 공기를 호스로 공급받는 호흡용 보호구. 산소결핍 장소에서 방진마스크는 사용할 수 없다",
+    "safety_categories": ["CONFINED_SPACE", "PPE_SAFETY_EQUIPMENT"],
+    "source": "산업안전보건기준에 관한 규칙 제624조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0010",
+    "ko": "구명장구",
+    "synonyms": ["구명 장구", "구조용 장비"],
+    "definition": "밀폐공간 사고 시 작업자를 밖으로 끌어내기 위한 사다리·섬유로프 등의 구조 장비",
+    "safety_categories": ["CONFINED_SPACE", "PPE_SAFETY_EQUIPMENT"],
+    "source": "산업안전보건기준에 관한 규칙 제625조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0011",
+    "ko": "국소배기장치",
+    "synonyms": ["국소배기", "국소 배기장치"],
+    "definition": "유해물질이 발생하는 지점에서 직접 흡인해 외부로 배출하는 환기 설비",
+    "safety_categories": ["VENTILATION_LIGHTING"],
+    "source": "산업안전보건기준에 관한 규칙 제422조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0012",
+    "ko": "불활성가스 치환",
+    "synonyms": ["불활성화", "퍼지", "이너팅"],
+    "definition": "용기 내부의 가연성 가스를 질소 등 불활성 가스로 밀어내어 폭발 위험을 없애는 조치",
+    "safety_categories": ["VENTILATION_LIGHTING", "HAZARDOUS_MATERIAL"],
+    "source": "산업안전보건기준에 관한 규칙 제232조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0013",
+    "ko": "맹판",
+    "synonyms": ["블라인드 플랜지", "맹판설치"],
+    "definition": "배관을 물리적으로 완전히 막는 금속판. 밸브 차단만으로는 불충분할 때 설치한다",
+    "safety_categories": ["ENERGY_ISOLATION"],
+    "source": "조선업 도메인 용어 (팀 정의)",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0014",
+    "ko": "잠금장치",
+    "synonyms": ["잠금·표지 부착", "LOTO", "차단표지"],
+    "definition": "차단한 에너지원이 작업 중 재가동되지 않도록 물리적으로 잠그고 표지를 붙이는 조치",
+    "safety_categories": ["ENERGY_ISOLATION"],
+    "source": "산업안전보건기준에 관한 규칙 제88조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0015",
+    "ko": "안전대",
+    "synonyms": ["안전벨트", "추락방지대", "하네스"],
+    "definition": "고소작업 시 몸에 착용하고 구조물에 걸어 추락을 막는 개인보호구",
+    "safety_categories": ["WORK_AT_HEIGHT", "PPE_SAFETY_EQUIPMENT"],
+    "source": "산업안전보건기준에 관한 규칙 제44조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0016",
+    "ko": "작업발판",
+    "synonyms": ["발판", "비계 발판"],
+    "definition": "고소작업에서 작업자가 딛고 서는 수평 구조물. 폭·틈새·고정 상태 기준이 정해져 있다",
+    "safety_categories": ["WORK_AT_HEIGHT"],
+    "source": "산업안전보건기준에 관한 규칙 제56조",
+    "criticality": "medium"
+  },
+  {
+    "term_id": "TERM-0017",
+    "ko": "신호수",
+    "synonyms": ["유도자", "신호 담당자"],
+    "definition": "중장비 운전자의 시야가 닿지 않는 범위를 확인하고 정해진 수신호로 장비를 유도하는 사람",
+    "safety_categories": ["EXCAVATION_HEAVY_EQUIPMENT"],
+    "source": "산업안전보건기준에 관한 규칙 제172조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0018",
+    "ko": "작업중지",
+    "synonyms": ["작업 중지", "작업중지권"],
+    "definition": "급박한 위험이 있을 때 작업을 즉시 멈추고 대피하는 조치. 근로자에게 요구할 권리가 있다",
+    "safety_categories": ["SPECIAL_EMERGENCY"],
+    "source": "산업안전보건법 제52조",
+    "criticality": "high"
+  },
+
+  {
+    "term_id": "TERM-0019",
+    "ko": "안전교육",
+    "synonyms": ["안전보건교육", "작업 전 교육"],
+    "definition": "작업 착수 전 근로자에게 유해·위험요인과 안전작업 방법을 알리는 교육",
+    "safety_categories": ["RISK_ASSESSMENT"],
+    "source": "산업안전보건법 제29조",
+    "criticality": "medium"
+  },
+  {
+    "term_id": "TERM-0020",
+    "ko": "작업절차서",
+    "synonyms": ["표준작업절차", "작업 절차서"],
+    "definition": "작업의 순서·안전조치·위험요인 대응을 문서로 정한 것. 위험작업은 절차서에 따라 수행한다",
+    "safety_categories": ["RISK_ASSESSMENT"],
+    "source": "산업안전보건기준에 관한 규칙",
+    "criticality": "medium"
+  },
+  {
+    "term_id": "TERM-0021",
+    "ko": "작업 전 안전점검회의",
+    "synonyms": ["TBM", "작업 전 회의", "툴박스미팅"],
+    "definition": "작업 시작 전 현장에서 당일 작업의 위험요인과 안전조치를 함께 확인하는 짧은 회의",
+    "safety_categories": ["RISK_ASSESSMENT"],
+    "source": "KOSHA GUIDE",
+    "criticality": "medium"
+  },
+  {
+    "term_id": "TERM-0022",
+    "ko": "경고표지",
+    "synonyms": ["안전표지", "경고 표지"],
+    "definition": "위험을 알리고 출입·행동을 제한하기 위해 설치하는 표지. 작업구역 설정 시 부착한다",
+    "safety_categories": ["WORK_AREA_CONTROL"],
+    "source": "산업안전보건기준에 관한 규칙 제38조",
+    "criticality": "medium"
+  },
+  {
+    "term_id": "TERM-0023",
+    "ko": "바리케이드",
+    "synonyms": ["방책", "안전 방호벽"],
+    "definition": "작업구역 경계를 물리적으로 막아 비인가자 접근을 차단하는 방호물",
+    "safety_categories": ["WORK_AREA_CONTROL"],
+    "source": "산업안전보건기준에 관한 규칙 제20조",
+    "criticality": "low"
+  },
+  {
+    "term_id": "TERM-0024",
+    "ko": "소화기",
+    "synonyms": ["소화 설비", "휴대용 소화기"],
+    "definition": "초기 화재를 진압하는 휴대용 기구. 화기작업 시 작업 지점 인근에 비치한다",
+    "safety_categories": ["FIRE_EXPLOSION"],
+    "source": "산업안전보건기준에 관한 규칙 제232조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0025",
+    "ko": "화기작업",
+    "synonyms": ["화기 작업", "열간작업", "핫워크"],
+    "definition": "용접·용단·연삭 등 불꽃·열·스파크를 발생시키는 작업. 별도 허가와 화재감시가 필요하다",
+    "safety_categories": ["FIRE_EXPLOSION"],
+    "source": "산업안전보건기준에 관한 규칙 제241조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0026",
+    "ko": "점화원",
+    "synonyms": ["발화원", "점화 원인"],
+    "definition": "가연성 물질을 발화시킬 수 있는 불꽃·고온체·정전기 등의 에너지원",
+    "safety_categories": ["FIRE_EXPLOSION"],
+    "source": "산업안전보건기준에 관한 규칙 제236조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0027",
+    "ko": "인화성물질",
+    "synonyms": ["인화성 물질", "인화성 액체"],
+    "definition": "낮은 온도에서 증기를 발생시켜 불이 붙기 쉬운 액체·기체. 도료·시너 등이 해당한다",
+    "safety_categories": ["FIRE_EXPLOSION", "HAZARDOUS_MATERIAL"],
+    "source": "산업안전보건기준에 관한 규칙 별표 1",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0028",
+    "ko": "가스농도측정",
+    "synonyms": ["가스 측정", "가스농도 측정"],
+    "definition": "밀폐공간·위험작업 전 산소 및 유해·가연성 가스의 농도를 측정해 허용기준 충족 여부를 확인하는 것",
+    "safety_categories": ["GAS_ATMOSPHERE"],
+    "source": "산업안전보건기준에 관한 규칙 제619조의2",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0029",
+    "ko": "가스검지기",
+    "synonyms": ["가스측정기", "가스 검지기", "멀티가스측정기"],
+    "definition": "산소·가연성·유해가스 농도를 측정하는 계측기. 교정 유효기간 내의 것을 사용해야 한다",
+    "safety_categories": ["GAS_ATMOSPHERE"],
+    "source": "KOSHA GUIDE",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0030",
+    "ko": "산소",
+    "synonyms": ["O2", "산소 O2"],
+    "definition": "호흡에 필수인 기체. 밀폐공간 적정 기준은 18% 이상 23.5% 미만이며 결핍 시 질식 위험이 있다",
+    "safety_categories": ["GAS_ATMOSPHERE", "CONFINED_SPACE"],
+    "source": "작업허가서 P-94 양식 (가스 허용기준)",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0031",
+    "ko": "일산화탄소",
+    "synonyms": ["CO", "일산화탄소 CO"],
+    "definition": "무색·무취의 유독가스. 불완전 연소로 발생하며 양식 허용기준은 30ppm 미만이다",
+    "safety_categories": ["GAS_ATMOSPHERE"],
+    "source": "작업허가서 P-94 양식 (가스 허용기준)",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0032",
+    "ko": "이산화탄소",
+    "synonyms": ["CO2", "탄산가스"],
+    "definition": "고농도에서 질식을 유발하는 기체. 양식 허용기준은 1.5% 미만이다",
+    "safety_categories": ["GAS_ATMOSPHERE"],
+    "source": "작업허가서 P-94 양식 (가스 허용기준)",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0033",
+    "ko": "황화수소",
+    "synonyms": ["H2S", "황화수소 H2S"],
+    "definition": "썩은 달걀 냄새의 맹독성 가스. 고농도에서 후각이 마비된다. 양식 허용기준은 10ppm 미만이다",
+    "safety_categories": ["GAS_ATMOSPHERE"],
+    "source": "작업허가서 P-94 양식 (가스 허용기준)",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0034",
+    "ko": "탄화수소",
+    "synonyms": ["HC", "가연성가스"],
+    "definition": "가연성·폭발성 기체류의 총칭. 양식 허용기준은 0%이며 검출되면 작업 전 완전 제거해야 한다",
+    "safety_categories": ["GAS_ATMOSPHERE", "FIRE_EXPLOSION"],
+    "source": "작업허가서 P-94 양식 (가스 허용기준)",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0035",
+    "ko": "폭발하한계",
+    "synonyms": ["LEL", "폭발 하한계", "연소하한계"],
+    "definition": "가연성 가스가 공기 중에서 폭발할 수 있는 최저 농도. 이 값의 일정 비율 이하로 관리한다",
+    "safety_categories": ["FIRE_EXPLOSION", "GAS_ATMOSPHERE"],
+    "source": "KOSHA GUIDE",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0036",
+    "ko": "위험물질",
+    "synonyms": ["위험 물질", "유해위험물질"],
+    "definition": "폭발·화재·독성·부식 등의 위험이 있는 물질. 작업 전 제거·처리하거나 격리해야 한다",
+    "safety_categories": ["HAZARDOUS_MATERIAL"],
+    "source": "산업안전보건기준에 관한 규칙 별표 1",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0037",
+    "ko": "압력방출",
+    "synonyms": ["압력 방출", "잔압 제거"],
+    "definition": "용기·배관 내부의 압력을 안전하게 빼내는 조치. 개방·정비 전 잔압을 완전히 제거해야 한다",
+    "safety_categories": ["HAZARDOUS_MATERIAL"],
+    "source": "산업안전보건기준에 관한 규칙",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0038",
+    "ko": "물질안전보건자료",
+    "synonyms": ["MSDS", "SDS", "물질안전보건자료(MSDS)"],
+    "definition": "화학물질의 유해성·취급·응급조치 정보를 담은 자료. 취급 물질의 MSDS를 비치·숙지해야 한다",
+    "safety_categories": ["HAZARDOUS_MATERIAL"],
+    "source": "산업안전보건법 제110조",
+    "criticality": "medium"
+  },
+  {
+    "term_id": "TERM-0039",
+    "ko": "전원차단",
+    "synonyms": ["전원 차단", "정전 조치"],
+    "definition": "설비의 전기를 차단하고 재투입되지 않도록 하는 조치. 정전작업의 기본 안전조치다",
+    "safety_categories": ["ENERGY_ISOLATION"],
+    "source": "산업안전보건기준에 관한 규칙 제319조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0040",
+    "ko": "잔류에너지",
+    "synonyms": ["잔류 에너지", "잔압", "축적에너지"],
+    "definition": "차단 후에도 설비에 남아 있는 전기·압력·스프링·중력 등의 에너지. 방출 확인 후 작업한다",
+    "safety_categories": ["ENERGY_ISOLATION"],
+    "source": "KOSHA GUIDE",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0041",
+    "ko": "밸브차단",
+    "synonyms": ["밸브 차단", "밸브 잠금"],
+    "definition": "유체 공급 밸브를 잠그고 차단표지를 부착하는 조치. 필요 시 맹판 설치로 보강한다",
+    "safety_categories": ["ENERGY_ISOLATION"],
+    "source": "산업안전보건기준에 관한 규칙",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0042",
+    "ko": "환기",
+    "synonyms": ["환기장비", "강제환기", "급배기"],
+    "definition": "오염되거나 산소가 부족한 공기를 외부 신선 공기로 교체하는 것. 자연환기와 강제환기가 있다",
+    "safety_categories": ["VENTILATION_LIGHTING"],
+    "source": "산업안전보건기준에 관한 규칙 제620조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0043",
+    "ko": "방폭조명",
+    "synonyms": ["방폭형 조명", "방폭등"],
+    "definition": "가연성 가스·분진 환경에서 점화원이 되지 않도록 설계된 조명기구. 탱크·밀폐공간 조명에 사용한다",
+    "safety_categories": ["VENTILATION_LIGHTING", "FIRE_EXPLOSION"],
+    "source": "산업안전보건기준에 관한 규칙 제311조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0044",
+    "ko": "개인보호구",
+    "synonyms": ["보호구", "PPE"],
+    "definition": "작업자가 신체에 착용해 유해·위험으로부터 보호받는 장비의 총칭",
+    "safety_categories": ["PPE_SAFETY_EQUIPMENT"],
+    "source": "산업안전보건기준에 관한 규칙 제32조",
+    "criticality": "medium"
+  },
+  {
+    "term_id": "TERM-0045",
+    "ko": "안전모",
+    "synonyms": ["안전 모", "헬멧"],
+    "definition": "낙하물·충돌·추락으로부터 머리를 보호하는 보호구. 작업장에서 상시 착용한다",
+    "safety_categories": ["PPE_SAFETY_EQUIPMENT"],
+    "source": "산업안전보건기준에 관한 규칙 제32조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0046",
+    "ko": "방독마스크",
+    "synonyms": ["방독 마스크", "정화통식 마스크"],
+    "definition": "유해가스·증기를 정화통으로 걸러 호흡을 보호하는 보호구. 산소결핍 장소에서는 사용 불가하다",
+    "safety_categories": ["PPE_SAFETY_EQUIPMENT", "GAS_ATMOSPHERE"],
+    "source": "산업안전보건기준에 관한 규칙 제32조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0047",
+    "ko": "통신수단",
+    "synonyms": ["연락수단", "통신 수단", "무전기"],
+    "definition": "밀폐공간 내부 작업자와 외부 감시인이 상시 연락할 수 있는 수단. 무전기·유선통신 등",
+    "safety_categories": ["CONFINED_SPACE"],
+    "source": "산업안전보건기준에 관한 규칙 제640조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0048",
+    "ko": "산소결핍",
+    "synonyms": ["산소 결핍", "산소부족"],
+    "definition": "공기 중 산소농도가 18% 미만인 상태. 밀폐공간 질식 사고의 주요 원인이다",
+    "safety_categories": ["CONFINED_SPACE", "GAS_ATMOSPHERE"],
+    "source": "산업안전보건기준에 관한 규칙 제618조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0049",
+    "ko": "안전난간",
+    "synonyms": ["안전 난간", "가드레일"],
+    "definition": "작업발판·개구부 가장자리에 설치해 추락을 막는 난간. 상부·중간대·발끝막이판으로 구성된다",
+    "safety_categories": ["WORK_AT_HEIGHT"],
+    "source": "산업안전보건기준에 관한 규칙 제13조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0050",
+    "ko": "추락방지망",
+    "synonyms": ["추락 방지망", "안전망"],
+    "definition": "고소작업 하부에 설치해 추락하는 사람·물체를 받아내는 그물",
+    "safety_categories": ["WORK_AT_HEIGHT"],
+    "source": "산업안전보건기준에 관한 규칙 제42조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0051",
+    "ko": "개구부",
+    "synonyms": ["개구 부", "바닥 개구부"],
+    "definition": "바닥·벽에 뚫린 구멍. 추락 위험이 있어 덮개·난간·표지로 방호해야 한다",
+    "safety_categories": ["WORK_AT_HEIGHT"],
+    "source": "산업안전보건기준에 관한 규칙 제43조",
+    "criticality": "medium"
+  },
+  {
+    "term_id": "TERM-0052",
+    "ko": "굴착",
+    "synonyms": ["굴착 작업", "터파기"],
+    "definition": "지반을 파내는 작업. 붕괴·매설물 손상·산소결핍 위험이 있어 사전 조사와 방호가 필요하다",
+    "safety_categories": ["EXCAVATION_HEAVY_EQUIPMENT"],
+    "source": "산업안전보건기준에 관한 규칙 제338조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0053",
+    "ko": "매설물",
+    "synonyms": ["지하매설물", "매설 배관"],
+    "definition": "지하에 묻힌 가스·전기·상하수 배관 등. 굴착 전 위치를 확인해 손상을 방지해야 한다",
+    "safety_categories": ["EXCAVATION_HEAVY_EQUIPMENT"],
+    "source": "산업안전보건기준에 관한 규칙 제341조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0054",
+    "ko": "중장비",
+    "synonyms": ["중기", "건설기계"],
+    "definition": "크레인·굴착기 등 대형 동력 기계. 자격 있는 운전자와 신호수 배치, 작업반경 통제가 필요하다",
+    "safety_categories": ["EXCAVATION_HEAVY_EQUIPMENT"],
+    "source": "산업안전보건기준에 관한 규칙 제98조",
+    "criticality": "medium"
+  },
+  {
+    "term_id": "TERM-0055",
+    "ko": "양중",
+    "synonyms": ["양중 작업", "인양"],
+    "definition": "크레인 등으로 중량물을 들어 올려 옮기는 작업. 조선소 블록 탑재의 핵심 작업이다",
+    "safety_categories": ["EXCAVATION_HEAVY_EQUIPMENT"],
+    "source": "조선업 도메인 용어 (팀 정의)",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0056",
+    "ko": "방사선작업",
+    "synonyms": ["방사선 작업", "비파괴검사"],
+    "definition": "방사선을 이용한 검사·작업. 출입제한·경고표지·자격자 배치·피폭관리가 필요하다",
+    "safety_categories": ["SPECIAL_EMERGENCY"],
+    "source": "산업안전보건기준에 관한 규칙 제573조",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0057",
+    "ko": "비상대피",
+    "synonyms": ["비상 대피", "긴급대피"],
+    "definition": "사고·급박한 위험 발생 시 작업자를 안전한 곳으로 신속히 이동시키는 것. 대피로와 집결지를 사전 지정한다",
+    "safety_categories": ["SPECIAL_EMERGENCY"],
+    "source": "산업안전보건기준에 관한 규칙",
+    "criticality": "high"
+  },
+  {
+    "term_id": "TERM-0058",
+    "ko": "취부",
+    "synonyms": ["취부 작업", "가용접", "피트업"],
+    "definition": "부재를 조립 위치에 맞춰 가용접으로 고정하는 조선 작업. 용접을 수반해 화기·불티 위험이 있다",
+    "safety_categories": ["FIRE_EXPLOSION"],
+    "source": "조선업 도메인 용어 (팀 정의)",
+    "criticality": "medium"
+  }
+]
