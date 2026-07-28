@@ -382,6 +382,252 @@ body,
   height: 38px;
 }
 
+.password-field {
+  position: relative;
+}
+
+.password-rule-tooltip {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  left: 0;
+  display: block;
+  width: min(292px, 100%);
+  padding: 14px;
+  border: 1px solid rgba(48, 198, 242, .26);
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(17, 42, 57, .98), rgba(8, 26, 38, .98));
+  box-shadow: 0 16px 38px rgba(0, 0, 0, .4), 0 0 0 1px rgba(255, 255, 255, .025) inset;
+  color: #b8c8d2;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.55;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-7px) scale(.985);
+  transform-origin: top left;
+  transition: opacity .18s ease, transform .18s ease;
+}
+
+.password-rule-tooltip::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  border-radius: 12px 12px 0 0;
+  background: linear-gradient(90deg, var(--cyan), #42dfad, transparent 85%);
+}
+
+.password-rule-tooltip::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  bottom: 100%;
+  border: 6px solid transparent;
+  border-bottom-color: #143447;
+}
+
+.password-rule-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.password-rule-title > svg {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  padding: 6px;
+  border-radius: 8px;
+  background: rgba(48, 198, 242, .12);
+  color: var(--cyan);
+}
+
+.password-rule-title > span {
+  display: block;
+}
+
+.password-rule-title b {
+  display: block;
+  color: #edf5f8;
+  font-size: 11px;
+  letter-spacing: -.01em;
+}
+
+.password-rule-title small {
+  display: block;
+  margin-top: 1px;
+  color: #7f96a7;
+  font-size: 9px;
+}
+
+.password-rule-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.password-rule-list > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 8px;
+  border: 1px solid rgba(132, 164, 192, .12);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, .025);
+  color: #8298a8;
+  transition: border-color .18s ease, background-color .18s ease, color .18s ease;
+}
+
+.password-rule-list i {
+  display: grid;
+  width: 14px;
+  height: 14px;
+  place-items: center;
+  border: 1px solid #526978;
+  border-radius: 50%;
+  color: transparent;
+}
+
+.password-rule-list i svg {
+  width: 9px;
+  height: 9px;
+  stroke-width: 3;
+}
+
+.password-rule-list > span.valid {
+  border-color: rgba(66, 223, 173, .25);
+  background: rgba(66, 223, 173, .07);
+  color: #77dbba;
+}
+
+.password-rule-list > span.valid i {
+  border-color: #32c995;
+  background: #32c995;
+  color: #062117;
+}
+
+.password-rule-example {
+  display: block;
+  margin-top: 10px;
+  color: #718999;
+  font-size: 8px;
+  letter-spacing: .015em;
+}
+
+.password-field:focus-within .password-rule-tooltip {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.auth-theme-shell.light-theme .password-rule-tooltip {
+  border-color: #d1dde4;
+  background: linear-gradient(145deg, #fff, #f7fafb);
+  box-shadow: 0 16px 38px rgba(38, 55, 70, .16);
+  color: #526879;
+}
+
+.auth-theme-shell.light-theme .password-rule-tooltip::after {
+  border-bottom-color: #fdfefe;
+}
+
+.auth-theme-shell.light-theme .password-rule-title b {
+  color: #182430;
+}
+
+.auth-theme-shell.light-theme .password-rule-title small,
+.auth-theme-shell.light-theme .password-rule-example {
+  color: #718491;
+}
+
+.auth-theme-shell.light-theme .password-rule-list > span {
+  border-color: #dce5ea;
+  background: #f7f9fa;
+  color: #718491;
+}
+
+.auth-theme-shell.light-theme .password-rule-list > span.valid {
+  border-color: #bce7d7;
+  background: #edf9f5;
+  color: #16835e;
+}
+
+.legal-footer {
+  flex: 0 0 auto;
+  width: 100%;
+  border-top: 1px solid #ffffff14;
+  background: #06111bd9;
+  color: #8195a5;
+}
+
+.legal-footer-inner {
+  width: min(1180px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 18px 0 20px;
+}
+
+.legal-footer nav {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 8px;
+}
+
+.legal-footer button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #c7d4dc;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.legal-footer button.privacy-link {
+  color: #f0f6f9;
+  font-weight: 800;
+}
+
+.legal-footer button:hover {
+  color: var(--cyan);
+}
+
+.legal-footer p,
+.legal-footer small {
+  display: block;
+  margin: 0;
+  color: #758b9b;
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+.legal-footer.compact .legal-footer-inner {
+  width: auto;
+  margin: 0 26px;
+  padding: 16px 0 18px;
+}
+
+.light-theme .legal-footer {
+  border-top-color: #d9e2e8;
+  background: #fff;
+  color: #657887;
+}
+
+.light-theme .legal-footer button {
+  color: #3d5363;
+}
+
+.light-theme .legal-footer button.privacy-link {
+  color: #162a38;
+}
+
+.light-theme .legal-footer p,
+.light-theme .legal-footer small {
+  color: #718492;
+}
+
 .auth-theme-shell {
   min-height: 100vh;
   color: #ecf4fb;
@@ -569,42 +815,47 @@ body,
   color: #718491;
 }
 
-.auth-theme-shell.light-theme .terms-modal-backdrop {
+.light-theme .terms-modal-backdrop {
   background: rgba(38, 55, 70, .48);
 }
 
-.auth-theme-shell.light-theme .terms-modal {
+.light-theme .terms-modal {
   background: #fff;
   border-color: #cbd9e1;
   box-shadow: 0 30px 90px #26374635;
+  color: #182430;
 }
 
-.auth-theme-shell.light-theme .terms-modal header {
+.light-theme .terms-modal header {
   border-bottom-color: #d7e2e8;
 }
 
-.auth-theme-shell.light-theme .terms-modal header button {
+.light-theme .terms-modal header button {
   background: #f4f7f9;
   border-color: #d7e2e8;
   color: #526879;
 }
 
-.auth-theme-shell.light-theme .terms-modal-content {
+.light-theme .terms-modal-content {
   color: #526879;
 }
 
-.auth-theme-shell.light-theme .terms-modal-content h4 {
+.light-theme .terms-modal-content h4 {
   color: #182430;
 }
 
-.auth-theme-shell.light-theme .terms-modal-content dl,
-.auth-theme-shell.light-theme .terms-modal-content dl > div {
+.light-theme .terms-modal-content dl,
+.light-theme .terms-modal-content dl > div {
   border-color: #d7e2e8;
 }
 
-.auth-theme-shell.light-theme .terms-modal-content dt {
+.light-theme .terms-modal-content dt {
   background: #edf6f8;
   color: #344b5c;
+}
+
+.light-theme .terms-notice {
+  color: #718491;
 }
 
 @media (max-width: 760px) {

@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { apiBlob, apiRequest } from "../../api/client";
 import { SectionHead } from "../../components/common";
+import { maskName } from "../../utils/privacy";
 
 const statusOptions = [["", "전체"], ["received", "접수"], ["confirmed", "확인"], ["in_progress", "조치 중"], ["resolved", "처리 완료"]];
 const statusLabels = Object.fromEntries(statusOptions.filter(([value]) => value));
@@ -90,7 +91,7 @@ function WorkerReports({ session, notify }) {
           {loading?<div className="report-admin-empty">신고 내역을 불러오는 중입니다.</div>:filtered.length===0?<div className="report-admin-empty"><ShieldCheck/>조건에 맞는 위험 신고가 없습니다.</div>:filtered.map(report=><button key={report.id} className={selectedId===report.id?"selected":""} onClick={()=>setSelectedId(report.id)}>
             <div className="report-list-top"><span className="badge cyan">작업자 신고</span><span className={`report-status ${report.status}`}>{statusLabels[report.status] || report.status}</span></div>
             <small>{report.reportNo}</small><b>{riskLabels[report.eventType] || report.title}</b><p>{report.description}</p>
-            <div className="report-list-meta"><span><UserRound/>{report.reporterName}</span><span>{report.employeeNo}</span><span><Clock3/>{formatDate(report.eventTime)}</span></div>
+            <div className="report-list-meta"><span><UserRound/>{maskName(report.reporterName)}</span><span>{report.employeeNo}</span><span><Clock3/>{formatDate(report.eventTime)}</span></div>
           </button>)}
         </div>
       </section>
@@ -98,7 +99,7 @@ function WorkerReports({ session, notify }) {
         {!selected?<div className="report-admin-empty detail"><Siren/>왼쪽에서 작업자 위험 신고를 선택하세요.</div>:<>
           <div className="report-detail-head"><div><span>현장 작업자 신고 상세</span><h3>{selected.reportNo}</h3></div><div><span className={`report-status ${selected.status}`}>{statusLabels[selected.status]}</span><span className="badge cyan">작업자 신고</span></div></div>
           <div className="report-detail-source"><div className="report-photo">{photoUrl?<button type="button" onClick={()=>setPhotoExpanded(true)} aria-label="첨부 사진 크게 보기"><img src={photoUrl} alt="작업자가 첨부한 위험 현장"/><span><Maximize2/> 크게 보기</span></button>:<FileImage/>}</div><dl>
-            <div><dt>위험 유형</dt><dd>{riskLabels[selected.eventType] || selected.title}</dd></div><div><dt>신고자</dt><dd>{selected.reporterName}</dd></div><div><dt>사번</dt><dd>{selected.employeeNo || "-"}</dd></div><div><dt>신고 시각</dt><dd>{formatDate(selected.eventTime)}</dd></div>
+            <div><dt>위험 유형</dt><dd>{riskLabels[selected.eventType] || selected.title}</dd></div><div><dt>신고자</dt><dd>{maskName(selected.reporterName)}</dd></div><div><dt>사번</dt><dd>{selected.employeeNo || "-"}</dd></div><div><dt>신고 시각</dt><dd>{formatDate(selected.eventTime)}</dd></div>
           </dl></div>
           <div className="report-description"><b>작업자 상세 내용</b><p>{selected.description}</p></div>
           <article className={`ai-report-result ${analysisDone?"completed":"pending"}`}>

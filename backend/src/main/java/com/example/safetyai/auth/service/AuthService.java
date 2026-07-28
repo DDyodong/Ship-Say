@@ -49,10 +49,12 @@ public class AuthService {
         if (isEmployeeClaimed(employee.getId(), employee.getEmployeeNo())) {
             throw new ApiException(HttpStatus.CONFLICT, "이미 가입된 사번입니다.");
         }
+        String roleCode = findEmployeeRoleCode(employee.getId());
         return Map.of(
             "verified", true,
             "employeeNo", employee.getEmployeeNo(),
-            "name", employee.getName()
+            "name", employee.getName(),
+            "role", roleCode
         );
     }
 
@@ -80,6 +82,7 @@ public class AuthService {
         if (usernameExists(username)) {
             throw new ApiException(HttpStatus.CONFLICT, "이미 사용 중인 아이디입니다.");
         }
+        String roleCode = findEmployeeRoleCode(employee.getId());
 
         UserEntity user = userRepository.saveAndFlush(UserEntity.registeredUser(
             employee.getId(),
@@ -93,12 +96,13 @@ public class AuthService {
         int assignedRoles = jdbcTemplate.update(
             """
                 INSERT INTO user_roles (user_id, role_id, site_id)
-                SELECT ?, id, NULL FROM roles WHERE role_code = 'ADMIN'
+                SELECT ?, id, NULL FROM roles WHERE role_code = ?
                 """,
-            userId
+            userId,
+            roleCode
         );
         if (assignedRoles != 1) {
-            throw new IllegalStateException("기본 ADMIN 역할이 준비되지 않았습니다.");
+            throw new IllegalStateException("사원에게 지정된 역할을 부여하지 못했습니다.");
         }
 
         return Map.of(
@@ -106,7 +110,7 @@ public class AuthService {
             "employeeNo", employee.getEmployeeNo(),
             "username", username,
             "name", employee.getName(),
-            "roles", List.of("ADMIN")
+            "roles", List.of(roleCode)
         );
     }
 
@@ -219,6 +223,23 @@ public class AuthService {
         );
     }
 
+    private String findEmployeeRoleCode(long employeeId) {
+        List<String> roles = jdbcTemplate.queryForList(
+            """
+                SELECT r.role_code
+                FROM employee_role_assignments era
+                JOIN roles r ON r.id = era.role_id
+                WHERE era.employee_id = ?
+                """,
+            String.class,
+            employeeId
+        );
+        if (roles.size() != 1) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "회원가입 역할이 지정되지 않은 사번입니다.");
+        }
+        return roles.get(0);
+    }
+
     private String normalizeUsername(String username) {
         return username == null ? "" : username.trim().toLowerCase(Locale.ROOT);
     }
@@ -233,8 +254,13 @@ public class AuthService {
         if (!password.equals(passwordConfirm)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "비밀번호가 일치하지 않습니다.");
         }
-        if (password.length() < 8 || password.getBytes(StandardCharsets.UTF_8).length > 72) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "비밀번호는 8자 이상, UTF-8 기준 72바이트 이하여야 합니다.");
+        if (password.length() < 10 || password.length() > 16) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "비밀번호는 10~16자로 입력해야 합니다.");
+        }
+        if (!password.matches(".*[A-Za-z].*")
+            || !password.matches(".*\\d.*")
+            || !password.matches(".*[!@#$%^&*_\\-+=?].*")) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "비밀번호는 영문, 숫자, 특수문자를 각각 하나 이상 포함해야 합니다.");
         }
     }
 
