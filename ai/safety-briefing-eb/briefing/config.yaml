@@ -1,0 +1,81 @@
+# 다국어 안전 소통 모듈 (기능 ④) 설정
+# 명세 §12: 지원 언어·모델명·경로·항목 수 상한·카테고리 규칙은 하드코딩 금지.
+# 비밀값(API 키)은 여기가 아니라 .env 에 둔다.
+
+llm:
+  provider: gemini
+  # 모델 교체 시 이 값만 수정. 무료 티어 할당량이 모델마다 크게 다르다:
+  #   gemini-3.6-flash      — 품질 최상. 그러나 무료 티어 **하루 20요청**이라
+  #                           허가서 한 건(카테고리 7 + 번역 10)도 다 못 돈다
+  #   gemini-3.1-flash-lite — 할당량 여유. 개발·데모용 기본값
+  # TODO(팀확인): 발표/운영은 유료 전환 후 gemini-3.6-flash 권장
+  model: gemini-3.1-flash-lite
+  max_retries: 1              # 실패 카테고리/번역 재시도 횟수 (§9.2, §9.3)
+  timeout_sec: 60
+  max_concurrency: 2          # 카테고리별·항목별 병렬 호출 동시 실행 상한
+  # 429 를 맞고 대응하는 것보다 미리 페이싱하는 편이 싸다.
+  # 한도에 딱 맞추면 경계에서 계속 걸리므로 여유를 둔다.
+  requests_per_minute: 10
+  max_429_retries: 3          # 429 응답의 retryDelay 를 존중해 대기 후 재시도
+
+languages:
+  source: ko
+  targets: [en, ne, uz]
+  # ne(네팔어)·uz(우즈베크어)는 검증된 산업안전 역어 확보가 어려움 (§7.3).
+  # 현재 용어사전은 verified:false 스텁. 발표 시 한계로 명시할 것.
+
+checklist:
+  max_total_items: 15         # §6.3 전체 상한. 초과 시 critical 우선으로 절삭
+  # 카테고리별 상한은 data/categories.yaml 의 max_items
+
+  # 카테고리별로 따로 호출하므로 각 호출은 다른 카테고리가 뭘 만들었는지 모른다.
+  # 허가서의 지배적 이슈(예: 가스 미측정)는 모든 카테고리의 활성화 사유에 실려
+  # 들어가서 같은 지시가 5~6개 카테고리에 중복 생성된다. TBM 실효성을 위해
+  # 문자 bigram 겹침 비율이 이 값 이상이면 중복으로 보고 뒤에 온 것을 버린다.
+  # 0 으로 두면 중복 제거를 끈다.
+  dedup_threshold: 0.7
+
+glossary:
+  # TODO(팀확인): 형태소 분석기(Kiwi/Mecab) 도입 여부.
+  # 현재는 정규화 후 부분 일치만 사용한다 (§9.4).
+  use_morph_analyzer: false
+  max_terms_per_item: 8       # 전체 사전 주입 금지 (§12). 매칭 용어만, 그것도 상한을 둔다
+
+  # T8 역어 후보 생성 도구 (tools/build_translations.py). 오프라인·1회성.
+  # 런타임(Gemini)과 무관 — 사전 구축용으로 GPT 사용. 결과는 전부 verified:false
+  # (원어민 검수 전. §7.3 3차 관문 유지). 키: OPENAI_API_KEY (briefing/.env).
+  translation_tool:
+    provider: openai
+    model: gpt-5.4-mini       # 무료 티어 사용 가능 (2026-03 출시)
+    pivot: en                 # 영어 피벗: ko→en 검수됨 → en→저자원어 (저자원어 MT 품질↑)
+    targets: [ne, uz]
+
+paths:
+  categories: data/categories.yaml
+  activation_rules: data/activation_rules.yaml
+  gas_thresholds: data/gas_thresholds.yaml
+  glossary_dir: data/glossary
+
+storage:
+  # 생성 결과 저장 루트. 저장소 루트(briefing/ 의 부모) 기준 상대경로.
+  # 파일시스템 + JSON 매니페스트. TODO(팀확인): S3/DB 사용 여부 (§4).
+  root: out
+
+tts:
+  # 엔진: edge = Microsoft Edge 온라인 TTS (edge-tts). 무료·키 불필요.
+  # 네팔어·우즈베크어를 포함해 4개 언어 모두 neural 음성 지원 확인됨 (§8 1차 필터 통과).
+  # 비공식 엔드포인트이므로 상용 전환 시 google/piper 로 교체 가능하게 프로토콜 뒤에 둠.
+  engine: edge
+  cache: true                 # hash(text+lang+voice) 캐시 (§8 "반드시 구현")
+  max_concurrency: 4          # 동시 합성 요청 상한 (엔드포인트 스로틀 회피)
+  voices:                     # 언어별 음성. 목록에 없는 언어는 오디오 생성을 건너뛴다
+    ko: ko-KR-SunHiNeural
+    en: en-US-AvaNeural
+    ne: ne-NP-HemkalaNeural
+    uz: uz-UZ-MadinaNeural
+  # 숫자·단위 발음("18%","30ppm")은 엔진 기본 동작에 맡긴다 (§8 기준4).
+  # TODO(팀확인): ne/uz 발음 품질은 원어민 청취 검수 필요 (역어 검수와 함께)
+
+# TODO(팀확인): TTS 엔진 선정 (§8) — T10 범위, 이번 구현에 포함하지 않음
+# TODO(팀확인): 저장 백엔드/DB 사용 여부 (§4) — T11 범위
+# TODO(팀확인): 생성 API 동기/비동기 처리 (§9.5) — T11 범위

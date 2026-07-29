@@ -142,6 +142,22 @@ public class DigitalTwinRepository {
             value.riskLevel(), Timestamp.valueOf(value.recordedAt()));
     }
 
+    public void saveAnomalyAnalysis(RobotTelemetry value) {
+        var analysis = value.anomalyAnalysis();
+        if (analysis == null || !analysis.available()) return;
+        jdbcTemplate.update("""
+            INSERT INTO twin_ai_analysis_results
+            (asset_id, model_version, anomaly_type, detection_source, severity,
+             is_anomaly, candidate, confirmed, anomaly_score, anomaly_threshold,
+             consecutive_count, reason_sensor, recorded_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, value.assetId(), analysis.modelVersion(), analysis.anomalyType(),
+            analysis.detectionSource(), analysis.severity(), analysis.anomaly(),
+            analysis.candidate(), analysis.confirmed(), analysis.anomalyScore(),
+            analysis.anomalyThreshold(), analysis.consecutiveCount(), analysis.reasonSensor(),
+            Timestamp.valueOf(value.recordedAt()));
+    }
+
     public List<HistoryPoint> findHistory(long facilityId, int limit) {
         return jdbcTemplate.query("""
             SELECT a.asset_code, h.scenario_type, h.operating_state, h.current_amp, h.voltage,

@@ -18,12 +18,23 @@ public final class DigitalTwinDtos {
 
     public record AxisAngles(double s, double l, double u, double r, double b, double t) {}
 
+    public record RobotAnomalyAnalysis(
+        boolean available, boolean anomaly, boolean candidate, boolean confirmed,
+        String anomalyType, String severity, String reasonSensor, String detectionSource,
+        double anomalyScore, double anomalyThreshold, int consecutiveCount, String modelVersion
+    ) {
+        public static RobotAnomalyAnalysis unavailable() {
+            return new RobotAnomalyAnalysis(false, false, false, false, "UNAVAILABLE", "NORMAL",
+                null, "UNAVAILABLE", 0, 0, 0, null);
+        }
+    }
+
     public record RobotTelemetry(
         long assetId, String assetCode, String assetName, String modelName, LocalDateTime recordedAt,
         String operatingState, boolean servoOn, String jobName, String seamNo, double progressPercent,
         double voltage, double currentAmp, double wireFeed, double travelSpeed, double torquePercent,
         double temperatureC, double gasFlow, AxisAngles axes, String scenarioType,
-        String riskLevel, String alarmCode
+        String riskLevel, String alarmCode, RobotAnomalyAnalysis anomalyAnalysis
     ) {}
 
     public record ProcessStep(String code, String name, String status, int progressPercent) {}

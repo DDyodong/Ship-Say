@@ -1,0 +1,41 @@
+# 가스농도 허용기준 — P-94 양식에 인쇄된 고정값 (명세 §5.5)
+#
+# 임의 수치를 쓰지 말 것. 체크리스트 문장의 수치와 §9.4 수치 무결성 검증의
+# 정답 기준이 모두 이 표다.
+#
+# op: gte(이상) | lt(미만) | eq(같음)
+
+- substance: HC
+  name_ko: 탄화수소
+  op: eq
+  value: 0
+  unit: "%"
+  display: "0%"
+
+- substance: O2
+  name_ko: 산소
+  op: gte
+  value: 18
+  unit: "%"
+  display: "18% 이상"
+
+- substance: CO
+  name_ko: 일산화탄소
+  op: lt
+  value: 30
+  unit: ppm
+  display: "30ppm 미만"
+
+- substance: CO2
+  name_ko: 이산화탄소
+  op: lt
+  value: 1.5
+  unit: "%"
+  display: "1.5% 미만"
+
+- substance: H2S
+  name_ko: 황화수소
+  op: lt
+  value: 10
+  unit: ppm
+  display: "10ppm 미만"

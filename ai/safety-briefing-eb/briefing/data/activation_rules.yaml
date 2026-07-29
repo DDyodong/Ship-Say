@@ -1,0 +1,106 @@
+# 카테고리 활성화 규칙 (명세 §6.2)
+#
+# 중요: 활성화 규칙을 임의 설계하지 말 것. P-94 양식의 체크 항목이 곧 활성화 규칙이다.
+# 따라서 이 파일은 "표"이고 categories.py 는 이 표를 조회할 뿐 추론하지 않는다.
+# 도메인 조사 결과가 갱신되면 코드 수정 없이 여기만 고친다 (§9.1).
+
+# (1) 안전조치 요구사항 → 카테고리
+safety_measures:
+  AREA_CONTROL:
+    label: 작업구역설정(출입경고표지)
+    category: WORK_AREA_CONTROL
+  REMOVE_FLAMMABLE:
+    label: 작업주위 가연성물질 제거
+    category: FIRE_EXPLOSION
+    hot_work_only: true          # 실제 P-94 양식에서 화기작업허가서에만 있는 항목
+  SPARK_BARRIER:
+    label: 비산불티 차단막 설치
+    category: FIRE_EXPLOSION
+    hot_work_only: true          # 실제 P-94 양식에서 화기작업허가서에만 있는 항목
+  EXTINGUISHER:
+    label: 소화기
+    category: FIRE_EXPLOSION
+  GAS_TEST:
+    label: 가스농도측정
+    category: GAS_ATMOSPHERE
+  VALVE_ISOLATION:
+    label: 밸브차단 및 차단표지 부착
+    category: ENERGY_ISOLATION
+  BLIND_FLANGE:
+    label: 맹판설치 및 표지부착
+    category: ENERGY_ISOLATION
+  HAZMAT_PURGE:
+    label: 위험물질(가연성분진 포함) 방출 및 처리
+    category: HAZARDOUS_MATERIAL
+  PRESSURE_RELEASE:
+    label: 용기개방 및 압력방출
+    category: HAZARDOUS_MATERIAL
+  VESSEL_CLEANING:
+    label: 용기내부 세정 및 처리
+    category: HAZARDOUS_MATERIAL
+  INERT_PURGE:
+    label: 불활성가스 치환 및 환기
+    category: VENTILATION_LIGHTING
+  VENTILATION:
+    label: 환기장비
+    category: VENTILATION_LIGHTING
+  LIGHTING:
+    label: 조명장비
+    category: VENTILATION_LIGHTING
+  SAFETY_GEAR:
+    label: 안전장구
+    category: PPE_SAFETY_EQUIPMENT
+  SAFETY_TRAINING:
+    label: 안전교육
+    category: RISK_ASSESSMENT
+  OPERATOR_ATTEND:
+    label: 운전요원의 입회
+    category: RISK_ASSESSMENT
+
+# (2) 보충작업허가 → 카테고리 (체크된 것만)
+supplementary_permits:
+  confined_space:
+    label: 밀폐공간
+    categories: [CONFINED_SPACE, GAS_ATMOSPHERE]
+  power_isolation:
+    label: 정전
+    categories: [ENERGY_ISOLATION]
+  excavation:
+    label: 굴착
+    categories: [EXCAVATION_HEAVY_EQUIPMENT]
+  radiation:
+    label: 방사선
+    categories: [SPECIAL_EMERGENCY]
+  work_at_height:
+    label: 고소
+    categories: [WORK_AT_HEIGHT]
+  heavy_equipment:
+    label: 중장비
+    categories: [EXCAVATION_HEAVY_EQUIPMENT]
+
+# (3) 양식 종류 → 카테고리
+permit_forms:
+  화기작업:
+    categories: [FIRE_EXPLOSION]
+  일반위험작업:
+    categories: []
+
+# 모든 양식 공통 — 항상 활성
+always_on:
+  - RISK_ASSESSMENT
+  - WORK_AREA_CONTROL
+  - PPE_SAFETY_EQUIPMENT
+
+# (4) 추가 강제 규칙 (§6.2 표4 아래)
+forced:
+  # 밀폐공간 보충허가가 체크되었는데 가스가 미측정이거나 기준 미달이면
+  # GAS_ATMOSPHERE 를 강제 활성 + critical
+  confined_space_gas_check:
+    enabled: true
+    category: GAS_ATMOSPHERE
+    reason: "밀폐공간 보충허가 체크 + 가스농도 미측정/기준 미달"
+  # 작업조건 변화 시 RISK_ASSESSMENT 에 확인사항 포함
+  condition_changed:
+    enabled: true
+    category: RISK_ASSESSMENT
+    reason: "작업조건 변화(변화·작업 상이) 있음 — 변경된 조건 확인 필요"
