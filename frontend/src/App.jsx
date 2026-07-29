@@ -5,7 +5,7 @@ import { apiRequest } from "./api/client";
 import Dashboard from "./components/layout/Dashboard";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
-import MobileAppNotice from "./pages/worker/MobileAppNotice";
+import WorkerApp from "./pages/worker/WorkerApp";
 
 function App() {
   const navigate = useNavigate();
@@ -32,7 +32,7 @@ function App() {
   const login = (nextSession) => {
     sessionStorage.setItem("safety-session", JSON.stringify(nextSession));
     setSession(nextSession);
-    navigate(nextSession.role === "admin" ? "/admin/dashboard" : "/worker/mobile-app", { replace: true });
+    navigate(nextSession.role === "admin" ? "/admin/dashboard" : "/worker/app", { replace: true });
   };
   const logout = async () => {
     try { await apiRequest("/api/auth/logout", { method: "POST", headers: { Authorization: `Bearer ${session.token}` } }); } catch { /* local logout still proceeds */ }
@@ -41,13 +41,13 @@ function App() {
     navigate("/login", { replace: true });
   };
   const registered = (username) => { setRegisteredUsername(username); navigate("/login", { replace: true }); notify("회원가입이 완료되었습니다. 로그인해 주세요."); };
-  const homePath = session ? (session.role === "admin" ? "/admin/dashboard" : "/worker/mobile-app") : "/login";
+  const homePath = session ? (session.role === "admin" ? "/admin/dashboard" : "/worker/app") : "/login";
   const canUseWorker = session && session.roles?.includes("WORKER");
   const canUseAdmin = session && session.roles?.includes("ADMIN");
   return <><Routes>
     <Route path="/login" element={session ? <Navigate to={homePath} replace/> : <Login initialUsername={registeredUsername} onRegister={() => navigate("/register")} onLogin={login} notify={notify} theme={theme} onToggleTheme={toggleTheme} />}/>
     <Route path="/register" element={session ? <Navigate to={homePath} replace/> : <Register onBack={() => navigate("/login")} onRegistered={registered} notify={notify} theme={theme} onToggleTheme={toggleTheme} />}/>
-    <Route path="/worker/*" element={canUseWorker ? <MobileAppNotice session={session} onLogout={logout} theme={theme} onToggleTheme={toggleTheme}/> : <Navigate to={homePath} replace/>}/>
+    <Route path="/worker/*" element={canUseWorker ? <WorkerApp session={session} onLogout={logout} notify={notify}/> : <Navigate to={homePath} replace/>}/>
     <Route path="/admin/:page" element={canUseAdmin ? <Dashboard session={session} onLogout={logout} notify={notify} theme={theme} onToggleTheme={toggleTheme}/> : <Navigate to={homePath} replace/>}/>
     <Route path="*" element={<Navigate to={homePath} replace/>}/>
   </Routes>

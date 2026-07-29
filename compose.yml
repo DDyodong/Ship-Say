@@ -1,3 +1,5 @@
+name: safety-ai-control
+
 services:
   mysql:
     image: mysql:8.4
@@ -17,6 +19,49 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: safety-ai-backend
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/safety_smartyard_control?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
+      DB_USERNAME: admin123
+      DB_PASSWORD: admin123
+      FILE_STORAGE_TYPE: local
+      UPLOAD_DIR: /app/uploads
+      BOOTSTRAP_ADMIN_USERNAME: ${BOOTSTRAP_ADMIN_USERNAME:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+      BOOTSTRAP_ADMIN_NAME: ${BOOTSTRAP_ADMIN_NAME:-관리자}
+    ports:
+      - "${BACKEND_PORT:-8180}:8080"
+    volumes:
+      - backend-uploads:/app/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: safety-ai-frontend
+    environment:
+      VITE_API_BASE_URL: http://localhost:${BACKEND_PORT:-8180}
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+    depends_on:
+      - backend
+    restart: unless-stopped
 
 volumes:
   mysql-signup-data:
+  backend-uploads:
+  frontend-node-modules:

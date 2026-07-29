@@ -40,3 +40,9 @@ app:
     username: ${BOOTSTRAP_ADMIN_USERNAME:aivle}
     password: ${BOOTSTRAP_ADMIN_PASSWORD:aivle123}
     name: ${BOOTSTRAP_ADMIN_NAME:테스트 관리자}
+  ai:
+    robot-anomaly:
+      enabled: ${ROBOT_ANOMALY_AI_ENABLED:true}
+      base-url: ${ROBOT_ANOMALY_AI_URL:http://127.0.0.1:8000}
+      connect-timeout-ms: ${ROBOT_ANOMALY_AI_CONNECT_TIMEOUT_MS:1000}
+      request-timeout-ms: ${ROBOT_ANOMALY_AI_REQUEST_TIMEOUT_MS:1500}

@@ -9,6 +9,7 @@ const emptyForm = () => ({
   workType: "화기 작업",
   workTitle: "",
   workContent: "",
+  workerIds: [],
 });
 
 const formatSize = (bytes) => {
@@ -19,6 +20,7 @@ const formatSize = (bytes) => {
 function Permits({ notify, session }) {
   const [permits, setPermits] = useState([]);
   const [sites, setSites] = useState([]);
+  const [workers, setWorkers] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [detail, setDetail] = useState(null);
   const [search, setSearch] = useState("");
@@ -69,6 +71,9 @@ function Permits({ notify, session }) {
         setForm(current => ({ ...current, siteId: current.siteId || String(uniqueSites[0]?.id || "") }));
       })
       .catch(error => notify(error.message));
+    apiRequest("/api/admin/workers", { headers: authorization })
+      .then(setWorkers)
+      .catch(error => notify(error.message));
   }, []);
 
   useEffect(() => {
@@ -110,6 +115,7 @@ function Permits({ notify, session }) {
       workType: detail.work_type || "화기 작업",
       workTitle: detail.work_title || "",
       workContent: detail.work_content || "",
+      workerIds: (detail.assignedWorkers || []).map(worker => Number(worker.id)),
     });
     setModalOpen(true);
   };
@@ -235,6 +241,7 @@ function Permits({ notify, session }) {
       <div className="analysis-panel">
         {detail ? <><div className="analysis-head"><div><span>{detail.permit_no}</span><h3>{detail.work_title}</h3></div><span className="ai-chip"><Sparkles/>분석 대기</span></div>
           {attachedFile ? <div className="doc-preview"><FileText/><div><b>{attachedFile.original_name}</b><span>{formatSize(attachedFile.file_size)}</span></div><button type="button" title="허가서 미리보기" aria-label={`${attachedFile.original_name} 미리보기`} onClick={() => openPreview(attachedFile)}><Eye/></button></div> : <div className="doc-preview"><FileText/><div><b>첨부 파일 없음</b><span>허가서 파일이 연결되지 않았습니다.</span></div></div>}
+          <div className="permit-assigned-summary"><span>배정 작업자</span>{detail.assignedWorkers?.length ? <div>{detail.assignedWorkers.map(worker => <b key={worker.id}>{worker.name}<small>{worker.employee_no}</small></b>)}</div> : <em>배정된 작업자가 없습니다.</em>}</div>
           <h4>SIMOPS 충돌 분석</h4><div className="collision"><AlertTriangle/><div><b>AI 분석을 기다리고 있습니다</b><p>등록된 허가서를 기준으로 시간·공간·작업 유형을 분석합니다.</p></div></div>
           <h4>AI 추천 승인 조건</h4><div className="approval-empty"><div><Sparkles/></div><span><b>추천 조건을 준비하고 있습니다</b><small>AI 분석이 완료되면 작업 전 확인해야 할 승인 조건이 여기에 표시됩니다.</small></span></div>
           <div className="approve-actions"><div className="permit-manage-actions"><button className="delete-permit-btn" type="button" disabled={deleting} onClick={deletePermit}><Trash2/>{deleting ? "삭제 중..." : "허가서 삭제"}</button><button className="outline-btn" type="button" onClick={openEditModal}><Pencil/>허가서 수정</button></div><button className="outline-btn permit-review-btn">보완 요청</button><button className="primary-small permit-approve-btn" onClick={() => notify("분석 완료 후 승인할 수 있습니다.")}><Check/>조건부 승인</button></div></> : <div className="permit-welcome"><div className="permit-welcome-icon"><FileText/></div><span>WORK PERMIT</span><h3>{permits.length ? "분석할 허가서를 선택하세요" : "첫 작업 허가서를 등록하세요"}</h3><p>{permits.length ? "왼쪽 목록에서 허가서를 선택하면 AI 분석 결과와 승인 조건을 확인할 수 있습니다." : "PDF 허가서를 등록하면 SIMOPS 충돌과 유사 사고를 분석해 승인 조건을 추천합니다."}</p>{!permits.length && <button className="primary-small" onClick={openCreateModal}><Plus/>허가서 등록</button>}</div>}
@@ -281,6 +288,24 @@ function Permits({ notify, session }) {
           <label className="wide-field"><span>작업명</span><input value={form.workTitle} onChange={e => setForm({ ...form, workTitle: e.target.value })} placeholder="예: C-03 블록 배관 화기 작업"/></label>
           <label><span>작업 유형</span><select value={form.workType} onChange={e => setForm({ ...form, workType: e.target.value })}><option>화기 작업</option><option>고소 작업</option><option>밀폐 공간 작업</option><option>중량물 작업</option><option>일반 작업</option></select></label>
           <label className="wide-field"><span>작업 내용</span><textarea value={form.workContent} onChange={e => setForm({ ...form, workContent: e.target.value })} placeholder="작업 범위와 특이사항을 입력해 주세요."/></label>
+          <fieldset className="permit-worker-field wide-field">
+            <legend>작업자 배정 <small>{form.workerIds.length}명 선택</small></legend>
+            {workers.length ? <div className="permit-worker-options">
+              {workers.map(worker => <label className={form.workerIds.includes(Number(worker.id)) ? "selected" : ""} key={worker.id}>
+                <input
+                  type="checkbox"
+                  checked={form.workerIds.includes(Number(worker.id))}
+                  onChange={() => setForm(current => ({
+                    ...current,
+                    workerIds: current.workerIds.includes(Number(worker.id))
+                      ? current.workerIds.filter(id => id !== Number(worker.id))
+                      : [...current.workerIds, Number(worker.id)],
+                  }))}
+                />
+                <span><b>{worker.name}</b><small>{worker.employee_no} · {worker.username}</small></span>
+              </label>)}
+            </div> : <div className="permit-worker-empty">가입된 WORKER 계정이 없습니다.</div>}
+          </fieldset>
         </div>
         <div className={file ? "permit-upload selected" : "permit-upload"} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); selectFile(e.dataTransfer.files[0]); }}><UploadCloud/><b>{file ? file.name : editingId && attachedFile ? attachedFile.original_name : "허가서 PDF를 업로드하세요"}</b><span>{file ? formatSize(file.size) : editingId && attachedFile ? "새 PDF를 선택하면 기존 파일을 교체합니다." : "PDF · 최대 10MB"}</span><input id="permit-file" type="file" accept="application/pdf,.pdf" onChange={e => selectFile(e.target.files[0])}/><label htmlFor="permit-file" className="outline-btn">{editingId ? "PDF 교체" : "파일 선택"}</label></div>
         <div className="modal-actions"><button type="button" className="outline-btn" onClick={closeModal}>취소</button><button className="primary-small" disabled={submitting}>{submitting ? "저장 중..." : editingId ? "변경사항 저장" : "업로드 및 등록"}</button></div>

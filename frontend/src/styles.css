@@ -7152,6 +7152,132 @@ button {
   grid-template-columns: minmax(0,1fr) 310px;
 }
 
+.permit-worker-field {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.permit-worker-field legend {
+  width: 100%;
+  margin-bottom: 7px;
+  color: #9eb2bf;
+  font-size: 8px;
+}
+
+.permit-worker-field legend small {
+  float: right;
+  color: var(--cyan);
+}
+
+.permit-worker-options {
+  max-height: 150px;
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 7px;
+  overflow-y: auto;
+  padding-right: 3px;
+}
+
+.permit-worker-options label {
+  min-height: 49px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 9px;
+  border: 1px solid rgba(89,147,169,.2);
+  border-radius: 7px;
+  background: #081a25;
+  cursor: pointer;
+}
+
+.permit-worker-options label.selected {
+  border-color: var(--cyan);
+  background: rgba(48,198,242,.06);
+}
+
+.permit-worker-options input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--cyan);
+}
+
+.permit-worker-options span,
+.permit-worker-options b,
+.permit-worker-options small {
+  display: block;
+}
+
+.permit-worker-options b {
+  color: #e7f0f4;
+  font-size: 9px;
+}
+
+.permit-worker-options small {
+  margin-top: 3px;
+  color: #6e8797;
+  font-size: 7px;
+}
+
+.permit-worker-empty {
+  padding: 17px;
+  border: 1px dashed rgba(89,147,169,.2);
+  border-radius: 7px;
+  color: #6e8797;
+  font-size: 8px;
+  text-align: center;
+}
+
+.permit-assigned-summary {
+  margin: 10px 0 15px;
+  padding: 11px;
+  border: 1px solid rgba(89,147,169,.16);
+  border-radius: 8px;
+  background: rgba(5,20,29,.45);
+}
+
+.permit-assigned-summary > span {
+  display: block;
+  margin-bottom: 7px;
+  color: #718999;
+  font-size: 7px;
+  font-weight: 800;
+}
+
+.permit-assigned-summary > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.permit-assigned-summary b {
+  padding: 6px 8px;
+  border: 1px solid rgba(48,198,242,.2);
+  border-radius: 6px;
+  color: #dce9ee;
+  background: rgba(48,198,242,.05);
+  font-size: 8px;
+}
+
+.permit-assigned-summary small {
+  margin-left: 5px;
+  color: #668595;
+  font-size: 6px;
+}
+
+.permit-assigned-summary em {
+  color: #637c8c;
+  font-size: 8px;
+  font-style: normal;
+}
+
+@media (max-width:760px) {
+  .permit-worker-options {
+    grid-template-columns: 1fr;
+  }
+}
+
 .shop-three-shell {
   height: clamp(650px,70vh,820px);
 }

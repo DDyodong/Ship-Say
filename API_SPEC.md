@@ -36,8 +36,8 @@ POST /api/auth/login                                         PUBLIC
 POST /api/auth/logout                                        AUTHENTICATED
 
 POST /api/files                                              WORKER | ADMIN
-GET  /api/files/{id}                                         WORKER | ADMIN
-GET  /api/files/{id}/download                                WORKER | ADMIN
+GET  /api/files/{id}                                         소유자 | ADMIN | 허가서 배정 작업자
+GET  /api/files/{id}/download                                소유자 | ADMIN | 허가서 배정 작업자
 
 GET  /api/board/posts?category=general                       WORKER | ADMIN
 GET  /api/board/posts/{id}                                   WORKER | ADMIN
@@ -51,15 +51,19 @@ GET  /api/master/cameras                                     WORKER | ADMIN
 
 GET  /api/work-permits                                       WORKER | ADMIN
 GET  /api/work-permits/{id}                                  WORKER | ADMIN
+GET  /api/work-permits/today                                 WORKER | ADMIN
+GET  /api/admin/workers                                      ADMIN
 POST /api/work-permits                                       ADMIN
-PUT  /api/work-permits/{id}                                  WORKER | ADMIN (본인 또는 ADMIN)
-DELETE /api/work-permits/{id}                                WORKER | ADMIN (본인 또는 ADMIN)
+PUT  /api/work-permits/{id}                                  ADMIN
+DELETE /api/work-permits/{id}                                ADMIN
 GET  /api/work-permits/trash                                 ADMIN
-POST /api/work-permits/{id}/restore                          WORKER | ADMIN (본인 또는 ADMIN)
-DELETE /api/work-permits/{id}/permanent                      WORKER | ADMIN (본인 또는 ADMIN)
+POST /api/work-permits/{id}/restore                          ADMIN
+DELETE /api/work-permits/{id}/permanent                      ADMIN
 
 GET  /api/worker/tbm/today?language=ko                       WORKER | ADMIN
 POST /api/worker/tbm/confirm                                 WORKER | ADMIN
+GET  /api/worker/personal-checks/today                       WORKER | ADMIN
+POST /api/worker/personal-checks                             WORKER | ADMIN
 
 GET  /api/safety-events                                      ADMIN
 GET  /api/safety-events/reports                              ADMIN
@@ -70,6 +74,7 @@ POST /api/safety-events/{id}/actions                         ADMIN
 GET  /api/ai/model-runs                                      ADMIN
 POST /api/ai/model-runs                                      ADMIN | AI_SERVICE
 POST /api/ai/work-permits/{permitId}/analysis-results        ADMIN | AI_SERVICE
+POST /api/ai/personal-checks/{id}/result                     ADMIN | AI_SERVICE
 
 GET  /api/risks/scores                                       ADMIN
 POST /api/risks/scores                                       ADMIN | AI_SERVICE

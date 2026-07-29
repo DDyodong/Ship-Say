@@ -1,0 +1,9 @@
+.git
+.gradle
+.idea
+.vscode
+build
+backend/build
+frontend
+uploads
+*.log

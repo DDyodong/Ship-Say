@@ -44,6 +44,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/health", "/api/auth/register", "/api/auth/login").permitAll()
                 .requestMatchers("/api/auth/employees/verify", "/api/auth/usernames/*/availability").permitAll()
                 .requestMatchers("/api/auth/logout").authenticated()
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                 // Human users may read master data, but only administrators may change it.
                 .requestMatchers(HttpMethod.POST, "/api/master/**").hasRole("ADMIN")
@@ -56,15 +57,16 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/safety-events/my").hasAnyRole(HUMAN_ROLES)
                 .requestMatchers(HttpMethod.POST, "/api/safety-events").hasAnyRole(HUMAN_ROLES)
                 .requestMatchers("/api/worker/tbm/**").hasAnyRole(HUMAN_ROLES)
+                .requestMatchers("/api/worker/personal-checks/**").hasAnyRole(HUMAN_ROLES)
 
-                // Administrators create permits. Human users may read permits and may modify only
-                // resources allowed by the ownership checks in WorkPermitController.
+                // Administrators manage permits. Workers may read only permits assigned to them;
+                // WorkPermitController enforces that row-level boundary.
                 .requestMatchers(HttpMethod.POST, "/api/work-permits").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/work-permits/trash").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/work-permits", "/api/work-permits/**").hasAnyRole(HUMAN_ROLES)
-                .requestMatchers(HttpMethod.PUT, "/api/work-permits/**").hasAnyRole(HUMAN_ROLES)
-                .requestMatchers(HttpMethod.DELETE, "/api/work-permits/**").hasAnyRole(HUMAN_ROLES)
-                .requestMatchers(HttpMethod.POST, "/api/work-permits/*/restore").hasAnyRole(HUMAN_ROLES)
+                .requestMatchers(HttpMethod.PUT, "/api/work-permits/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/work-permits/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/work-permits/*/restore").hasRole("ADMIN")
 
                 // Board and file features are for interactive human accounts.
                 .requestMatchers("/api/board/**", "/api/files/**").hasAnyRole(HUMAN_ROLES)

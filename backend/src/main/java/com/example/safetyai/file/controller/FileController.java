@@ -30,9 +30,14 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/files")
 public class FileController {
-    private static final long MAX_SAFETY_REPORT_IMAGE_SIZE = 10L * 1024L * 1024L;
+    private static final long MAX_IMAGE_SIZE = 10L * 1024L * 1024L;
     private static final long MAX_PERMIT_SIZE = 10L * 1024L * 1024L;
-    private static final Set<String> SAFETY_REPORT_IMAGE_TYPES = Set.of("image/jpeg", "image/png");
+    private static final Set<String> IMAGE_TYPES = Set.of("image/jpeg", "image/png");
+    private static final Set<String> ALLOWED_FILE_TYPES = Set.of("permit", "safety_report", "ppe_check");
+    private static final byte[] PDF_SIGNATURE = {'%', 'P', 'D', 'F', '-'};
+    private static final byte[] PNG_SIGNATURE = {
+        (byte) 0x89, 'P', 'N', 'G', '\r', '\n', (byte) 0x1A, '\n'
+    };
 
     private final JdbcTemplate jdbcTemplate;
     private final AuthService authService;
@@ -48,7 +53,7 @@ public class FileController {
     public Map<String, Object> upload(
         @RequestHeader(value = "Authorization", required = false) String authorization,
         @RequestParam MultipartFile file,
-        @RequestParam(defaultValue = "document") String fileType
+        @RequestParam String fileType
     ) throws IOException {
         long userId = authService.requireUserId(authorization);
         validateUpload(file, fileType);
@@ -67,18 +72,27 @@ public class FileController {
     }
 
     @GetMapping("/{id}")
-    public Map<String, Object> get(@PathVariable long id) {
+    public Map<String, Object> get(
+        @RequestHeader(value = "Authorization", required = false) String authorization,
+        @PathVariable long id
+    ) {
+        requireFileAccess(authorization, id);
         return jdbcTemplate.queryForMap(
             """
                 SELECT id, uploaded_by, original_name, mime_type, file_type, file_size, created_at
-                FROM files WHERE id = ?
+                  FROM files
+                 WHERE id = ?
                 """,
             id
         );
     }
 
     @GetMapping("/{id}/download")
-    public ResponseEntity<Resource> download(@PathVariable long id) throws IOException {
+    public ResponseEntity<Resource> download(
+        @RequestHeader(value = "Authorization", required = false) String authorization,
+        @PathVariable long id
+    ) throws IOException {
+        requireFileAccess(authorization, id);
         Map<String, Object> row = jdbcTemplate.queryForMap(
             "SELECT storage_key, original_name, mime_type FROM files WHERE id = ?",
             id
@@ -99,28 +113,91 @@ public class FileController {
         return originalName.replaceAll("[\\\\/:*?\"<>|]", "_");
     }
 
-    private void validateUpload(MultipartFile file, String fileType) {
+    private void validateUpload(MultipartFile file, String fileType) throws IOException {
         if (file.isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "첨부할 파일을 선택해 주세요.");
         }
+        if (!ALLOWED_FILE_TYPES.contains(fileType)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "지원하지 않는 파일 유형입니다.");
+        }
+        byte[] bytes = file.getBytes();
         if ("permit".equals(fileType)) {
             String originalName = file.getOriginalFilename() == null ? "" : file.getOriginalFilename().toLowerCase();
             if (file.getSize() > MAX_PERMIT_SIZE) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "허가서는 10MB 이하만 업로드할 수 있습니다.");
+                throw new ApiException(HttpStatus.BAD_REQUEST, "작업허가서는 10MB 이하만 업로드할 수 있습니다.");
             }
-            if (!"application/pdf".equals(file.getContentType()) || !originalName.endsWith(".pdf")) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "허가서는 PDF 형식만 지원합니다.");
+            if (!"application/pdf".equals(file.getContentType())
+                || !originalName.endsWith(".pdf")
+                || !startsWith(bytes, PDF_SIGNATURE)) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "작업허가서는 올바른 PDF 파일만 지원합니다.");
             }
             return;
         }
-        if (!"safety_report".equals(fileType)) {
+        if (file.getSize() > MAX_IMAGE_SIZE) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "사진은 10MB 이하만 업로드할 수 있습니다.");
+        }
+        if (!IMAGE_TYPES.contains(file.getContentType())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "사진은 JPG 또는 PNG 형식만 지원합니다.");
+        }
+        boolean validImage = "image/jpeg".equals(file.getContentType())
+            ? isJpeg(bytes)
+            : startsWith(bytes, PNG_SIGNATURE);
+        if (!validImage) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "파일 내용과 이미지 형식이 일치하지 않습니다.");
+        }
+    }
+
+    private void requireFileAccess(String authorization, long fileId) {
+        AuthService.AuthenticatedUser user = authService.authenticateBearer(authorization)
+            .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다."));
+        List<Map<String, Object>> files = jdbcTemplate.queryForList(
+            "SELECT uploaded_by, file_type FROM files WHERE id = ?",
+            fileId
+        );
+        if (files.isEmpty()) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "파일을 찾을 수 없습니다.");
+        }
+        Map<String, Object> file = files.get(0);
+        long ownerId = ((Number) file.get("uploaded_by")).longValue();
+        if (ownerId == user.id() || user.roles().contains("ADMIN")) {
             return;
         }
-        if (file.getSize() > MAX_SAFETY_REPORT_IMAGE_SIZE) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "위험 신고 사진은 10MB 이하만 업로드할 수 있습니다.");
+        if ("permit".equals(String.valueOf(file.get("file_type")))) {
+            Integer assigned = jdbcTemplate.queryForObject(
+                """
+                    SELECT COUNT(*)
+                      FROM work_permit_files wpf
+                      JOIN work_permit_workers wpw ON wpw.permit_id = wpf.permit_id
+                     WHERE wpf.file_id = ?
+                       AND wpw.user_id = ?
+                    """,
+                Integer.class,
+                fileId,
+                user.id()
+            );
+            if (assigned != null && assigned > 0) {
+                return;
+            }
         }
-        if (!SAFETY_REPORT_IMAGE_TYPES.contains(file.getContentType())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "위험 신고 사진은 JPG 또는 PNG 형식만 지원합니다.");
+        throw new ApiException(HttpStatus.FORBIDDEN, "이 파일에 접근할 권한이 없습니다.");
+    }
+
+    private boolean startsWith(byte[] bytes, byte[] signature) {
+        if (bytes.length < signature.length) {
+            return false;
         }
+        for (int index = 0; index < signature.length; index++) {
+            if (bytes[index] != signature[index]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isJpeg(byte[] bytes) {
+        return bytes.length >= 3
+            && bytes[0] == (byte) 0xFF
+            && bytes[1] == (byte) 0xD8
+            && bytes[2] == (byte) 0xFF;
     }
 }

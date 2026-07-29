@@ -6,8 +6,13 @@ import Permits from "../../pages/admin/Permits";
 import Risk from "../../pages/admin/Risk";
 import Audit from "../../pages/admin/Audit";
 
-function Page({page,session,notify}) {
-  return page==="monitoring"?<Monitoring notify={notify}/>:page==="reports"?<WorkerReports session={session} notify={notify}/>:page==="permits"?<Permits session={session} notify={notify}/>:page==="risk"?<Risk/>:page==="audit"?<Audit/>:<DigitalTwin session={session} notify={notify}/>;
+function Page({ page, session, notify }) {
+  if (page === "monitoring") return <Monitoring notify={notify}/>;
+  if (page === "reports") return <WorkerReports session={session} notify={notify}/>;
+  if (page === "permits") return <Permits session={session} notify={notify}/>;
+  if (page === "risk") return <Risk/>;
+  if (page === "audit") return <Audit/>;
+  return <DigitalTwin session={session} notify={notify}/>;
 }
 
 export default Page;

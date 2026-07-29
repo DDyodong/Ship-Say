@@ -36,13 +36,47 @@ public class WorkPermitController {
     }
 
     @GetMapping
-    public List<Map<String, Object>> list(@RequestParam(required = false) String status) {
-        if (status == null || status.isBlank()) {
+    public List<Map<String, Object>> list(
+        @AuthenticationPrincipal AuthService.AuthenticatedUser user,
+        @RequestParam(required = false) String status
+    ) {
+        requireAuthenticated(user);
+        if (user.roles().contains("ADMIN")) {
+            if (status == null || status.isBlank()) {
+                return jdbcTemplate.queryForList(
+                    "SELECT * FROM work_permits WHERE status <> 'deleted' ORDER BY created_at DESC"
+                );
+            }
             return jdbcTemplate.queryForList(
-                "SELECT * FROM work_permits WHERE status <> 'deleted' ORDER BY created_at DESC"
+                "SELECT * FROM work_permits WHERE status = ? ORDER BY created_at DESC",
+                status
             );
         }
-        return jdbcTemplate.queryForList("SELECT * FROM work_permits WHERE status = ? ORDER BY created_at DESC", status);
+        if (status == null || status.isBlank()) {
+            return jdbcTemplate.queryForList(
+                """
+                    SELECT wp.*
+                      FROM work_permits wp
+                      JOIN work_permit_workers wpw ON wpw.permit_id = wp.id
+                     WHERE wpw.user_id = ?
+                       AND wp.status <> 'deleted'
+                     ORDER BY wp.created_at DESC
+                    """,
+                user.id()
+            );
+        }
+        return jdbcTemplate.queryForList(
+            """
+                SELECT wp.*
+                  FROM work_permits wp
+                  JOIN work_permit_workers wpw ON wpw.permit_id = wp.id
+                 WHERE wpw.user_id = ?
+                   AND wp.status = ?
+                 ORDER BY wp.created_at DESC
+                """,
+            user.id(),
+            status
+        );
     }
 
     @GetMapping("/today")
@@ -63,6 +97,15 @@ public class WorkPermitController {
              LEFT JOIN blocks b ON b.id = wp.block_id
                  WHERE wp.status NOT IN ('rejected', 'deleted')
                    AND (
+                       ? = 1
+                       OR EXISTS (
+                           SELECT 1
+                             FROM work_permit_workers wpw
+                            WHERE wpw.permit_id = wp.id
+                              AND wpw.user_id = ?
+                       )
+                   )
+                   AND (
                        DATE(wp.created_at) = CURRENT_DATE
                        OR (wp.start_time < CURRENT_DATE + INTERVAL 1 DAY
                            AND COALESCE(wp.end_time, wp.start_time) >= CURRENT_DATE)
@@ -71,14 +114,23 @@ public class WorkPermitController {
                           wp.start_time DESC,
                           wp.created_at DESC
                  LIMIT 1
-                """
+                """,
+            user.roles().contains("ADMIN") ? 1 : 0,
+            user.id()
         );
         return rows.isEmpty() ? Map.of() : rows.get(0);
     }
 
     @GetMapping("/{id}")
-    public Map<String, Object> get(@PathVariable long id) {
-        Map<String, Object> permit = jdbcTemplate.queryForMap("SELECT * FROM work_permits WHERE id = ?", id);
+    public Map<String, Object> get(
+        @AuthenticationPrincipal AuthService.AuthenticatedUser user,
+        @PathVariable long id
+    ) {
+        requireCanView(user, id);
+        Map<String, Object> permit = jdbcTemplate.queryForMap(
+            "SELECT * FROM work_permits WHERE id = ?",
+            id
+        );
         permit.put("files", jdbcTemplate.queryForList(
             """
                 SELECT f.id, f.original_name, f.file_type, f.file_size, pf.purpose
@@ -94,6 +146,16 @@ public class WorkPermitController {
         ));
         permit.put("riskScores", jdbcTemplate.queryForList(
             "SELECT * FROM risk_scores WHERE permit_id = ? ORDER BY created_at DESC",
+            id
+        ));
+        permit.put("assignedWorkers", jdbcTemplate.queryForList(
+            """
+                SELECT u.id, u.username, u.name, u.employee_no
+                  FROM work_permit_workers wpw
+                  JOIN users u ON u.id = wpw.user_id
+                 WHERE wpw.permit_id = ?
+                 ORDER BY u.name, u.id
+                """,
             id
         ));
         return permit;
@@ -149,6 +211,7 @@ public class WorkPermitController {
                 }
             }
         }
+        replaceAssignedWorkers(id, request.workerIds());
         return Map.of("id", id);
     }
 
@@ -224,6 +287,9 @@ public class WorkPermitController {
                     throw new ApiException(HttpStatus.BAD_REQUEST, "업로드한 허가서 파일을 찾을 수 없습니다.");
                 }
             }
+        }
+        if (request.workerIds() != null) {
+            replaceAssignedWorkers(id, request.workerIds());
         }
 
         jdbcTemplate.update("DELETE FROM risk_simulations WHERE permit_id = ?", id);
@@ -308,6 +374,57 @@ public class WorkPermitController {
         return user;
     }
 
+    private void requireAuthenticated(AuthService.AuthenticatedUser user) {
+        if (user == null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+        }
+    }
+
+    private void requireCanView(AuthService.AuthenticatedUser user, long permitId) {
+        requireAuthenticated(user);
+        if (user.roles().contains("ADMIN")) {
+            return;
+        }
+        Integer assigned = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM work_permit_workers WHERE permit_id = ? AND user_id = ?",
+            Integer.class,
+            permitId,
+            user.id()
+        );
+        if (assigned == null || assigned == 0) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "배정된 작업허가서만 조회할 수 있습니다.");
+        }
+    }
+
+    private void replaceAssignedWorkers(long permitId, List<Long> workerIds) {
+        jdbcTemplate.update("DELETE FROM work_permit_workers WHERE permit_id = ?", permitId);
+        if (workerIds == null) {
+            return;
+        }
+        for (Long workerId : workerIds.stream().distinct().toList()) {
+            if (workerId == null) {
+                continue;
+            }
+            int assigned = jdbcTemplate.update(
+                """
+                    INSERT INTO work_permit_workers (permit_id, user_id)
+                    SELECT ?, u.id
+                      FROM users u
+                      JOIN user_roles ur ON ur.user_id = u.id
+                      JOIN roles r ON r.id = ur.role_id
+                     WHERE u.id = ?
+                       AND u.status = 'active'
+                       AND r.role_code = 'WORKER'
+                    """,
+                permitId,
+                workerId
+            );
+            if (assigned != 1) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "유효한 작업자만 허가서에 배정할 수 있습니다.");
+            }
+        }
+    }
+
     public record WorkPermitRequest(
         String permitNo,
         @NotNull Long siteId,
@@ -323,7 +440,8 @@ public class WorkPermitController {
         Double gpsLng,
         Boolean isHighRisk,
         String status,
-        List<Long> fileIds
+        List<Long> fileIds,
+        List<Long> workerIds
     ) {
         public WorkPermitRequest {
             if (isHighRisk == null) {

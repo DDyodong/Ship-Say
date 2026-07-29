@@ -1,0 +1,11 @@
+{
+  "name": "safety-ai-control",
+  "private": true,
+  "scripts": {
+    "dev": "docker compose -p safety-ai-control up --build",
+    "dev:detached": "docker compose -p safety-ai-control up -d --build",
+    "dev:down": "docker compose -p safety-ai-control down",
+    "dev:logs": "docker compose -p safety-ai-control logs -f",
+    "build": "docker compose -p safety-ai-control build"
+  }
+}

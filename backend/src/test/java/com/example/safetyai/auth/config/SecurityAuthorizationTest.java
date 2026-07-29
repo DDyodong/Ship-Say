@@ -98,17 +98,35 @@ class SecurityAuthorizationTest {
     }
 
     @Test
-    void humanRolesCanUsePermitOwnershipEndpointsButMachineAccountCannot() throws Exception {
+    void workerCanReadAssignedPermitsButOnlyAdminCanMutatePermits() throws Exception {
         mockMvc.perform(get("/api/work-permits").with(user("worker").roles("WORKER")))
             .andExpect(status().isOk());
         mockMvc.perform(put("/api/work-permits/1").with(user("worker").roles("WORKER")))
-            .andExpect(status().isOk());
+            .andExpect(status().isForbidden());
         mockMvc.perform(delete("/api/work-permits/1").with(user("worker").roles("WORKER")))
-            .andExpect(status().isOk());
+            .andExpect(status().isForbidden());
         mockMvc.perform(post("/api/work-permits/1/restore").with(user("worker").roles("WORKER")))
+            .andExpect(status().isForbidden());
+        mockMvc.perform(put("/api/work-permits/1").with(user("admin").roles("ADMIN")))
+            .andExpect(status().isOk());
+        mockMvc.perform(delete("/api/work-permits/1").with(user("admin").roles("ADMIN")))
+            .andExpect(status().isOk());
+        mockMvc.perform(post("/api/work-permits/1/restore").with(user("admin").roles("ADMIN")))
             .andExpect(status().isOk());
         mockMvc.perform(get("/api/work-permits").with(user("ai").roles("AI_SERVICE")))
             .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void workerCanUseWorkerAppApis() throws Exception {
+        mockMvc.perform(get("/api/worker/tbm/today").with(user("worker").roles("WORKER")))
+            .andExpect(status().isOk());
+        mockMvc.perform(post("/api/worker/tbm/confirm").with(user("worker").roles("WORKER")))
+            .andExpect(status().isOk());
+        mockMvc.perform(get("/api/worker/personal-checks/today").with(user("worker").roles("WORKER")))
+            .andExpect(status().isOk());
+        mockMvc.perform(post("/api/worker/personal-checks").with(user("worker").roles("WORKER")))
+            .andExpect(status().isOk());
     }
 
     @Test

@@ -35,6 +35,7 @@ public class WorkerTbmController {
         @RequestParam(defaultValue = "ko") String language
     ) {
         requireUser(user);
+        int admin = user.roles().contains("ADMIN") ? 1 : 0;
         List<Map<String, Object>> sessions = jdbcTemplate.queryForList(
             """
                 SELECT ts.permit_id,
@@ -78,10 +79,21 @@ public class WorkerTbmController {
                   JOIN work_permits wp ON wp.id = ts.permit_id
                  WHERE ts.session_date = CURRENT_DATE
                    AND wp.status NOT IN ('rejected', 'deleted')
+                   AND (
+                       ? = 1
+                       OR EXISTS(
+                           SELECT 1
+                             FROM work_permit_workers wpw
+                            WHERE wpw.permit_id = wp.id
+                              AND wpw.user_id = ?
+                       )
+                   )
                  ORDER BY ts.created_at DESC
                  LIMIT 1
                 """,
             language,
+            user.id(),
+            admin,
             user.id()
         );
         if (!sessions.isEmpty()) {
@@ -111,11 +123,22 @@ public class WorkerTbmController {
                        OR (wp.start_time < CURRENT_DATE + INTERVAL 1 DAY
                            AND COALESCE(wp.end_time, wp.start_time) >= CURRENT_DATE)
                    )
+                   AND (
+                       ? = 1
+                       OR EXISTS(
+                           SELECT 1
+                             FROM work_permit_workers wpw
+                            WHERE wpw.permit_id = wp.id
+                              AND wpw.user_id = ?
+                       )
+                   )
                  ORDER BY CASE WHEN wp.start_time IS NULL THEN 1 ELSE 0 END,
                           wp.start_time DESC,
                           wp.created_at DESC
                  LIMIT 1
-                """
+                """,
+            admin,
+            user.id()
         );
         return permits.isEmpty() ? Map.of() : response(permits.get(0));
     }
@@ -127,6 +150,7 @@ public class WorkerTbmController {
         @Valid @RequestBody ConfirmRequest request
     ) {
         requireUser(user);
+        requirePermitAccess(user, request.permitId());
         List<Long> sessionIds = jdbcTemplate.query(
             """
                 SELECT id
@@ -139,9 +163,7 @@ public class WorkerTbmController {
             (resultSet, rowNum) -> resultSet.getLong("id"),
             request.permitId()
         );
-        long sessionId = sessionIds.isEmpty()
-            ? createSession(request.permitId())
-            : sessionIds.get(0);
+        long sessionId = sessionsOrCreate(sessionIds, request.permitId());
         jdbcTemplate.update(
             """
                 INSERT INTO tbm_attendance (tbm_session_id, user_id, confirmed_at)
@@ -158,6 +180,10 @@ public class WorkerTbmController {
         );
     }
 
+    private long sessionsOrCreate(List<Long> sessionIds, long permitId) {
+        return sessionIds.isEmpty() ? createSession(permitId) : sessionIds.get(0);
+    }
+
     private Map<String, Object> response(Map<String, Object> row) {
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("permitId", row.get("permit_id"));
@@ -169,19 +195,6 @@ public class WorkerTbmController {
     }
 
     private long createSession(long permitId) {
-        Integer permitCount = jdbcTemplate.queryForObject(
-            """
-                SELECT COUNT(*)
-                  FROM work_permits
-                 WHERE id = ?
-                   AND status NOT IN ('rejected', 'deleted')
-                """,
-            Integer.class,
-            permitId
-        );
-        if (permitCount == null || permitCount == 0) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "확인할 작업허가서를 찾을 수 없습니다.");
-        }
         return JdbcInsert.insert(
             jdbcTemplate,
             """
@@ -190,9 +203,37 @@ public class WorkerTbmController {
                        CURRENT_DATE, 'completed'
                   FROM work_permits
                  WHERE id = ?
+                   AND status NOT IN ('rejected', 'deleted')
                 """,
             Arrays.asList(permitId)
         );
+    }
+
+    private void requirePermitAccess(AuthService.AuthenticatedUser user, long permitId) {
+        Integer permitted = jdbcTemplate.queryForObject(
+            """
+                SELECT COUNT(*)
+                  FROM work_permits wp
+                 WHERE wp.id = ?
+                   AND wp.status NOT IN ('rejected', 'deleted')
+                   AND (
+                       ? = 1
+                       OR EXISTS(
+                           SELECT 1
+                             FROM work_permit_workers wpw
+                            WHERE wpw.permit_id = wp.id
+                              AND wpw.user_id = ?
+                       )
+                   )
+                """,
+            Integer.class,
+            permitId,
+            user.roles().contains("ADMIN") ? 1 : 0,
+            user.id()
+        );
+        if (permitted == null || permitted == 0) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "이 작업허가서의 TBM에 참여할 권한이 없습니다.");
+        }
     }
 
     private void requireUser(AuthService.AuthenticatedUser user) {
