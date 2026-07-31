@@ -7171,23 +7171,25 @@ button {
 }
 
 .permit-worker-options {
-  max-height: 150px;
+  max-height: 124px;
   display: grid;
-  grid-template-columns: repeat(2,minmax(0,1fr));
-  gap: 7px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 6px;
   overflow-y: auto;
   padding-right: 3px;
 }
 
 .permit-worker-options label {
-  min-height: 49px;
+  min-height: 42px;
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   margin: 0;
-  padding: 9px;
+  padding: 7px 10px;
   border: 1px solid rgba(89,147,169,.2);
-  border-radius: 7px;
+  border-radius: 8px;
   background: #081a25;
   cursor: pointer;
 }
@@ -7198,12 +7200,18 @@ button {
 }
 
 .permit-worker-options input {
+  flex: 0 0 auto;
   width: 15px;
   height: 15px;
+  margin: 0;
   accent-color: var(--cyan);
 }
 
-.permit-worker-options span,
+.permit-worker-options span {
+  min-width: 0;
+  flex: 1;
+}
+
 .permit-worker-options b,
 .permit-worker-options small {
   display: block;
@@ -7211,13 +7219,13 @@ button {
 
 .permit-worker-options b {
   color: #e7f0f4;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .permit-worker-options small {
-  margin-top: 3px;
+  margin-top: 2px;
   color: #6e8797;
-  font-size: 7px;
+  font-size: 8px;
 }
 
 .permit-worker-empty {
