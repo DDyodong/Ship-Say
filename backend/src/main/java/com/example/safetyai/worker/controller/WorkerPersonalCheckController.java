@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,9 +34,8 @@ public class WorkerPersonalCheckController {
         requireUser(user);
         List<Map<String, Object>> checks = jdbcTemplate.queryForList(
             """
-                SELECT id, permit_id, file_id, status, passed, helmet_on, helmet_confidence,
-                       harness_on, welding_mask_on, safety_shoes_confirmed, gloves_confirmed,
-                       workwear_confirmed, model_name, message, checked_at, analyzed_at
+                SELECT id, permit_id, file_id, status, safety_shoes_confirmed,
+                       workwear_confirmed, message, checked_at
                   FROM personal_ppe_checks
                  WHERE user_id = ?
                    AND DATE(checked_at) = CURRENT_DATE
@@ -49,7 +49,7 @@ public class WorkerPersonalCheckController {
 
     @PostMapping
     @Transactional
-    public Map<String, Object> create(
+    public ResponseEntity<Map<String, Object>> create(
         @AuthenticationPrincipal AuthService.AuthenticatedUser user,
         @Valid @RequestBody PersonalCheckRequest request
     ) {
@@ -67,19 +67,18 @@ public class WorkerPersonalCheckController {
                     user_id, permit_id, file_id, status, passed,
                     safety_shoes_confirmed, gloves_confirmed, workwear_confirmed, message
                 )
-                VALUES (?, ?, ?, 'pending_analysis', FALSE, ?, ?, ?,
-                        '사진이 접수되었습니다. AI 분석을 기다리고 있습니다.')
+                VALUES (?, ?, ?, 'pending_analysis', FALSE, ?, FALSE, ?,
+                        '안전관리자에게 전달되었습니다.')
                 """,
             Arrays.asList(
                 user.id(),
                 request.permitId(),
                 request.fileId(),
                 request.safetyShoesConfirmed(),
-                request.glovesConfirmed(),
                 request.workwearConfirmed()
             )
         );
-        return findById(id);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(findById(id));
     }
 
     private void requireOwnedPpeImage(long userId, long fileId) {
@@ -129,18 +128,16 @@ public class WorkerPersonalCheckController {
 
     private void requireManualEquipment(PersonalCheckRequest request) {
         if (!Boolean.TRUE.equals(request.safetyShoesConfirmed())
-            || !Boolean.TRUE.equals(request.glovesConfirmed())
             || !Boolean.TRUE.equals(request.workwearConfirmed())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "안전화, 장갑, 작업복 착용 여부를 모두 확인해 주세요.");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "안전화와 안전복 착용 여부를 모두 확인해 주세요.");
         }
     }
 
     private Map<String, Object> findById(long id) {
         Map<String, Object> row = jdbcTemplate.queryForMap(
             """
-                SELECT id, permit_id, file_id, status, passed, helmet_on, helmet_confidence,
-                       harness_on, welding_mask_on, safety_shoes_confirmed, gloves_confirmed,
-                       workwear_confirmed, model_name, message, checked_at, analyzed_at
+                SELECT id, permit_id, file_id, status, safety_shoes_confirmed,
+                       workwear_confirmed, message, checked_at
                   FROM personal_ppe_checks
                  WHERE id = ?
                 """,
@@ -155,23 +152,11 @@ public class WorkerPersonalCheckController {
         response.put("permitId", row.get("permit_id"));
         response.put("fileId", row.get("file_id"));
         response.put("status", row.get("status"));
-        response.put("passed", asBoolean(row.get("passed")));
-        response.put("helmetOn", nullableBoolean(row.get("helmet_on")));
-        response.put("helmetConfidence", row.get("helmet_confidence"));
-        response.put("harnessOn", nullableBoolean(row.get("harness_on")));
-        response.put("weldingMaskOn", nullableBoolean(row.get("welding_mask_on")));
         response.put("safetyShoesConfirmed", asBoolean(row.get("safety_shoes_confirmed")));
-        response.put("glovesConfirmed", asBoolean(row.get("gloves_confirmed")));
         response.put("workwearConfirmed", asBoolean(row.get("workwear_confirmed")));
-        response.put("model", row.get("model_name"));
-        response.put("message", row.get("message"));
+        response.put("message", "안전관리자에게 전달되었습니다.");
         response.put("checkedAt", row.get("checked_at"));
-        response.put("analyzedAt", row.get("analyzed_at"));
         return response;
-    }
-
-    private Boolean nullableBoolean(Object value) {
-        return value == null ? null : asBoolean(value);
     }
 
     private boolean asBoolean(Object value) {
@@ -188,7 +173,6 @@ public class WorkerPersonalCheckController {
         Long permitId,
         @NotNull Long fileId,
         @NotNull Boolean safetyShoesConfirmed,
-        @NotNull Boolean glovesConfirmed,
         @NotNull Boolean workwearConfirmed
     ) {
     }

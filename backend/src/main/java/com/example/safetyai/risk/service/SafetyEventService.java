@@ -63,8 +63,8 @@ public class SafetyEventService {
         return safetyEventRepository.findAll(status);
     }
 
-    public List<Map<String, Object>> getWorkerReports(String status) {
-        return safetyEventRepository.findWorkerReports(status);
+    public List<Map<String, Object>> getWorkerReports(String status, String sourceType) {
+        return safetyEventRepository.findWorkerReports(status, sourceType);
     }
 
     @Transactional
@@ -80,7 +80,7 @@ public class SafetyEventService {
             request.modelVersion().trim()
         );
         if (!updated) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "작업자 위험 신고를 찾을 수 없습니다.");
+            throw new ApiException(HttpStatus.NOT_FOUND, "안전 이벤트를 찾을 수 없습니다.");
         }
         return Map.of("id", eventId, "analysisStatus", "completed");
     }
@@ -99,7 +99,7 @@ public class SafetyEventService {
             request.comment() == null ? "" : request.comment().trim()
         );
         if (!updated) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "작업자 위험 신고를 찾을 수 없습니다.");
+            throw new ApiException(HttpStatus.NOT_FOUND, "안전 이벤트를 찾을 수 없습니다.");
         }
         return Map.of("id", eventId, "status", request.status());
     }

@@ -1,12 +1,15 @@
 package com.example.safetyai.worker.controller;
 
 import com.example.safetyai.common.exception.ApiException;
+import com.example.safetyai.risk.repository.SafetyEventRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,10 +22,20 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/ai/personal-checks")
 public class PersonalCheckAiController {
-    private final JdbcTemplate jdbcTemplate;
+    private static final Set<String> SUPPORTED_PPE = Set.of("helmet", "harness", "welding_mask");
 
-    public PersonalCheckAiController(JdbcTemplate jdbcTemplate) {
+    private final JdbcTemplate jdbcTemplate;
+    private final SafetyEventRepository safetyEventRepository;
+    private final ObjectMapper objectMapper;
+
+    public PersonalCheckAiController(
+        JdbcTemplate jdbcTemplate,
+        SafetyEventRepository safetyEventRepository,
+        ObjectMapper objectMapper
+    ) {
         this.jdbcTemplate = jdbcTemplate;
+        this.safetyEventRepository = safetyEventRepository;
+        this.objectMapper = objectMapper;
     }
 
     @PostMapping("/{id}/result")
@@ -58,7 +71,66 @@ public class PersonalCheckAiController {
         if (updated == 0) {
             throw new ApiException(HttpStatus.NOT_FOUND, "보호구 점검 요청을 찾을 수 없습니다.");
         }
-        return findById(id);
+        List<String> missingItems = normalizeMissingItems(request.missingItems());
+        Long eventId = null;
+        if ("retry_required".equals(request.status())
+            && "PPE_MISSING".equals(request.reasonCode())
+            && !missingItems.isEmpty()) {
+            eventId = safetyEventRepository.createAiPpeEvent(
+                id,
+                missingDescription(missingItems),
+                eventPayload(id, request, missingItems)
+            );
+        }
+
+        Map<String, Object> response = findById(id);
+        if (eventId != null) {
+            response.put("safetyEventId", eventId);
+        }
+        return response;
+    }
+
+    private List<String> normalizeMissingItems(List<String> items) {
+        if (items == null) {
+            return List.of();
+        }
+        return items.stream()
+            .filter(item -> item != null && SUPPORTED_PPE.contains(item.trim().toLowerCase()))
+            .map(item -> item.trim().toLowerCase())
+            .distinct()
+            .toList();
+    }
+
+    private String missingDescription(List<String> missingItems) {
+        String labels = missingItems.stream()
+            .map(item -> switch (item) {
+                case "helmet" -> "안전모";
+                case "harness" -> "안전 하네스";
+                case "welding_mask" -> "용접면";
+                default -> item;
+            })
+            .reduce((left, right) -> left + ", " + right)
+            .orElse("보호구");
+        return "AI 보호구 검사에서 " + labels + " 미착용이 감지되었습니다.";
+    }
+
+    private String eventPayload(
+        long ppeCheckId,
+        AnalysisResultRequest request,
+        List<String> missingItems
+    ) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("analysisStatus", "completed");
+        payload.put("ppeCheckId", ppeCheckId);
+        payload.put("reasonCode", request.reasonCode());
+        payload.put("missingItems", missingItems);
+        payload.put("helmetOn", request.helmetOn());
+        payload.put("helmetConfidence", request.helmetConfidence());
+        payload.put("harnessOn", request.harnessOn());
+        payload.put("weldingMaskOn", request.weldingMaskOn());
+        payload.put("modelVersion", request.model());
+        payload.put("summary", request.message());
+        return objectMapper.valueToTree(payload).toString();
     }
 
     private Map<String, Object> findById(long id) {
@@ -96,7 +168,9 @@ public class PersonalCheckAiController {
         Boolean harnessOn,
         Boolean weldingMaskOn,
         @NotBlank String model,
-        @NotBlank String message
+        @NotBlank String message,
+        String reasonCode,
+        List<String> missingItems
     ) {
     }
 }
