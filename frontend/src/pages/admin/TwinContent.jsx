@@ -88,6 +88,7 @@ function TwinContent({ snapshot, onOpenShop, onUnavailable }) {
   return <>
     <style>{`
       .twin-content { background-image: radial-gradient(circle at 50% 0%, #0c1a33 0%, #050811 55%); }
+      .light-theme .twin-content { background-image: radial-gradient(circle at 50% 0%, #ffffff 0%, #f3f6f8 58%); }
       .grid-bg { background-image: linear-gradient(rgba(26,35,58,.4) 1px,transparent 1px), linear-gradient(90deg,rgba(26,35,58,.4) 1px,transparent 1px); background-size: 32px 32px; }
       .glow-cyan { box-shadow: 0 0 0 1px rgba(0,210,255,.15), 0 0 18px rgba(0,210,255,.10); }
       .blink { animation: blink 1.4s steps(2,start) infinite; }
