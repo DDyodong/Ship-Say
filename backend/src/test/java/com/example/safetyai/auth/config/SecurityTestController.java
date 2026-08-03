@@ -17,6 +17,7 @@ class SecurityTestController {
         "/api/work-permits/trash",
         "/api/worker/tbm/today",
         "/api/worker/personal-checks/today",
+        "/api/notifications/devices/status",
         "/api/board/posts",
         "/api/safety-events",
         "/api/safety-events/my",
@@ -33,6 +34,8 @@ class SecurityTestController {
         "/api/work-permits/1/restore",
         "/api/worker/tbm/confirm",
         "/api/worker/personal-checks",
+        "/api/notifications/devices",
+        "/api/admin/notifications/test",
         "/api/safety-events",
         "/api/safety-events/1/actions",
         "/api/risks/simulations"

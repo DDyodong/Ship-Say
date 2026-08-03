@@ -58,6 +58,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/safety-events").hasAnyRole(HUMAN_ROLES)
                 .requestMatchers("/api/worker/tbm/**").hasAnyRole(HUMAN_ROLES)
                 .requestMatchers("/api/worker/personal-checks/**").hasAnyRole(HUMAN_ROLES)
+                .requestMatchers("/api/notifications/**").hasAnyRole(HUMAN_ROLES)
 
                 // Administrators manage permits. Workers may read only permits assigned to them;
                 // WorkPermitController enforces that row-level boundary.

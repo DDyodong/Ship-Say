@@ -66,6 +66,10 @@ GET  /api/worker/personal-checks/today                       WORKER | ADMIN
 POST /api/worker/personal-checks                             WORKER | ADMIN (202 Accepted)
 GET  /api/admin/ppe-checks                                   ADMIN
 
+POST /api/notifications/devices                             WORKER | ADMIN
+GET  /api/notifications/devices/status                      WORKER | ADMIN
+POST /api/admin/notifications/test                          ADMIN
+
 GET  /api/safety-events                                      ADMIN
 GET  /api/safety-events/reports?status=&sourceType=          ADMIN
 GET  /api/safety-events/my                                   WORKER | ADMIN

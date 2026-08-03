@@ -118,6 +118,19 @@ npm run dev
 VITE_API_BASE_URL=http://localhost:8080
 ```
 
+### 5. Firebase 푸시 알림
+
+Firebase Admin SDK 인증키는 저장소에 복사하거나 커밋하지 않습니다. 로컬에서는 백엔드를 실행하기 전에 인증키의 절대 경로를 환경변수로 지정합니다.
+
+```powershell
+$env:FIREBASE_ENABLED="true"
+$env:FIREBASE_PROJECT_ID="aivle25"
+$env:FIREBASE_CREDENTIALS_PATH="C:\path\to\aivle25-firebase-adminsdk.json"
+.\gradlew.bat :backend:bootRun
+```
+
+ECS에서는 인증키 JSON을 Base64로 인코딩해 AWS Secrets Manager에 저장하고, 태스크 정의의 비밀 환경변수 `FIREBASE_SERVICE_ACCOUNT_BASE64`로 주입합니다. 일반 환경변수 `FIREBASE_ENABLED=true`, `FIREBASE_PROJECT_ID=aivle25`도 함께 설정해야 합니다.
+
 ## 최초 관리자 계정
 
 기본 테스트 관리자 계정 대신 별도 관리자 계정을 사용하려면 백엔드를 처음 실행하기 전에 다음 환경변수를 설정합니다.

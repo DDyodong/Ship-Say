@@ -46,3 +46,9 @@ app:
       base-url: ${ROBOT_ANOMALY_AI_URL:http://127.0.0.1:8000}
       connect-timeout-ms: ${ROBOT_ANOMALY_AI_CONNECT_TIMEOUT_MS:1000}
       request-timeout-ms: ${ROBOT_ANOMALY_AI_REQUEST_TIMEOUT_MS:1500}
+  firebase:
+    enabled: ${FIREBASE_ENABLED:false}
+    project-id: ${FIREBASE_PROJECT_ID:aivle25}
+    credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+    service-account-json: ${FIREBASE_SERVICE_ACCOUNT_JSON:}
+    service-account-base64: ${FIREBASE_SERVICE_ACCOUNT_BASE64:}

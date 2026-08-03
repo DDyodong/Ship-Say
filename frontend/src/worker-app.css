@@ -88,6 +88,16 @@
   width: 17px;
 }
 
+.worker-app-header button + button {
+  margin-left: 8px;
+}
+
+.worker-app-header .worker-push-button.active {
+  border-color: rgba(54, 211, 154, .55);
+  color: var(--worker-green);
+  background: rgba(54, 211, 154, .1);
+}
+
 .worker-screen-content {
   flex: 1;
   min-height: 0;

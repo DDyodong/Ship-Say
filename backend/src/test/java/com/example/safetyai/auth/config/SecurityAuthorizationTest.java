@@ -130,6 +130,20 @@ class SecurityAuthorizationTest {
     }
 
     @Test
+    void humanUsersCanRegisterNotificationsButOnlyAdminCanSendThem() throws Exception {
+        mockMvc.perform(post("/api/notifications/devices").with(user("worker").roles("WORKER")))
+            .andExpect(status().isOk());
+        mockMvc.perform(get("/api/notifications/devices/status").with(user("worker").roles("WORKER")))
+            .andExpect(status().isOk());
+        mockMvc.perform(post("/api/notifications/devices").with(user("ai").roles("AI_SERVICE")))
+            .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/admin/notifications/test").with(user("worker").roles("WORKER")))
+            .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/admin/notifications/test").with(user("admin").roles("ADMIN")))
+            .andExpect(status().isOk());
+    }
+
+    @Test
     void onlyAdminCanReadDeletedPermits() throws Exception {
         mockMvc.perform(get("/api/work-permits/trash").with(user("worker").roles("WORKER")))
             .andExpect(status().isForbidden());

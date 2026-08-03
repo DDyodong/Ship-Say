@@ -23,6 +23,7 @@ bin/
 !.env.example
 application-local.yml
 application-*.local.yml
+*-firebase-adminsdk-*.json
 
 logs/
 uploads/

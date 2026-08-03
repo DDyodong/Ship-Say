@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  BellRing,
   BriefcaseBusiness,
   Camera,
   Check,
@@ -19,6 +20,10 @@ import {
 } from "lucide-react";
 import { apiRequest } from "../../api/client";
 import LegalFooter from "../../components/common/LegalFooter";
+import {
+  listenForForegroundMessages,
+  requestFirebaseNotificationFid,
+} from "../../firebase/messaging";
 import { maskName } from "../../utils/privacy";
 import { ui } from "./i18n";
 import { workerExtraUi } from "./workerExtraI18n";
@@ -103,6 +108,9 @@ function WorkerApp({ session, onLogout, notify }) {
   const [reportPreview, setReportPreview] = useState("");
   const [eventType, setEventType] = useState("FALL_HEIGHT");
   const [description, setDescription] = useState("");
+  const [pushState, setPushState] = useState(
+    () => localStorage.getItem("fcm-installation-id") ? "ready" : "idle",
+  );
   const contentRef = useRef(null);
 
   const text = ui[language] || ui.ko;
@@ -178,6 +186,62 @@ function WorkerApp({ session, onLogout, notify }) {
   useEffect(() => {
     contentRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, [tab]);
+
+  useEffect(() => {
+    let unsubscribe;
+    let active = true;
+
+    listenForForegroundMessages(payload => {
+      const title = payload.notification?.title || payload.data?.title || "Smart Shipyard 안전 알림";
+      const body = payload.notification?.body || payload.data?.body || "새로운 안전 알림이 도착했습니다.";
+      notify(`${title}: ${body}`);
+      if (Notification.permission === "granted") {
+        new Notification(title, { body, icon: "/favicon.png" });
+      }
+    }).then(listener => {
+      if (active) unsubscribe = listener;
+      else listener();
+    }).catch(() => {
+      // Permission is requested only after the user presses the notification button.
+    });
+
+    return () => {
+      active = false;
+      unsubscribe?.();
+    };
+  }, []);
+
+  const enablePushNotifications = async () => {
+    setPushState("loading");
+    try {
+      const fid = await requestFirebaseNotificationFid();
+      await apiRequest("/api/notifications/devices", {
+        method: "POST",
+        headers: authorization,
+        body: JSON.stringify({
+          fid,
+          platform: "web",
+          deviceName: navigator.userAgent.slice(0, 160),
+        }),
+      });
+      localStorage.removeItem("fcm-registration-token");
+      localStorage.setItem("fcm-installation-id", fid);
+      setPushState("ready");
+
+      try {
+        await navigator.clipboard.writeText(fid);
+        notify("FCM 설치 ID를 복사했습니다.");
+      } catch {
+        window.prompt("아래 FCM 설치 ID를 복사하세요.", fid);
+        notify("FCM 설치 ID가 발급되었습니다.");
+      }
+    } catch (error) {
+      localStorage.removeItem("fcm-registration-token");
+      localStorage.removeItem("fcm-installation-id");
+      setPushState("idle");
+      notify(error.message || "푸시 알림을 활성화하지 못했습니다.");
+    }
+  };
 
   useEffect(() => {
     if (ppe?.status !== "pending_analysis") return undefined;
@@ -674,6 +738,15 @@ function WorkerApp({ session, onLogout, notify }) {
               {maskName(session.name)} · {text.worker}
             </p>
           </div>
+          <button
+            className={`worker-push-button ${pushState === "ready" ? "active" : ""}`}
+            title={pushState === "ready" ? "푸시 알림 활성화됨" : "푸시 알림 켜기"}
+            aria-label={pushState === "ready" ? "푸시 알림 활성화됨" : "푸시 알림 켜기"}
+            onClick={enablePushNotifications}
+            disabled={pushState === "loading"}
+          >
+            {pushState === "loading" ? <LoaderCircle className="spin" /> : <BellRing />}
+          </button>
           <button
             title={extraText.refresh}
             aria-label={extraText.refresh}
