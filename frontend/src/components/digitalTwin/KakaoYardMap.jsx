@@ -109,7 +109,8 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
       center: new kakao.maps.LatLng(center.lat, center.lng),
       level: 4,
     });
-    map.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
+    // 위성영상만 표시하고 HYBRID의 도로명·지명 레이어는 제외한다.
+    map.setMapTypeId(kakao.maps.MapTypeId.SKYVIEW);
     map.setZoomable(false); // 휠 스크롤로 지도가 확대되며 페이지 스크롤을 가로채는 것 방지 (드래그 이동은 그대로 유지, +/- 버튼도 별개로 동작)
     mapRef.current = map;
   }, [sdkReady, center]);
