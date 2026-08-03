@@ -30,8 +30,11 @@ public class SafetyEventController {
     }
 
     @GetMapping("/reports")
-    public List<Map<String, Object>> workerReports(@RequestParam(required = false) String status) {
-        return safetyEventService.getWorkerReports(status);
+    public List<Map<String, Object>> workerReports(
+        @RequestParam(required = false) String status,
+        @RequestParam(required = false) String sourceType
+    ) {
+        return safetyEventService.getWorkerReports(status, sourceType);
     }
 
     @GetMapping("/my")

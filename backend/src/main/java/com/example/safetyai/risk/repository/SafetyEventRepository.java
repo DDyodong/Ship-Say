@@ -33,6 +33,33 @@ public class SafetyEventRepository {
         );
     }
 
+    public Long createAiPpeEvent(
+        long ppeCheckId,
+        String description,
+        String payload
+    ) {
+        jdbcTemplate.update(
+            """
+                INSERT IGNORE INTO safety_events
+                    (event_type, source_type, reporter_id, permit_id, ppe_check_id, file_id,
+                     severity, title, description, payload, status)
+                SELECT 'PPE_MISSING', 'ai_ppe', p.user_id, p.permit_id, p.id, p.file_id,
+                       'high', 'AI 보호구 미착용 감지', ?, ?, 'received'
+                  FROM personal_ppe_checks p
+                 WHERE p.id = ?
+                """,
+            description,
+            payload,
+            ppeCheckId
+        );
+        List<Long> eventIds = jdbcTemplate.queryForList(
+            "SELECT id FROM safety_events WHERE ppe_check_id = ?",
+            Long.class,
+            ppeCheckId
+        );
+        return eventIds.isEmpty() ? null : eventIds.get(0);
+    }
+
     public boolean isOwnedSafetyReportFile(long fileId, long userId) {
         Integer count = jdbcTemplate.queryForObject(
             """
@@ -102,12 +129,18 @@ public class SafetyEventRepository {
         );
     }
 
-    public List<Map<String, Object>> findWorkerReports(String status) {
+    public List<Map<String, Object>> findWorkerReports(String status, String sourceType) {
         String statusCondition = status == null || status.isBlank() ? "" : " AND se.status = ?";
+        String sourceCondition = sourceType == null || sourceType.isBlank() ? "" : " AND se.source_type = ?";
         String sql = """
             SELECT se.id,
-                   CONCAT('SR-', DATE_FORMAT(se.event_time, '%Y'), '-', LPAD(se.id, 6, '0')) AS reportNo,
+                   CASE WHEN se.source_type = 'ai_ppe'
+                        THEN CONCAT('AI-PPE-', DATE_FORMAT(se.event_time, '%Y'), '-', LPAD(se.id, 6, '0'))
+                        ELSE CONCAT('SR-', DATE_FORMAT(se.event_time, '%Y'), '-', LPAD(se.id, 6, '0'))
+                   END AS reportNo,
                    se.event_type AS eventType,
+                   se.source_type AS sourceType,
+                   se.ppe_check_id AS ppeCheckId,
                    se.title,
                    se.description,
                    se.status,
@@ -125,15 +158,27 @@ public class SafetyEventRepository {
                    JSON_UNQUOTE(JSON_EXTRACT(se.payload, '$.recommendedAction')) AS recommendedAction,
                    JSON_EXTRACT(se.payload, '$.confidence') AS confidence,
                    JSON_UNQUOTE(JSON_EXTRACT(se.payload, '$.modelVersion')) AS modelVersion,
-                   JSON_UNQUOTE(JSON_EXTRACT(se.payload, '$.analyzedAt')) AS analyzedAt
+                   JSON_UNQUOTE(JSON_EXTRACT(se.payload, '$.analyzedAt')) AS analyzedAt,
+                   JSON_UNQUOTE(JSON_EXTRACT(se.payload, '$.reasonCode')) AS reasonCode,
+                   JSON_EXTRACT(se.payload, '$.missingItems') AS missingItems,
+                   JSON_EXTRACT(se.payload, '$.helmetOn') AS helmetOn,
+                   JSON_EXTRACT(se.payload, '$.harnessOn') AS harnessOn,
+                   JSON_EXTRACT(se.payload, '$.weldingMaskOn') AS weldingMaskOn
             FROM safety_events se
             JOIN users u ON u.id = se.reporter_id
             LEFT JOIN files f ON f.id = se.file_id
-            WHERE se.source_type = 'user_report'
-            """ + statusCondition + " ORDER BY se.event_time DESC";
-        return statusCondition.isEmpty()
-            ? jdbcTemplate.queryForList(sql)
-            : jdbcTemplate.queryForList(sql, status);
+            WHERE se.source_type IN ('user_report', 'ai_ppe')
+            """ + statusCondition + sourceCondition + " ORDER BY se.event_time DESC";
+        if (!statusCondition.isEmpty() && !sourceCondition.isEmpty()) {
+            return jdbcTemplate.queryForList(sql, status, sourceType);
+        }
+        if (!statusCondition.isEmpty()) {
+            return jdbcTemplate.queryForList(sql, status);
+        }
+        if (!sourceCondition.isEmpty()) {
+            return jdbcTemplate.queryForList(sql, sourceType);
+        }
+        return jdbcTemplate.queryForList(sql);
     }
 
     public boolean saveAiAnalysis(
@@ -176,7 +221,7 @@ public class SafetyEventRepository {
 
     public boolean updateReportStatus(long eventId, long actorId, String status, String comment) {
         int updated = jdbcTemplate.update(
-            "UPDATE safety_events SET status = ? WHERE id = ? AND source_type = 'user_report'",
+            "UPDATE safety_events SET status = ? WHERE id = ? AND source_type IN ('user_report', 'ai_ppe')",
             status,
             eventId
         );
