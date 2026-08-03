@@ -1,3 +1,17 @@
+CREATE TABLE admin_role_requests (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT NOT NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'pending',
+  requested_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  reviewed_by BIGINT,
+  reviewed_at TIMESTAMP(6),
+  review_comment VARCHAR(500),
+  CONSTRAINT fk_admin_role_requests_user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_admin_role_requests_reviewed_by FOREIGN KEY (reviewed_by) REFERENCES users(id),
+  INDEX idx_admin_role_requests_status (status, requested_at),
+  INDEX idx_admin_role_requests_user (user_id, status)
+);
+
 CREATE TABLE work_permit_workers (
   permit_id BIGINT NOT NULL,
   user_id BIGINT NOT NULL,
