@@ -40,6 +40,7 @@ jobs:
       - name: Build frontend
         env:
           VITE_API_BASE_URL: https://df47xszv4nn0z.cloudfront.net
+          VITE_KAKAO_JS_KEY: ${{ secrets.VITE_KAKAO_JS_KEY }}
         run: npm run build
 
       - name: Configure AWS credentials
