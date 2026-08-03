@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Activity, AlertTriangle, ArrowLeft, Bot, CheckCircle2, Clock3, Database,
-  Factory, Gauge, History, Radio, ShieldAlert, Thermometer, Zap,
+  Activity, AlertTriangle, ArrowLeft, Bot, CheckCircle2, Clock3,
+  Gauge, History, Radio, Thermometer, Zap,
 } from "lucide-react";
 import { apiRequest } from "../../api/client";
 import ShopTwinScene from "../../components/digitalTwin/ShopTwinScene";
-import YardTwinScene from "../../components/digitalTwin/YardTwinScene";
+import TwinContent from "./TwinContent";
 
 const riskLabel = { low: "정상", medium: "주의", high: "위험", critical: "심각" };
 
@@ -86,37 +86,19 @@ function DigitalTwin({ session, notify }) {
       historyOpen={historyOpen} loadHistory={loadHistory} history={history} acknowledge={acknowledge}/>;
 }
 
+// ── 여기부터 교체된 부분 ──────────────────────────────────────────
+// 예전: TwinHeader + twin-stat-grid(4카드) + yard-control-layout(3D맵+시설목록)
+// 지금: TwinContent(배너+2D맵+구역상세카드+작업허가서테이블+AI예측피드)
+//
+// snapshot.facilities는 TwinContent 내부에서 YardTwinMap이 쓰는 좌표 형식으로
+// 자동 변환됩니다. workers(작업자 마커)/permits(작업허가서)는 아직 시안 하드코딩
+// 값이며, camera01 엔드포인트·작업허가 API 연동은 다음 단계입니다.
 function YardView({ snapshot, onOpenShop, onUnavailable }) {
   return <div className="digital-twin-page premium-twin">
-    <TwinHeader eyebrow="DIGITAL TWIN · YARD OPERATIONS" title="조선소 디지털 트윈 관제"
-      description="야드 전체의 생산 시설과 도크, 선박, 설비 상태를 하나의 운영 화면에서 확인합니다."
-      meta={`${formatTime(snapshot.generatedAt)} 갱신`}/>
-    <div className="twin-stat-grid">
-      <TwinStat icon={Factory} label="가동 시설" value={`${snapshot.runningFacilities}개`} detail="야드 전체 시설"/>
-      <TwinStat icon={ShieldAlert} label="주의 시설" value={`${snapshot.warningFacilities}개`} detail="관리자 확인 필요" tone="orange"/>
-      <TwinStat icon={AlertTriangle} label="미확인 알람" value={`${snapshot.openAlarms}건`} detail="SHOP 설비 포함" tone="red"/>
-      <TwinStat icon={Radio} label="데이터 상태" value="CONNECTED" detail="1초 주기 갱신" tone="green"/>
-    </div>
-    <div className="yard-control-layout">
-      <section className="twin-panel yard-map-panel premium-panel">
-        <div className="twin-panel-head"><div><span>카메라를 회전하고 시설을 선택해 공정 내부로 진입합니다.</span></div><i className="live-dot">LIVE</i></div>
-        <YardTwinScene facilities={snapshot.facilities} onOpenShop={onOpenShop} onUnavailable={onUnavailable}/>
-      </section>
-      <aside className="twin-panel facility-list-panel premium-panel">
-        <div className="twin-panel-head"><div><b>시설 운영 현황</b><span>{snapshot.siteName}</span></div></div>
-        <div className="facility-list">
-          {snapshot.facilities.map((facility) => <button key={facility.code}
-            onClick={() => facility.code === "T-BAR-SHOP" ? onOpenShop(facility.code) : onUnavailable(facility.name)}>
-            <span className={`risk-indicator ${facility.riskLevel}`}/>
-            <div><b>{facility.name}</b><small>{facility.code} · {riskLabel[facility.riskLevel] || facility.riskLevel}</small></div>
-            <strong>{facility.progressPercent}%</strong>
-          </button>)}
-        </div>
-        <div className="yard-note"><Database/><div><b>운영 데이터 계층</b><span>현재 T-BAR SHOP은 실시간 시뮬레이션 데이터입니다. 동일 API 규격으로 실제 로봇 게이트웨이를 연결할 수 있습니다.</span></div></div>
-      </aside>
-    </div>
+    <TwinContent snapshot={snapshot} onOpenShop={onOpenShop} onUnavailable={onUnavailable}/>
   </div>;
 }
+// ── 교체 끝 ──────────────────────────────────────────────────────
 
 function ShopView({ snapshot, selectedRobot, onSelectRobot, onBack, historyOpen, loadHistory, history, acknowledge }) {
   const openAlarms = snapshot.alarms.filter((alarm) => alarm.status === "open");
@@ -179,10 +161,6 @@ function ShopView({ snapshot, selectedRobot, onSelectRobot, onBack, historyOpen,
 
 function TwinHeader({ eyebrow, title, description, meta }) {
   return <div className="twin-header"><div><span>{eyebrow}</span><h2>{title}</h2><p>{description}</p></div><div className="twin-live"><i/>LIVE CONNECTED<small>{meta}</small></div></div>;
-}
-
-function TwinStat({ icon: Icon, label, value, detail, tone = "cyan" }) {
-  return <article className={`twin-stat ${tone}`}><Icon/><div><span>{label}</span><b>{value}</b><small>{detail}</small></div></article>;
 }
 
 function Metric({ icon: Icon, label, value, unit, warn }) {
