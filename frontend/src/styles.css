@@ -1848,6 +1848,289 @@ button {
   width: 14px;
 }
 
+.ppe-scope-banner {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  gap: 18px;
+  align-items: center;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+  border: 1px solid #30c6f233;
+  border-radius: 10px;
+  background: linear-gradient(120deg,#30c6f212,#ff74170b);
+}
+
+.ppe-scope-banner>svg {
+  width: 28px;
+  height: 28px;
+  color: var(--cyan);
+}
+
+.ppe-scope-banner div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ppe-scope-banner b {
+  font-size: 10px;
+  color: var(--text);
+}
+
+.ppe-scope-banner span {
+  font-size: 9px;
+  color: var(--muted);
+}
+
+.ppe-monitor-state {
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #091925;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.ppe-monitor-state svg {
+  width: 20px;
+  color: var(--cyan);
+}
+
+.ppe-monitor-list {
+  display: grid;
+  gap: 12px;
+}
+
+.ppe-monitor-card {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #091925;
+}
+
+.ppe-monitor-card.attention {
+  border-color: #ff526366;
+  box-shadow: inset 3px 0 0 var(--red);
+}
+
+.ppe-monitor-card header,
+.ppe-monitor-card footer,
+.ppe-worker,
+.ppe-analysis-state,
+.ppe-work-meta {
+  display: flex;
+  align-items: center;
+}
+
+.ppe-monitor-card header,
+.ppe-monitor-card footer,
+.ppe-work-meta {
+  justify-content: space-between;
+}
+
+.ppe-worker {
+  gap: 10px;
+}
+
+.ppe-worker>span {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #30c6f244;
+  border-radius: 50%;
+  background: #30c6f214;
+  color: var(--cyan);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.ppe-worker div,
+.ppe-work-meta {
+  gap: 3px;
+}
+
+.ppe-worker div,
+.ppe-work-meta span {
+  display: flex;
+  flex-direction: column;
+}
+
+.ppe-worker b {
+  font-size: 12px;
+}
+
+.ppe-worker small,
+.ppe-work-meta small {
+  font-size: 8px;
+  color: var(--muted);
+}
+
+.ppe-analysis-state {
+  gap: 5px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.ppe-analysis-state svg {
+  width: 12px;
+  height: 12px;
+}
+
+.ppe-analysis-state.safe {
+  background: #36d39a18;
+  color: var(--green);
+}
+
+.ppe-analysis-state.pending {
+  background: #30c6f218;
+  color: var(--cyan);
+}
+
+.ppe-analysis-state.danger {
+  background: #ff526319;
+  color: #ff8190;
+}
+
+.ppe-work-meta {
+  margin: 13px 0 10px;
+  padding-top: 11px;
+  border-top: 1px solid var(--border);
+}
+
+.ppe-work-meta span {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.ppe-equipment-grid {
+  display: grid;
+  grid-template-columns: repeat(5,minmax(0,1fr));
+  gap: 8px;
+}
+
+.ppe-equipment-result {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 58px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #06131e;
+}
+
+.ppe-equipment-result span {
+  font-size: 8px;
+  color: var(--muted);
+}
+
+.ppe-equipment-result b {
+  font-size: 9px;
+}
+
+.ppe-equipment-result.safe b {
+  color: var(--green);
+}
+
+.ppe-equipment-result.pending b {
+  color: var(--cyan);
+}
+
+.ppe-equipment-result.danger {
+  border-color: #ff526344;
+  background: #ff52630b;
+}
+
+.ppe-equipment-result.danger b {
+  color: #ff8190;
+}
+
+.ppe-monitor-card footer {
+  gap: 16px;
+  margin-top: 11px;
+  padding-top: 11px;
+  border-top: 1px solid var(--border);
+}
+
+.ppe-monitor-card footer>span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.ppe-monitor-card footer>span svg {
+  flex: 0 0 auto;
+  width: 13px;
+  color: var(--cyan);
+}
+
+.ppe-monitor-card footer button {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 9px;
+  border: 1px solid #30c6f244;
+  border-radius: 6px;
+  background: #30c6f210;
+  color: var(--cyan);
+  font-size: 8px;
+}
+
+.ppe-monitor-card footer button svg {
+  width: 12px;
+}
+
+.light-theme .ppe-monitor-state,
+.light-theme .ppe-monitor-card {
+  background: #fff;
+}
+
+.light-theme .ppe-equipment-result {
+  background: #f7f9fb;
+}
+
+@media (max-width: 900px) {
+  .ppe-equipment-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .ppe-scope-banner {
+    grid-template-columns: auto 1fr;
+  }
+
+  .ppe-scope-banner div:last-child {
+    grid-column: 2;
+  }
+
+  .ppe-monitor-card header,
+  .ppe-monitor-card footer,
+  .ppe-work-meta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ppe-analysis-state {
+    margin-top: 9px;
+  }
+
+  .ppe-monitor-card footer button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 .permit-layout {
   display: grid;
   grid-template-columns: 340px 1fr;
@@ -3523,6 +3806,57 @@ button {
 }
 
 /* Worker safety report control */
+
+.worker-report-source-tabs {
+  display: flex;
+  gap: 7px;
+  margin: -2px 0 14px;
+  padding: 5px;
+  width: fit-content;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: #091925;
+}
+
+.light-theme .worker-report-source-tabs {
+  background: #fff;
+  border-color: #d9e2e8;
+}
+
+.light-theme .worker-report-source-tabs button {
+  color: #526879;
+}
+
+.light-theme .worker-report-source-tabs button.active {
+  color: #fff;
+}
+
+.light-theme .ppe-detection {
+  background: #f8fafb;
+  border-color: #d9e2e8;
+}
+
+.light-theme .ppe-detection.off {
+  background: #fff3f1;
+  border-color: #efaaa3;
+}
+
+.worker-report-source-tabs button {
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #8ba0b1;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.worker-report-source-tabs button.active {
+  color: #fff;
+  background: linear-gradient(135deg,#1599c1,#08789d);
+  box-shadow: 0 4px 12px #0c8db333;
+}
 
 .worker-report-admin {
   display: grid;
@@ -7150,6 +7484,73 @@ button {
 
 .shop-control-grid {
   grid-template-columns: minmax(0,1fr) 310px;
+}
+
+.ai-ppe-event-result {
+  border-color: #ff74174d;
+  background: linear-gradient(135deg,#2b1c13,#091925 62%);
+}
+
+.ai-ppe-event-result .ai-result-title>svg {
+  color: var(--orange);
+}
+
+.ai-ppe-event-result .ai-result-title span {
+  color: #ff9a55;
+}
+
+.ppe-detection-grid {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.ppe-detection {
+  position: relative;
+  min-height: 64px;
+  padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: #071722;
+}
+
+.ppe-detection span,.ppe-detection b {
+  display: block;
+}
+
+.ppe-detection span {
+  color: #8298a9;
+  font-size: 8px;
+}
+
+.ppe-detection b {
+  margin-top: 5px;
+  font-size: 12px;
+}
+
+.ppe-detection.on b {
+  color: var(--green);
+}
+
+.ppe-detection.off {
+  border-color: #ff5b4d55;
+  background: #35181780;
+}
+
+.ppe-detection.off b,.ppe-detection.off>svg {
+  color: var(--red);
+}
+
+.ppe-detection>svg {
+  position: absolute;
+  right: 10px;
+  top: 18px;
+  width: 18px;
+}
+
+.ppe-detection.unknown b {
+  color: #8298a9;
 }
 
 .permit-worker-field {

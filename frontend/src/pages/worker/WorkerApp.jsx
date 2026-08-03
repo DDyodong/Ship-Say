@@ -84,11 +84,6 @@ function workTime(permit, locale, extraText) {
   return `${formatTime(permit.start_time, locale)} ~ ${formatTime(permit.end_time, locale)}`;
 }
 
-function booleanLabel(value, text, extraText) {
-  if (value == null) return extraText.pendingAnalysis;
-  return value ? text.worn : extraText.notWorn;
-}
-
 function WorkerApp({ session, onLogout, notify }) {
   const [tab, setTab] = useState("work");
   const [language, setLanguage] = useState(
@@ -103,7 +98,7 @@ function WorkerApp({ session, onLogout, notify }) {
   const [busy, setBusy] = useState("");
   const [ppeFile, setPpeFile] = useState(null);
   const [ppePreview, setPpePreview] = useState("");
-  const [manualChecks, setManualChecks] = useState([false, false, false]);
+  const [manualChecks, setManualChecks] = useState([false, false]);
   const [reportFile, setReportFile] = useState(null);
   const [reportPreview, setReportPreview] = useState("");
   const [eventType, setEventType] = useState("FALL_HEIGHT");
@@ -131,13 +126,6 @@ function WorkerApp({ session, onLogout, notify }) {
     resolved: extraText.resolved,
     rejected: extraText.rejected,
   };
-  const ppeStatus = {
-    pending_analysis: extraText.pendingAnalysis,
-    passed: text.aiPass,
-    retry_required: extraText.retryRequired,
-    failed: extraText.analysisFailed,
-  };
-
   const loadPermit = async () => {
     const result = await apiRequest("/api/work-permits/today", { headers: authorization });
     setPermit(Object.keys(result).length ? result : null);
@@ -303,8 +291,7 @@ function WorkerApp({ session, onLogout, notify }) {
           permitId: permit?.id || null,
           fileId: uploaded.id,
           safetyShoesConfirmed: manualChecks[0],
-          glovesConfirmed: manualChecks[1],
-          workwearConfirmed: manualChecks[2],
+          workwearConfirmed: manualChecks[1],
         }),
       });
       setPpe(result);
@@ -313,7 +300,7 @@ function WorkerApp({ session, onLogout, notify }) {
         if (current) URL.revokeObjectURL(current);
         return "";
       });
-      setManualChecks([false, false, false]);
+      setManualChecks([false, false]);
       notify(extraText.ppeAccepted);
     } catch (error) {
       notify(error.message);
@@ -418,15 +405,13 @@ function WorkerApp({ session, onLogout, notify }) {
           <ChevronRight />
         </button>
         <button className="worker-action-card" onClick={() => setTab("check")}>
-          <i className={ppe?.passed ? "complete" : ""}>
-            {ppe?.passed ? <Check /> : "2"}
+          <i className={ppe ? "complete" : ""}>
+            {ppe ? <Check /> : "2"}
           </i>
           <span>
             <b>{text.ppeCheck}</b>
             <small>
-              {ppe
-                ? ppeStatus[ppe.status] || ppe.status
-                : text.photoPpeCheck}
+              {ppe ? extraText.ppeAccepted : text.photoPpeCheck}
             </small>
           </span>
           <ChevronRight />
@@ -490,20 +475,13 @@ function WorkerApp({ session, onLogout, notify }) {
   const renderCheck = () => (
     <>
       {ppe && (
-        <section className={`worker-ppe-status ${ppe.status}`}>
+        <section className="worker-ppe-status passed">
           <div>
             <ClipboardCheck />
             <span>
-              <b>{ppeStatus[ppe.status] || ppe.status}</b>
-              <small>{extraText.ppeDefaultMessage}</small>
+              <b>{extraText.ppeAccepted}</b>
             </span>
           </div>
-          {ppe.status === "pending_analysis" && (
-            <button onClick={() => loadPpe().catch(error => notify(error.message))}>
-              <RefreshCw />
-              {extraText.refresh}
-            </button>
-          )}
         </section>
       )}
       <section className="worker-card">
@@ -537,26 +515,6 @@ function WorkerApp({ session, onLogout, notify }) {
           <span>{label}</span>
         </label>
       ))}
-      {ppe && ppe.status !== "pending_analysis" && (
-        <section className="worker-card worker-result-card">
-          <h3 className={ppe.passed ? "worker-green" : "worker-red"}>
-            {ppe.passed ? text.aiPass : extraText.ppeResult}
-          </h3>
-          <InfoRow
-            label={text.helmet}
-            value={booleanLabel(ppe.helmetOn, text, extraText)}
-          />
-          <InfoRow
-            label={text.harness}
-            value={booleanLabel(ppe.harnessOn, text, extraText)}
-          />
-          <InfoRow
-            label={text.weldingMask}
-            value={booleanLabel(ppe.weldingMaskOn, text, extraText)}
-          />
-          <InfoRow label={text.model} value={ppe.model || "-"} />
-        </section>
-      )}
       <button
         className="worker-primary-button"
         disabled={busy === "ppe"}
@@ -706,8 +664,9 @@ function WorkerApp({ session, onLogout, notify }) {
   );
 
   return (
-    <main className="worker-web-stage">
-      <section className="worker-phone-app" aria-label={text.worker}>
+    <>
+      <main className="worker-web-stage">
+        <section className="worker-phone-app" aria-label={text.worker}>
         <header className="worker-app-header">
           <div>
             <h1>{text.pages[activeIndex]}</h1>
@@ -743,10 +702,11 @@ function WorkerApp({ session, onLogout, notify }) {
               <b>{text.nav[index]}</b>
             </button>
           ))}
-        </nav>
-      </section>
+          </nav>
+        </section>
+      </main>
       <LegalFooter compact/>
-    </main>
+    </>
   );
 }
 

@@ -63,10 +63,11 @@ DELETE /api/work-permits/{id}/permanent                      ADMIN
 GET  /api/worker/tbm/today?language=ko                       WORKER | ADMIN
 POST /api/worker/tbm/confirm                                 WORKER | ADMIN
 GET  /api/worker/personal-checks/today                       WORKER | ADMIN
-POST /api/worker/personal-checks                             WORKER | ADMIN
+POST /api/worker/personal-checks                             WORKER | ADMIN (202 Accepted)
+GET  /api/admin/ppe-checks                                   ADMIN
 
 GET  /api/safety-events                                      ADMIN
-GET  /api/safety-events/reports                              ADMIN
+GET  /api/safety-events/reports?status=&sourceType=          ADMIN
 GET  /api/safety-events/my                                   WORKER | ADMIN
 POST /api/safety-events                                      WORKER | ADMIN
 POST /api/safety-events/{id}/actions                         ADMIN
@@ -85,6 +86,26 @@ GET|POST|PATCH /api/digital-twin/**                          ADMIN
 ```
 
 게시판과 파일 API는 대화형 사용자 역할인 `WORKER`, `ADMIN`만 사용할 수 있습니다. `AI_SERVICE`는 AI 모델 결과와 위험 점수를 등록하는 API에만 접근할 수 있으며, 위에 명시되지 않은 API는 기본적으로 거부됩니다.
+
+작업자의 보호구 제출 API는 사진, 안전화 확인, 안전복 확인을 저장한 뒤 `202 Accepted`로 즉시 응답합니다. 안전모(Helmet), 하네스(Harness), 용접면(Welding mask)의 YOLO 탐지 결과는 작업자 응답에 포함하지 않고 관리자용 `/api/admin/ppe-checks`에서만 제공합니다.
+
+YOLO 이미지 결과는 아래처럼 보호구 점검 결과 API로 전달합니다. `status=retry_required`, `reasonCode=PPE_MISSING`, `missingItems`가 한 개 이상인 경우에만 `source_type=ai_ppe` 안전 이벤트가 자동 생성됩니다. 사람 미검출(`NO_CLEAR_WORKER`)이나 여러 명 감지(`MULTIPLE_WORKERS`)는 재촬영 사유이며 안전 이벤트를 생성하지 않습니다. 같은 `personal-check` ID의 콜백이 재전송되어도 이벤트는 한 건만 유지됩니다.
+
+```json
+{
+  "status": "retry_required",
+  "helmetOn": true,
+  "helmetConfidence": 0.97,
+  "harnessOn": false,
+  "weldingMaskOn": null,
+  "model": "yardops-ppe-image-v1",
+  "message": "Required PPE was not detected: harness.",
+  "reasonCode": "PPE_MISSING",
+  "missingItems": ["harness"]
+}
+```
+
+관리자 이벤트 목록은 `sourceType=user_report` 또는 `sourceType=ai_ppe`로 구분 조회할 수 있습니다.
 
 인증이 필요한 API는 로그인 응답의 `accessToken`을 아래처럼 전달합니다.
 
