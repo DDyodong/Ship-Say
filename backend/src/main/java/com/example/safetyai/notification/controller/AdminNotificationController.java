@@ -24,6 +24,7 @@ public class AdminNotificationController {
     public NotificationService.SendResult sendTest(@Valid @RequestBody TestNotificationRequest request) {
         return notificationService.sendToUser(
             request.userId(),
+            request.eventId(),
             request.title(),
             request.body(),
             request.url()
@@ -32,6 +33,7 @@ public class AdminNotificationController {
 
     public record TestNotificationRequest(
         @NotNull @Positive Long userId,
+        @Positive Long eventId,
         @NotBlank @Size(max = 160) String title,
         @NotBlank @Size(max = 1000) String body,
         @Size(max = 500) String url

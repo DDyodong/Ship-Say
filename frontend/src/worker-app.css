@@ -146,6 +146,134 @@
   line-height: 1.55;
 }
 
+.worker-today-notifications {
+  padding: 14px;
+}
+
+.worker-notification-heading,
+.worker-notification-heading span,
+.worker-notification-list article,
+.worker-notification-icon,
+.worker-notification-list article > button {
+  display: flex;
+  align-items: center;
+}
+
+.worker-notification-heading {
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.worker-notification-heading span {
+  gap: 7px;
+  color: var(--worker-text);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.worker-notification-heading svg {
+  width: 17px;
+  color: var(--worker-cyan);
+}
+
+.worker-notification-heading > b {
+  color: var(--worker-cyan);
+  font-size: 11px;
+}
+
+.worker-notification-empty {
+  padding: 18px 4px 6px;
+  color: var(--worker-muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+.worker-notification-list {
+  display: grid;
+  gap: 9px;
+}
+
+.worker-notification-list article {
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid rgba(35, 210, 232, .22);
+  border-radius: 10px;
+  background: rgba(35, 210, 232, .06);
+}
+
+.worker-notification-list article.acknowledged {
+  border-color: var(--worker-border);
+  background: rgba(255, 255, 255, .025);
+  opacity: .72;
+}
+
+.worker-notification-icon {
+  flex: 0 0 30px;
+  height: 30px;
+  justify-content: center;
+  border-radius: 9px;
+  color: var(--worker-cyan);
+  background: rgba(35, 210, 232, .12);
+}
+
+.worker-notification-icon svg {
+  width: 16px;
+}
+
+.worker-notification-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.worker-notification-copy b,
+.worker-notification-copy p,
+.worker-notification-copy small {
+  display: block;
+}
+
+.worker-notification-copy b {
+  color: var(--worker-text);
+  font-size: 12px;
+}
+
+.worker-notification-copy p {
+  margin: 3px 0;
+  color: var(--worker-muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.worker-notification-copy small {
+  color: #708898;
+  font-size: 9px;
+}
+
+.worker-notification-list article > button {
+  flex: 0 0 auto;
+  min-width: 48px;
+  justify-content: center;
+  gap: 3px;
+  padding: 7px 9px;
+  border: 1px solid rgba(35, 210, 232, .4);
+  border-radius: 8px;
+  color: var(--worker-cyan);
+  background: rgba(35, 210, 232, .08);
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.worker-notification-list article > button:disabled {
+  border-color: var(--worker-border);
+  color: var(--worker-muted);
+  background: transparent;
+  cursor: default;
+}
+
+.worker-notification-list article > button svg {
+  width: 12px;
+}
+
 .worker-success-label {
   display: flex;
   align-items: center;

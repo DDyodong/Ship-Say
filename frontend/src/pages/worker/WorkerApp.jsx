@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   BellRing,
   BriefcaseBusiness,
@@ -35,6 +36,11 @@ const tabs = [
   ["report", Megaphone],
   ["profile", CircleUserRound],
 ];
+
+const workerTabFromPath = pathname => {
+  const candidate = pathname.split("/").filter(Boolean).at(-1);
+  return tabs.some(([key]) => key === candidate) ? candidate : "work";
+};
 
 const languages = [
   ["ko", "한국어", "ko-KR"],
@@ -90,7 +96,9 @@ function workTime(permit, locale, extraText) {
 }
 
 function WorkerApp({ session, onLogout, notify }) {
-  const [tab, setTab] = useState("work");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [tab, setTab] = useState(() => workerTabFromPath(location.pathname));
   const [language, setLanguage] = useState(
     () => localStorage.getItem("smartyard-language") || "ko",
   );
@@ -98,6 +106,7 @@ function WorkerApp({ session, onLogout, notify }) {
   const [tbm, setTbm] = useState(null);
   const [ppe, setPpe] = useState(null);
   const [reports, setReports] = useState([]);
+  const [todayNotifications, setTodayNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [speaking, setSpeaking] = useState(false);
   const [busy, setBusy] = useState("");
@@ -112,6 +121,11 @@ function WorkerApp({ session, onLogout, notify }) {
     () => localStorage.getItem("fcm-installation-id") ? "ready" : "idle",
   );
   const contentRef = useRef(null);
+
+  const openTab = nextTab => {
+    setTab(nextTab);
+    navigate(`/worker/${nextTab}`);
+  };
 
   const text = ui[language] || ui.ko;
   const extraText = workerExtraUi[language] || workerExtraUi.en;
@@ -160,6 +174,11 @@ function WorkerApp({ session, onLogout, notify }) {
     setReports(result);
   };
 
+  const loadTodayNotifications = async () => {
+    const result = await apiRequest("/api/notifications/today", { headers: authorization });
+    setTodayNotifications(result);
+  };
+
   const refreshAll = async (showMessage = false) => {
     setLoading(true);
     const results = await Promise.allSettled([
@@ -167,6 +186,7 @@ function WorkerApp({ session, onLogout, notify }) {
       loadTbm(),
       loadPpe(),
       loadReports(),
+      loadTodayNotifications(),
     ]);
     const failure = results.find(result => result.status === "rejected");
     if (failure) notify(failure.reason?.message || extraText.loadFailed);
@@ -188,15 +208,30 @@ function WorkerApp({ session, onLogout, notify }) {
   }, [tab]);
 
   useEffect(() => {
+    setTab(workerTabFromPath(location.pathname));
+  }, [location.pathname]);
+
+  useEffect(() => {
     let unsubscribe;
     let active = true;
 
     listenForForegroundMessages(payload => {
       const title = payload.notification?.title || payload.data?.title || "Smart Shipyard 안전 알림";
       const body = payload.notification?.body || payload.data?.body || "새로운 안전 알림이 도착했습니다.";
+      const targetUrl = payload.data?.url || "/worker/work";
       notify(`${title}: ${body}`);
+      loadTodayNotifications().catch(() => {});
       if (Notification.permission === "granted") {
-        new Notification(title, { body, icon: "/favicon.png" });
+        const notification = new Notification(title, {
+          body,
+          icon: "/favicon.png",
+          data: { url: targetUrl },
+        });
+        notification.onclick = () => {
+          window.focus();
+          navigate(targetUrl);
+          notification.close();
+        };
       }
     }).then(listener => {
       if (active) unsubscribe = listener;
@@ -407,15 +442,70 @@ function WorkerApp({ session, onLogout, notify }) {
     }
   };
 
+  const acknowledgeNotification = async notificationId => {
+    setBusy(`notification-${notificationId}`);
+    try {
+      await apiRequest(`/api/notifications/${notificationId}/acknowledge`, {
+        method: "POST",
+        headers: authorization,
+      });
+      setTodayNotifications(current => current.map(item => (
+        item.id === notificationId
+          ? { ...item, acknowledgedAt: new Date().toISOString() }
+          : item
+      )));
+      openTab("check");
+    } catch (error) {
+      notify(error.message);
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const renderTodayNotifications = () => (
+    <section className="worker-card worker-today-notifications">
+      <div className="worker-notification-heading">
+        <span><BellRing />오늘 알림</span>
+        <b>{todayNotifications.length}건</b>
+      </div>
+      {todayNotifications.length === 0 ? (
+        <p className="worker-notification-empty">오늘 도착한 안전 알림이 없습니다.</p>
+      ) : (
+        <div className="worker-notification-list">
+          {todayNotifications.map(item => (
+            <article key={item.id} className={item.acknowledgedAt ? "acknowledged" : ""}>
+              <div className="worker-notification-icon"><BellRing /></div>
+              <div className="worker-notification-copy">
+                <b>{item.title}</b>
+                <p>{item.message}</p>
+                <small>{formatTime(item.sentAt || item.createdAt, locale)}</small>
+              </div>
+              <button
+                type="button"
+                disabled={Boolean(item.acknowledgedAt) || busy === `notification-${item.id}`}
+                onClick={() => acknowledgeNotification(item.id)}
+              >
+                {item.acknowledgedAt ? <><Check />확인됨</> : "확인"}
+              </button>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+
   const renderWork = () => {
     if (loading) return <LoadingCard label={extraText.loadingWork} />;
     if (!permit) {
       return (
-        <EmptyState
-          icon={BriefcaseBusiness}
-          title={extraText.noWorkTitle}
-          text={extraText.noWorkText}
-        />
+        <>
+          <EmptyState
+            icon={BriefcaseBusiness}
+            title={extraText.noWorkTitle}
+            text={extraText.noWorkText}
+          />
+          {renderTodayNotifications()}
+        </>
       );
     }
     return (
@@ -454,11 +544,12 @@ function WorkerApp({ session, onLogout, notify }) {
             {permit.recommended_conditions || permit.work_content || extraText.noConditions}
           </p>
         </section>
+        {renderTodayNotifications()}
         <div className="worker-section-title">
           <h3>{text.beforeWork}</h3>
           <span>{text.completeInOrder}</span>
         </div>
-        <button className="worker-action-card" onClick={() => setTab("tbm")}>
+        <button className="worker-action-card" onClick={() => openTab("tbm")}>
           <i className={tbm?.confirmed ? "complete" : ""}>
             {tbm?.confirmed ? <Check /> : "1"}
           </i>
@@ -468,7 +559,7 @@ function WorkerApp({ session, onLogout, notify }) {
           </span>
           <ChevronRight />
         </button>
-        <button className="worker-action-card" onClick={() => setTab("check")}>
+        <button className="worker-action-card" onClick={() => openTab("check")}>
           <i className={ppe ? "complete" : ""}>
             {ppe ? <Check /> : "2"}
           </i>
@@ -480,7 +571,7 @@ function WorkerApp({ session, onLogout, notify }) {
           </span>
           <ChevronRight />
         </button>
-        <button className="worker-danger-button" onClick={() => setTab("report")}>
+        <button className="worker-danger-button" onClick={() => openTab("report")}>
           <Megaphone />
           {text.reportHazard}
         </button>
@@ -769,7 +860,7 @@ function WorkerApp({ session, onLogout, notify }) {
             <button
               key={key}
               className={tab === key ? "active" : ""}
-              onClick={() => setTab(key)}
+              onClick={() => openTab(key)}
             >
               <Icon />
               <b>{text.nav[index]}</b>

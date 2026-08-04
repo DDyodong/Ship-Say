@@ -10,10 +10,11 @@ import { maskName } from "../../utils/privacy";
 const statusOptions = [["", "전체"], ["received", "접수"], ["confirmed", "확인"], ["in_progress", "조치 중"], ["resolved", "처리 완료"]];
 const statusLabels = Object.fromEntries(statusOptions.filter(([value]) => value));
 const statusSteps = ["received", "confirmed", "in_progress", "resolved"];
-const sourceOptions = [["", "전체 이벤트"], ["user_report", "작업자 위험 신고"], ["ai_ppe", "AI 보호구 감지"]];
+const sourceOptions = [["", "전체 이벤트"], ["user_report", "작업자 위험 신고"], ["ai_ppe", "AI 보호구 감지"], ["system_alert", "시스템 안전 알림"]];
 const sourceLabels = {
   user_report: { label:"작업자 신고", badge:"cyan", detail:"현장 작업자 신고 상세" },
   ai_ppe: { label:"AI 보호구 감지", badge:"orange", detail:"AI 보호구 감지 상세" },
+  system_alert: { label:"시스템 알림", badge:"orange", detail:"작업자 대상 안전 알림 상세" },
 };
 const riskLabels = {
   FALL_HEIGHT: "추락·고소작업 위험", PPE_MISSING: "보호구 미착용", FIRE_EXPLOSION: "화재·폭발 위험",
@@ -69,6 +70,7 @@ function WorkerReports({ session, notify }) {
   const selected = reports.find(report => report.id === selectedId) || null;
   const selectedSource = reportSource(selected);
   const isAiPpe = selected?.sourceType === "ai_ppe";
+  const isSystemAlert = selected?.sourceType === "system_alert";
   const missingItems = parseMissingItems(selected?.missingItems);
 
   useEffect(() => {
@@ -127,7 +129,7 @@ function WorkerReports({ session, notify }) {
         {!selected?<div className="report-admin-empty detail"><Siren/>왼쪽에서 안전 이벤트를 선택하세요.</div>:<>
           <div className="report-detail-head"><div><span>{selectedSource.detail}</span><h3>{selected.reportNo}</h3></div><div><span className={`report-status ${selected.status}`}>{statusLabels[selected.status]}</span><span className={`badge ${selectedSource.badge}`}>{selectedSource.label}</span></div></div>
           <div className="report-detail-source"><div className="report-photo">{photoUrl?<button type="button" onClick={()=>setPhotoExpanded(true)} aria-label="첨부 사진 크게 보기"><img src={photoUrl} alt={isAiPpe?"AI 보호구 검사 사진":"작업자가 첨부한 위험 현장"}/><span><Maximize2/> 크게 보기</span></button>:<FileImage/>}</div><dl>
-            <div><dt>위험 유형</dt><dd>{riskLabels[selected.eventType] || selected.title}</dd></div><div><dt>{isAiPpe?"대상 작업자":"신고자"}</dt><dd>{maskName(selected.reporterName)}</dd></div><div><dt>사번</dt><dd>{selected.employeeNo || "-"}</dd></div><div><dt>{isAiPpe?"감지 시각":"신고 시각"}</dt><dd>{formatDate(selected.eventTime)}</dd></div>
+            <div><dt>위험 유형</dt><dd>{riskLabels[selected.eventType] || selected.title}</dd></div><div><dt>{isAiPpe||isSystemAlert?"대상 작업자":"신고자"}</dt><dd>{maskName(selected.reporterName)}</dd></div><div><dt>사번</dt><dd>{selected.employeeNo || "-"}</dd></div><div><dt>{isAiPpe?"감지 시각":isSystemAlert?"알림 시각":"신고 시각"}</dt><dd>{formatDate(selected.eventTime)}</dd></div>
           </dl></div>
           <div className="report-description"><b>{isAiPpe?"AI 판정 내용":"작업자 상세 내용"}</b><p>{selected.description}</p></div>
           {isAiPpe?<article className="ai-report-result completed ai-ppe-event-result">

@@ -146,8 +146,8 @@ public class SafetyEventRepository {
                    se.status,
                    se.severity,
                    se.event_time AS eventTime,
-                   u.name AS reporterName,
-                   u.employee_no AS employeeNo,
+                   COALESCE(u.name, target.name) AS reporterName,
+                   COALESCE(u.employee_no, target.employee_no) AS employeeNo,
                    f.id AS fileId,
                    f.original_name AS originalName,
                    f.mime_type AS mimeType,
@@ -165,9 +165,10 @@ public class SafetyEventRepository {
                    JSON_EXTRACT(se.payload, '$.harnessOn') AS harnessOn,
                    JSON_EXTRACT(se.payload, '$.weldingMaskOn') AS weldingMaskOn
             FROM safety_events se
-            JOIN users u ON u.id = se.reporter_id
+            LEFT JOIN users u ON u.id = se.reporter_id
+            LEFT JOIN users target ON target.id = se.target_user_id
             LEFT JOIN files f ON f.id = se.file_id
-            WHERE se.source_type IN ('user_report', 'ai_ppe')
+            WHERE se.source_type IN ('user_report', 'ai_ppe', 'system_alert')
             """ + statusCondition + sourceCondition + " ORDER BY se.event_time DESC";
         if (!statusCondition.isEmpty() && !sourceCondition.isEmpty()) {
             return jdbcTemplate.queryForList(sql, status, sourceType);

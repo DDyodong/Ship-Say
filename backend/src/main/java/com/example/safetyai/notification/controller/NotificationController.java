@@ -7,10 +7,12 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.util.Map;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -44,6 +46,32 @@ public class NotificationController {
     ) {
         requireUser(user);
         return notificationService.deviceStatus(user.id());
+    }
+
+    @GetMapping("/today")
+    public List<Map<String, Object>> today(
+        @AuthenticationPrincipal AuthService.AuthenticatedUser user
+    ) {
+        requireUser(user);
+        return notificationService.findToday(user.id());
+    }
+
+    @PostMapping("/{notificationId}/acknowledge")
+    public Map<String, Object> acknowledge(
+        @AuthenticationPrincipal AuthService.AuthenticatedUser user,
+        @PathVariable long notificationId
+    ) {
+        requireUser(user);
+        return notificationService.acknowledge(user.id(), notificationId);
+    }
+
+    @PostMapping("/safety-events/{eventId}/test")
+    public NotificationService.SendResult sendSafetyEventTest(
+        @AuthenticationPrincipal AuthService.AuthenticatedUser user,
+        @PathVariable long eventId
+    ) {
+        requireUser(user);
+        return notificationService.sendSafetyEventTest(user.id(), eventId);
     }
 
     private void requireUser(AuthService.AuthenticatedUser user) {
