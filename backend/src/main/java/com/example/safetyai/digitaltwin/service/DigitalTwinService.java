@@ -51,7 +51,8 @@ public class DigitalTwinService {
                     if (f.id() == tbar.id()) {
                         facilities.set(i, new Facility(f.id(), f.code(), f.name(), f.type(), "warning",
                             scenario.equals("COMMUNICATION_LOSS") ? "critical" : "high",
-                            f.progressPercent(), f.mapX(), f.mapY(), f.mapWidth(), f.mapHeight()));
+                            f.progressPercent(), f.mapX(), f.mapY(), f.mapWidth(), f.mapHeight(),
+                            f.lat(), f.lng()));
                     }
                 }
             }
@@ -91,7 +92,8 @@ public class DigitalTwinService {
 
         Facility current = new Facility(facility.id(), facility.code(), facility.name(), facility.type(),
             "low".equals(risk) ? "running" : "warning", risk, overallProgress,
-            facility.mapX(), facility.mapY(), facility.mapWidth(), facility.mapHeight());
+            facility.mapX(), facility.mapY(), facility.mapWidth(), facility.mapHeight(),
+            facility.lat(), facility.lng());
         List<Alarm> alarms = repository.findLatestAlarms(facility.id());
         return new ShopSnapshot(current, LocalDateTime.now(), "SIMULATOR",
             scenario.type(), round(5 + cycle * 90), process, assets, robots, alarms);
@@ -132,6 +134,12 @@ public class DigitalTwinService {
 
     public void acknowledgeAlarm(long alarmId) {
         repository.acknowledgeAlarm(alarmId);
+    }
+
+    // 카카오맵 "좌표 보정" 화면에서 실제 위경도를 지정했을 때 호출
+    public void updateFacilityCoordinates(String facilityCode, double lat, double lng) {
+        Facility facility = requireFacility(facilityCode);
+        repository.updateFacilityCoordinates(facility.id(), lat, lng);
     }
 
     private RobotTelemetry generateTelemetry(
