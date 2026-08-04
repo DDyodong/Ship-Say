@@ -116,6 +116,7 @@ npm run dev
 
 ```dotenv
 VITE_API_BASE_URL=http://localhost:8080
+VITE_FIREBASE_API_KEY=your_restricted_firebase_web_api_key
 ```
 
 ### 5. Firebase 푸시 알림

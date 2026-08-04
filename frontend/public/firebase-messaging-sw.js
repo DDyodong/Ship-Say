@@ -2,8 +2,13 @@
 importScripts("https://www.gstatic.com/firebasejs/12.17.0/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/12.17.0/firebase-messaging-compat.js");
 
+const firebaseApiKey = new URL(self.location.href).searchParams.get("firebaseApiKey");
+if (!firebaseApiKey) {
+  throw new Error("Firebase API key was not provided when registering the service worker.");
+}
+
 firebase.initializeApp({
-  apiKey: "AIzaSyD0cyOK0rZt4RnGYfWHofIaNi7rEjom4hs",
+  apiKey: firebaseApiKey,
   authDomain: "aivle25.firebaseapp.com",
   projectId: "aivle25",
   storageBucket: "aivle25.firebasestorage.app",

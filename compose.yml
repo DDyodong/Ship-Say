@@ -54,6 +54,7 @@ services:
     container_name: safety-ai-frontend
     environment:
       VITE_API_BASE_URL: http://localhost:${BACKEND_PORT:-8180}
+      VITE_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY:-}
       CHOKIDAR_USEPOLLING: "true"
     ports:
       - "${FRONTEND_PORT:-5173}:5173"

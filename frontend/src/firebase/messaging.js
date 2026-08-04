@@ -8,7 +8,7 @@ import {
 } from "firebase/messaging";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyD0cyOK0rZt4RnGYfWHofIaNi7rEjom4hs",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY?.trim(),
   authDomain: "aivle25.firebaseapp.com",
   projectId: "aivle25",
   storageBucket: "aivle25.firebasestorage.app",
@@ -17,7 +17,13 @@ const firebaseConfig = {
 };
 
 const vapidKey = "BMYMKNl3qJlViWMFQuYHZEBjJfB9vu6ndDPfuOlLYd-ITL8611vv812D_8nGq_qZvJ-Z3o7vYWcYFdcV4WuRc4k";
-const serviceWorkerPath = "/firebase-messaging-sw.js";
+function getServiceWorkerPath() {
+  if (!firebaseConfig.apiKey) {
+    throw new Error("VITE_FIREBASE_API_KEY가 설정되지 않았습니다.");
+  }
+  const params = new URLSearchParams({ firebaseApiKey: firebaseConfig.apiKey });
+  return `/firebase-messaging-sw.js?${params}`;
+}
 
 let browserMessaging;
 
@@ -29,7 +35,7 @@ async function getBrowserMessaging() {
     throw new Error("현재 브라우저에서는 Firebase 푸시 알림을 사용할 수 없습니다.");
   }
   if (!browserMessaging) {
-    browserMessaging = navigator.serviceWorker.register(serviceWorkerPath).then(registration => {
+    browserMessaging = navigator.serviceWorker.register(getServiceWorkerPath()).then(registration => {
       const app = getApps()[0] || initializeApp(firebaseConfig);
       return { messaging: getMessaging(app), registration };
     });
