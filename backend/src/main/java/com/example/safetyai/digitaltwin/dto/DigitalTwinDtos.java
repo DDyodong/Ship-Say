@@ -3,6 +3,7 @@ package com.example.safetyai.digitaltwin.dto;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -11,7 +12,7 @@ public final class DigitalTwinDtos {
 
     public record Facility(long id, String code, String name, String type, String status,
                            String riskLevel, int progressPercent, double mapX, double mapY,
-                           double mapWidth, double mapHeight) {}
+                           double mapWidth, double mapHeight, Double lat, Double lng) {}
 
     public record Asset(long id, String code, String name, String type, String modelName,
                         String status, double positionX, double positionY, double positionZ) {}
@@ -72,4 +73,10 @@ public final class DigitalTwinDtos {
                                double currentAmp, double voltage, double torquePercent,
                                double temperatureC, double gasFlow, String riskLevel,
                                LocalDateTime recordedAt) {}
+
+    // 카카오맵 "좌표 보정" 화면에서 실제 위경도를 저장할 때 쓰는 요청 바디
+    public record CoordinatesRequest(
+        @NotNull @Min(-90) @Max(90) Double lat,
+        @NotNull @Min(-180) @Max(180) Double lng
+    ) {}
 }

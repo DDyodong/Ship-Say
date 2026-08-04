@@ -7,6 +7,9 @@ import com.example.safetyai.digitaltwin.dto.DigitalTwinDtos.Facility;
 import com.example.safetyai.digitaltwin.dto.DigitalTwinDtos.HistoryPoint;
 import com.example.safetyai.digitaltwin.dto.DigitalTwinDtos.RobotTelemetry;
 import com.example.safetyai.digitaltwin.dto.DigitalTwinDtos.ScenarioState;
+import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -26,14 +29,9 @@ public class DigitalTwinRepository {
     public List<Facility> findFacilities() {
         return jdbcTemplate.query("""
             SELECT id, facility_code, name, facility_type, status, risk_level, progress_percent,
-                   map_x, map_y, map_width, map_height
+                   map_x, map_y, map_width, map_height, lat, lng
             FROM twin_facilities ORDER BY id
-            """, (rs, rowNum) -> new Facility(
-                rs.getLong("id"), rs.getString("facility_code"), rs.getString("name"),
-                rs.getString("facility_type"), rs.getString("status"), rs.getString("risk_level"),
-                rs.getInt("progress_percent"), rs.getDouble("map_x"), rs.getDouble("map_y"),
-                rs.getDouble("map_width"), rs.getDouble("map_height")
-            ));
+            """, (rs, rowNum) -> mapFacility(rs));
     }
 
     public Optional<Facility> findFacility(String facilityCode) {
@@ -177,5 +175,27 @@ public class DigitalTwinRepository {
         jdbcTemplate.update(
             "UPDATE twin_facilities SET status = ?, risk_level = ?, progress_percent = ? WHERE id = ?",
             status, riskLevel, progressPercent, facilityId);
+    }
+
+    // 카카오맵 "좌표 보정" 화면에서 실제 위경도를 클릭해서 지정했을 때 저장
+    public void updateFacilityCoordinates(long facilityId, double lat, double lng) {
+        jdbcTemplate.update(
+            "UPDATE twin_facilities SET lat = ?, lng = ? WHERE id = ?",
+            lat, lng, facilityId);
+    }
+
+    private Facility mapFacility(ResultSet rs) throws SQLException {
+        return new Facility(
+            rs.getLong("id"), rs.getString("facility_code"), rs.getString("name"),
+            rs.getString("facility_type"), rs.getString("status"), rs.getString("risk_level"),
+            rs.getInt("progress_percent"), rs.getDouble("map_x"), rs.getDouble("map_y"),
+            rs.getDouble("map_width"), rs.getDouble("map_height"),
+            nullableDouble(rs, "lat"), nullableDouble(rs, "lng")
+        );
+    }
+
+    private Double nullableDouble(ResultSet rs, String column) throws SQLException {
+        BigDecimal value = rs.getBigDecimal(column);
+        return value == null ? null : value.doubleValue();
     }
 }

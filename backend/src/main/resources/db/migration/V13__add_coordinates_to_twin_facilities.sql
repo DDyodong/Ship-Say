@@ -1,0 +1,5 @@
+ALTER TABLE twin_facilities
+  ADD COLUMN lat DECIMAL(10, 7) NULL,
+  ADD COLUMN lng DECIMAL(10, 7) NULL;
+
+DROP TABLE IF EXISTS facilities;

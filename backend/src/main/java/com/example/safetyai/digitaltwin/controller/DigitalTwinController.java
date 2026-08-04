@@ -1,6 +1,7 @@
 package com.example.safetyai.digitaltwin.controller;
 
 import com.example.safetyai.auth.service.AuthService.AuthenticatedUser;
+import com.example.safetyai.digitaltwin.dto.DigitalTwinDtos.CoordinatesRequest;
 import com.example.safetyai.digitaltwin.dto.DigitalTwinDtos.HistoryPoint;
 import com.example.safetyai.digitaltwin.dto.DigitalTwinDtos.ScenarioRequest;
 import com.example.safetyai.digitaltwin.dto.DigitalTwinDtos.ScenarioResult;
@@ -61,5 +62,18 @@ public class DigitalTwinController {
     public Map<String, Object> acknowledge(@PathVariable long alarmId) {
         service.acknowledgeAlarm(alarmId);
         return Map.of("acknowledged", true, "alarmId", alarmId);
+    }
+
+    // 카카오맵 "좌표 보정" 화면에서 실제 위경도를 클릭해서 지정했을 때 저장
+    // ⚠ 지금은 로그인한 사용자면 누구나 호출 가능해요 (다른 엔드포인트들과 동일한 수준).
+    //   관리자만 되게 막고 싶으면 @PreAuthorize("hasRole('ADMIN')") 추가하면 됩니다.
+    @PatchMapping("/facilities/{facilityCode}/coordinates")
+    public Map<String, Object> updateCoordinates(
+        @PathVariable String facilityCode,
+        @Valid @RequestBody CoordinatesRequest request
+    ) {
+        service.updateFacilityCoordinates(facilityCode, request.lat(), request.lng());
+        return Map.of("updated", true, "facilityCode", facilityCode,
+            "lat", request.lat(), "lng", request.lng());
     }
 }
