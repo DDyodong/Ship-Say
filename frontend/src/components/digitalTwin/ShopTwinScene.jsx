@@ -2,10 +2,25 @@ import React, { Suspense, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { ContactShadows, Html, OrbitControls, RoundedBox } from "@react-three/drei";
 import { Minus, Plus, RotateCcw } from "lucide-react";
+import { yardFacilityDetails } from "../../data/yardFacilities";
+
+const sceneProfiles = {
+  FABRICATION: { accent: "#27c8ef", product: "#c5d7dc" },
+  ASSEMBLY: { accent: "#ff8a35", product: "#a9cbd4" },
+  PAINTING: { accent: "#f3b33d", product: "#d7dce0" },
+  OUTFITTING: { accent: "#32d6aa", product: "#b8ced5" },
+  DOCK: { accent: "#ff7a24", product: "#8fb6c3" },
+  QUAY: { accent: "#49bcea", product: "#9fc3cd" },
+  MACHINERY: { accent: "#b58cff", product: "#aebfc5" },
+  STORAGE: { accent: "#e8b64d", product: "#b4c4c9" },
+};
 
 function ShopTwinScene({ snapshot, selectedRobot, onSelectRobot }) {
   const controlsRef = useRef();
   const robots = snapshot.robots || [];
+  const detail = yardFacilityDetails[snapshot.facility?.code] || {};
+  const facilityType = detail.type || snapshot.facility?.type || "FABRICATION";
+  const profile = sceneProfiles[facilityType] || sceneProfiles.FABRICATION;
   const danger = robots.some((robot) => robot.riskLevel !== "low");
   const changeZoom = (factor) => {
     const controls = controlsRef.current;
@@ -33,8 +48,9 @@ function ShopTwinScene({ snapshot, selectedRobot, onSelectRobot }) {
         <hemisphereLight intensity={1.25} color="#d7f6ff" groundColor="#061016"/>
         <directionalLight castShadow position={[8, 14, 6]} intensity={2.6} color="#dff8ff"
           shadow-mapSize-width={2048} shadow-mapSize-height={2048}/>
-        <pointLight position={[0, 6, -4]} intensity={32} color="#4cdcff" distance={24}/>
-        <ShopWorld snapshot={snapshot} robots={robots} selectedRobot={selectedRobot} onSelectRobot={onSelectRobot}/>
+        <pointLight position={[0, 6, -4]} intensity={32} color={profile.accent} distance={24}/>
+        <ShopWorld snapshot={snapshot} robots={robots} selectedRobot={selectedRobot} onSelectRobot={onSelectRobot}
+          detail={detail} profile={profile}/>
         <ContactShadows position={[0, -.04, 0]} scale={24} opacity={.55} blur={2.4} far={15}/>
         <OrbitControls ref={controlsRef} makeDefault target={[0, 1.4, 0]} enableDamping dampingFactor={.12}
           enableZoom={false} rotateSpeed={.25} panSpeed={.4} minDistance={11} maxDistance={42}
@@ -46,7 +62,7 @@ function ShopTwinScene({ snapshot, selectedRobot, onSelectRobot }) {
   </div>;
 }
 
-function ShopWorld({ snapshot, robots, selectedRobot, onSelectRobot }) {
+function ShopWorld({ snapshot, robots, selectedRobot, onSelectRobot, detail, profile }) {
   const blockX = -12 + Math.min(100, Math.max(0, snapshot.blockPositionPercent || 0)) * .24;
   const robotPositions = [
     [-5.3, .15, -4.2, false], [1.6, .15, -4.2, true],
@@ -56,14 +72,16 @@ function ShopWorld({ snapshot, robots, selectedRobot, onSelectRobot }) {
   return <group>
     <FactoryShell/>
     <Conveyor z={-4.2}/><Conveyor z={0}/><Conveyor z={4.2}/>
-    <TBarBlock x={blockX} z={0}/><TBarBlock x={blockX - 5} z={-4.2}/><TBarBlock x={blockX + 4} z={4.2}/>
+    <TBarBlock x={blockX} z={0} color={profile.product} accent={profile.accent}/><TBarBlock x={blockX - 5} z={-4.2} color={profile.product} accent={profile.accent}/><TBarBlock x={blockX + 4} z={4.2} color={profile.product} accent={profile.accent}/>
     <Gantry z={-4.2}/><Gantry z={0}/><Gantry z={4.2}/>
     {robots.map((robot, index) => {
       const [x, y, z, mirror] = robotPositions[index] || [8 + (index - 6) * 1.7, .15, 4.2, index % 2 === 1];
       return <Robot key={robot.assetCode} robot={robot} position={[x, y, z]} mirror={mirror}
         selected={selectedRobot?.assetCode === robot.assetCode} onSelect={onSelectRobot}/>;
     })}
-    <MaterialZone/><InspectionZone/><ControlRoom/>
+    <MaterialZone label={detail.features?.[0] || "자재 준비 구역"}/>
+    <InspectionZone label={detail.features?.[1] || "공정 품질 검사"} accent={profile.accent}/>
+    <ControlRoom label={`${detail.name || snapshot.facility?.name || "시설"} 제어실`}/>
     <CameraUnit/>
     <SafetyFence/>
   </group>;
@@ -106,11 +124,11 @@ function Conveyor({ z }) {
   </group>;
 }
 
-function TBarBlock({ x, z }) {
+function TBarBlock({ x, z, color = "#b7c9ce", accent = "#32d4ff" }) {
   return <group position={[x, .78, z]}>
-    <mesh castShadow><boxGeometry args={[2.25, .16, 1.25]}/><meshStandardMaterial color="#b7c9ce" metalness={.72} roughness={.23}/></mesh>
-    <mesh castShadow position={[0, .48, 0]}><boxGeometry args={[2.15, .82, .14]}/><meshStandardMaterial color="#d4e1e4" metalness={.7} roughness={.2}/></mesh>
-    <mesh position={[0, .95, 0]}><boxGeometry args={[2.22, .025, .18]}/><meshStandardMaterial color="#32d4ff" emissive="#149ac2" emissiveIntensity={3}/></mesh>
+    <mesh castShadow><boxGeometry args={[2.25, .16, 1.25]}/><meshStandardMaterial color={color} metalness={.72} roughness={.23}/></mesh>
+    <mesh castShadow position={[0, .48, 0]}><boxGeometry args={[2.15, .82, .14]}/><meshStandardMaterial color={color} metalness={.7} roughness={.2}/></mesh>
+    <mesh position={[0, .95, 0]}><boxGeometry args={[2.22, .025, .18]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={3}/></mesh>
   </group>;
 }
 
@@ -129,7 +147,7 @@ function Robot({ robot, position, mirror, selected, onSelect }) {
   const state = robot?.operatingState || "IDLE";
   useFrame(({ clock }) => {
     if (!shoulder.current || !elbow.current) return;
-    const active = state === "WELDING" || state === "TRACKING";
+    const active = ["WELDING", "TRACKING", "PROCESSING", "INSPECTION", "RUNNING"].includes(state);
     const wave = active ? Math.sin(clock.elapsedTime * 1.1 + (mirror ? 1.5 : 0)) : 0;
     shoulder.current.rotation.z = (mirror ? -.72 : .72) + wave * .12;
     elbow.current.rotation.z = (mirror ? 1.15 : -1.15) + wave * .18;
@@ -153,7 +171,7 @@ function Robot({ robot, position, mirror, selected, onSelect }) {
     </group>
     <mesh position={[0, .08, 0]}><torusGeometry args={[.78, .035, 12, 40]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={3}/></mesh>
     <Html center position={[0, 3.75, 0]} distanceFactor={10}><button className={`three-robot-label ${selected ? "selected" : ""}`} onClick={() => onSelect(robot)}>
-      <span>{robot.assetCode}</span><b>{robot.assetName}</b><small>{state} · {Number(robot.currentAmp).toFixed(1)}A</small>
+      <span>{robot.assetCode}</span><b>{robot.assetName}</b><small>{state} · {Number(robot.currentAmp || 0).toFixed(1)}A</small>
     </button></Html>
   </group>;
 }
@@ -190,28 +208,28 @@ function SafetyFence() {
   </group>;
 }
 
-function MaterialZone() {
+function MaterialZone({ label }) {
   return <group position={[-12.3, .2, -6.5]}>
     {[-1.1, 0, 1.1].map((z) => <group key={z} position={[0, 0, z]}>{[0, .35, .7].map((y) => <mesh key={y} castShadow position={[0, y, 0]}><boxGeometry args={[3.6, .16, .72]}/><meshStandardMaterial color="#81979e" metalness={.7}/></mesh>)}</group>)}
-    <Html center position={[0, 1.5, 0]} distanceFactor={13}><div className="shop-zone-tag">강재 대기 구역</div></Html>
+    <Html center position={[0, 1.5, 0]} distanceFactor={13}><div className="shop-zone-tag">{label}</div></Html>
   </group>;
 }
 
-function InspectionZone() {
+function InspectionZone({ label, accent }) {
   return <group position={[11.4, .3, 4.3]}>
     <RoundedBox castShadow args={[4.2, .55, 2.7]} radius={.12}><meshStandardMaterial color="#173d4b" metalness={.4}/></RoundedBox>
     {[-1.5, 1.5].map((x) => <Beam key={x} position={[x, 1.4, 0]} scale={[.16, 2.5, .16]}/>)}
     <Beam position={[0, 2.6, 0]} scale={[3.2, .16, .16]}/>
-    <mesh position={[0, 2.25, 0]}><boxGeometry args={[1.4, .18, .35]}/><meshStandardMaterial color="#56d9f7" emissive="#1d9dbb" emissiveIntensity={2}/></mesh>
-    <Html center position={[0, 3.25, 0]} distanceFactor={13}><div className="shop-zone-tag accent">용접 품질 검사</div></Html>
+    <mesh position={[0, 2.25, 0]}><boxGeometry args={[1.4, .18, .35]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={2}/></mesh>
+    <Html center position={[0, 3.25, 0]} distanceFactor={13}><div className="shop-zone-tag accent">{label}</div></Html>
   </group>;
 }
 
-function ControlRoom() {
+function ControlRoom({ label }) {
   return <group position={[11.8, 1.6, -5.7]}>
     <RoundedBox castShadow args={[4.8, 3.1, 3.2]} radius={.12}><meshStandardMaterial color="#173541" metalness={.25}/></RoundedBox>
     {[-1.45, 0, 1.45].map((x) => <mesh key={x} position={[x, .35, 1.62]}><boxGeometry args={[1.05, .9, .05]}/><meshStandardMaterial color="#66d7ee" emissive="#165d70" emissiveIntensity={1.8}/></mesh>)}
-    <Html center position={[0, 2.1, 0]} distanceFactor={13}><div className="shop-zone-tag">SHOP 제어실</div></Html>
+    <Html center position={[0, 2.1, 0]} distanceFactor={13}><div className="shop-zone-tag">{label}</div></Html>
   </group>;
 }
 
