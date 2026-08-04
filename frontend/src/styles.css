@@ -3324,6 +3324,31 @@ button {
   color: #667888;
 }
 
+.light-theme .permit-worker-options label {
+  background: #f8fafb;
+  border-color: #d5e0e6;
+  box-shadow: 0 2px 8px rgba(38,55,70,.05);
+}
+
+.light-theme .permit-worker-options label:hover {
+  background: #f0f7f9;
+  border-color: #a9cbd5;
+}
+
+.light-theme .permit-worker-options label.selected {
+  background: #e8f7fb;
+  border-color: #27a9cf;
+  box-shadow: 0 0 0 2px rgba(39,169,207,.09);
+}
+
+.light-theme .permit-worker-options b {
+  color: #233746;
+}
+
+.light-theme .permit-worker-options small {
+  color: #6a7f8e;
+}
+
 .light-theme .upload-zone b,.light-theme .selected-file {
   color: #344b5c;
 }
@@ -7575,21 +7600,24 @@ button {
 }
 
 .permit-worker-options {
-  max-height: 150px;
+  max-height: 132px;
   display: grid;
-  grid-template-columns: repeat(2,minmax(0,1fr));
-  gap: 7px;
+  grid-template-columns: repeat(auto-fill,minmax(170px,210px));
+  justify-content: start;
+  gap: 8px;
   overflow-y: auto;
   padding-right: 3px;
 }
 
 .permit-worker-options label {
-  min-height: 49px;
+  width: 100%;
+  min-height: 46px;
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 8px;
   margin: 0;
-  padding: 9px;
+  padding: 8px 10px;
   border: 1px solid rgba(89,147,169,.2);
   border-radius: 7px;
   background: #081a25;
@@ -7678,7 +7706,7 @@ button {
 
 @media (max-width:760px) {
   .permit-worker-options {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(170px,210px);
   }
 }
 
