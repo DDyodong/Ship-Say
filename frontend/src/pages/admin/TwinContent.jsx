@@ -47,6 +47,7 @@ function transformFacilities(facilities) {
       x: Math.round(PAD + col * (cellW + GUTTER)),
       y: Math.round(PAD + row * (cellH + GUTTER)),
       w: Math.round(cellW), h: Math.round(cellH),
+      lat: f.lat, lng: f.lng, // 좌표 보정을 마친 시설이면 실제 위경도, 아니면 null
       danger: isCritical,
       tag: isCritical ? "⚠ 위험구역 진입 예측됨" : undefined,
     };
@@ -117,7 +118,7 @@ function TwinContent({ snapshot, onOpenShop, onUnavailable }) {
       {/* 지도 — 엣지투엣지. 알림 배너와 상세 패널은 지도 위에 오버레이로 표시 */}
       <div className="mb-8">
         <KakaoYardMap
-          {...(facilities ? { facilities } : {})}
+          // facilities는 더 이상 넘기지 않음 — KakaoYardMap이 실측 데이터(geojeShipyardTags.json)를 자체 사용
           workers={workers}
           onOpenShop={onOpenShop}
           onUnavailable={onUnavailable}

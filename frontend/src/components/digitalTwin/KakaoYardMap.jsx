@@ -1,57 +1,39 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Crosshair, Layers3, Minus, Plus, RotateCcw } from "lucide-react";
+import { Layers3, Minus, Plus, RotateCcw } from "lucide-react";
+import realFacilityTags from "./geojeShipyardTags.json";
 
 const KAKAO_JS_KEY = import.meta.env.VITE_KAKAO_JS_KEY;
 const YARD_ADDRESS = "경상남도 거제시 거제대로 3370";
-const STORAGE_KEY = "yardFacilityPositions.v1"; // 이 브라우저에만 저장됨 — 팀 전체 공유는 별도 백엔드 저장이 필요
 
-const categories = [
-  ["ALL", "전체 야드"], ["FABRICATION", "가공"], ["ASSEMBLY", "조립"],
-  ["PAINTING", "도장"], ["OUTFITTING", "의장"], ["DOCK", "도크"],
-];
-
-const riskColors = { low: "#35e0ad", medium: "#ff9d38", high: "#ff5169", critical: "#ff2448" };
-
-const DEG_PER_PX_LNG = 0.0000197;
-const DEG_PER_PX_LAT = 0.0000144;
-function gridToLatLng(center, x, y) {
-  return {
-    lat: center.lat + (280 - y) * DEG_PER_PX_LAT,
-    lng: center.lng + (x - 500) * DEG_PER_PX_LNG,
-  };
+// 실제 서베이된 이름 기준으로 대략적인 공정 분류를 추정 (원본 데이터의 category 필드는
+// 전부 "조립/블록공장"으로 통일되어 있어서 필터용으로 쓰기엔 부정확함 — 이름으로 재분류)
+function classifyType(name) {
+  if (name.includes("도크") || name.includes("골리앗")) return "DOCK";
+  if (name.includes("도장")) return "PAINTING";
+  if (name.includes("의장")) return "OUTFITTING";
+  if (name.includes("절단")) return "FABRICATION";
+  return "ASSEMBLY";
 }
 
-const defaultFacilities = [
-  { code: "DOCK-01", name: "제1도크", type: "DOCK", risk: "low", prog: 82, x: 80, y: 40 },
-  { code: "DOCK-02", name: "제2도크", type: "DOCK", risk: "low", prog: 76, x: 280, y: 40 },
-  { code: "FDOCK-03", name: "부유식도크 RD-3", type: "DOCK", risk: "low", prog: 91, x: 480, y: 40 },
-  { code: "FDOCK-04", name: "부유식도크 RD-4", type: "DOCK", risk: "medium", prog: 58, x: 680, y: 40 },
-  { code: "FDOCK-05", name: "부유식도크 RD-5", type: "DOCK", risk: "low", prog: 69, x: 880, y: 40 },
-  { code: "ASSEMBLY-01", name: "블록 조립 1공장", type: "ASSEMBLY", risk: "low", prog: 88, x: 160, y: 220 },
-  { code: "ASSEMBLY-02", name: "블록 조립 2공장", type: "ASSEMBLY", risk: "low", prog: 49, x: 380, y: 220 },
-  { code: "SPECIAL-SHOP", name: "특수선 건조공장", type: "ASSEMBLY", risk: "low", prog: 55, x: 600, y: 220 },
-  { code: "OFFSHORE-SHOP", name: "해양플랜트 공장", type: "ASSEMBLY", risk: "medium", prog: 41, x: 820, y: 220 },
-  { code: "CUTTING-SHOP", name: "강재 절단공장", type: "FABRICATION", risk: "low", prog: 74, x: 90, y: 400 },
-  { code: "CURVED-BLOCK", name: "곡블록 가공공장", type: "FABRICATION", risk: "low", prog: 64, x: 290, y: 400 },
-  { code: "T-BAR-SHOP", name: "T-BAR 자동용접 SHOP", type: "FABRICATION", risk: "critical", prog: 63, x: 490, y: 400, danger: true },
-  { code: "PAINT-01", name: "도장 1공장", type: "PAINTING", risk: "low", prog: 69, x: 690, y: 400 },
-  { code: "PAINT-02", name: "도장 2공장", type: "PAINTING", risk: "medium", prog: 43, x: 160, y: 500 },
-  { code: "OUTFIT-SHOP", name: "의장 공장", type: "OUTFITTING", risk: "low", prog: 76, x: 380, y: 500 },
-  { code: "QUAY-01", name: "안벽 1구역", type: "QUAY", risk: "low", prog: 94, x: 600, y: 500 },
-];
+const typeColors = {
+  DOCK: "#4de0f5", PAINTING: "#ff9d38", OUTFITTING: "#c084fc",
+  FABRICATION: "#35e0ad", ASSEMBLY: "#00d2ff",
+};
+const typeLabels = { DOCK: "도크·크레인", PAINTING: "도장", OUTFITTING: "의장", FABRICATION: "가공", ASSEMBLY: "조립·블록" };
 
-const defaultWorkers = [
-  { id: "088", x: 350, y: 460, danger: false, label: "ID:088" },
-  { id: "000", x: 490, y: 440, danger: true, label: "ID:000 ⚠" },
-];
+// 업로드된 실측 데이터(위경도 + 실제 건물 외곽선 GeoJSON)를 그대로 사용
+const defaultFacilities = realFacilityTags
+  .filter((t) => t.status === "confirmed")
+  .map((t) => ({
+    code: `TAG-${t.id}`,
+    name: t.name,
+    type: classifyType(t.name),
+    lat: t.lat,
+    lng: t.lng,
+    ring: t.geojson?.geometry?.coordinates?.[0]?.map(([lng, lat]) => ({ lat, lng })) || null,
+  }));
 
-function loadOverrides() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-  } catch {
-    return {};
-  }
-}
+const defaultWorkers = [];
 
 function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers, overlayPanel, alertBanner, onOpenShop, onUnavailable }) {
   const [filter, setFilter] = useState("ALL");
@@ -59,22 +41,24 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
   const [sdkReady, setSdkReady] = useState(false);
   const [sdkError, setSdkError] = useState("");
   const [center, setCenter] = useState(null);
-  const [overrides, setOverrides] = useState(loadOverrides);
-  const [editMode, setEditMode] = useState(false);
-  const [placing, setPlacing] = useState(null);
 
   const containerRef = useRef(null);
   const mapDivRef = useRef(null);
   const mapRef = useRef(null);
-  const tagsRef = useRef([]);
+  const polygonsRef = useRef([]);
+  const labelsRef = useRef([]);
   const workerOverlaysRef = useRef([]);
-  const mapClickListenerRef = useRef(null);
 
-  const counts = useMemo(() => ({
-    low: facilities.filter((f) => f.risk === "low").length,
-    medium: facilities.filter((f) => f.risk === "medium").length,
-    danger: facilities.filter((f) => ["high", "critical"].includes(f.risk)).length,
-  }), [facilities]);
+  const typesPresent = useMemo(() => {
+    const set = new Set(facilities.map((f) => f.type));
+    return ["ALL", ...Array.from(set)];
+  }, [facilities]);
+
+  const counts = useMemo(() => {
+    const result = {};
+    facilities.forEach((f) => { result[f.type] = (result[f.type] || 0) + 1; });
+    return result;
+  }, [facilities]);
 
   useEffect(() => {
     if (window.kakao && window.kakao.maps) { setSdkReady(true); return; }
@@ -109,118 +93,86 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
       center: new kakao.maps.LatLng(center.lat, center.lng),
       level: 4,
     });
-    // 위성영상만 표시하고 HYBRID의 도로명·지명 레이어는 제외한다.
-    map.setMapTypeId(kakao.maps.MapTypeId.SKYVIEW);
-    map.setZoomable(false); // 휠 스크롤로 지도가 확대되며 페이지 스크롤을 가로채는 것 방지 (드래그 이동은 그대로 유지, +/- 버튼도 별개로 동작)
+    map.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
+    map.setZoomable(false); // 휠 스크롤이 페이지 스크롤을 가로채는 것 방지 (드래그 이동/+-버튼은 그대로 동작)
     mapRef.current = map;
   }, [sdkReady, center]);
 
-  useEffect(() => {
-    const kakao = window.kakao;
-    if (!kakao || !mapRef.current) return;
-    if (mapClickListenerRef.current) {
-      kakao.maps.event.removeListener(mapRef.current, "click", mapClickListenerRef.current);
-      mapClickListenerRef.current = null;
-    }
-    if (!editMode) return;
-
-    const handler = (mouseEvent) => {
-      if (!placing) return;
-      const latlng = mouseEvent.latLng;
-      setOverrides((prev) => {
-        const next = { ...prev, [placing]: { lat: latlng.getLat(), lng: latlng.getLng() } };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-        return next;
-      });
-      setPlacing(null);
-    };
-    mapClickListenerRef.current = handler;
-    kakao.maps.event.addListener(mapRef.current, "click", handler);
-    return () => {
-      if (mapClickListenerRef.current) kakao.maps.event.removeListener(mapRef.current, "click", mapClickListenerRef.current);
-    };
-  }, [editMode, placing]);
-
+  // 실제 건물 외곽선(폴리곤) + 이름 라벨 그리기
   useEffect(() => {
     if (!sdkReady || !center || !mapRef.current) return;
     const kakao = window.kakao;
 
-    tagsRef.current.forEach((o) => o.setMap(null));
-    tagsRef.current = [];
+    polygonsRef.current.forEach((p) => p.setMap(null));
+    labelsRef.current.forEach((l) => l.setMap(null));
+    polygonsRef.current = [];
+    labelsRef.current = [];
 
     facilities.forEach((f) => {
-      const color = riskColors[f.risk] || riskColors.low;
-      const isSelected = selected?.code === f.code;
-      const isDanger = !!f.danger;
-      const isPlacing = placing === f.code;
-      const show = filter === "ALL" || f.type === filter || (filter === "DOCK" && f.type === "QUAY");
+      const show = filter === "ALL" || f.type === filter;
       if (!show) return;
 
-      const override = overrides[f.code];
-      const p = override || gridToLatLng(center, f.x, f.y);
+      const color = typeColors[f.type] || typeColors.ASSEMBLY;
+      const isSelected = selected?.code === f.code;
+
+      if (f.ring && f.ring.length > 2) {
+        const path = f.ring.map((pt) => new kakao.maps.LatLng(pt.lat, pt.lng));
+        const polygon = new kakao.maps.Polygon({
+          path,
+          strokeWeight: isSelected ? 3 : 1.6,
+          strokeColor: color,
+          strokeOpacity: 0.95,
+          fillColor: color,
+          fillOpacity: isSelected ? 0.42 : 0.24,
+        });
+        kakao.maps.event.addListener(polygon, "click", () => {
+          setSelected(f);
+          onOpenShop?.(f.code);
+        });
+        kakao.maps.event.addListener(polygon, "mouseover", () => polygon.setOptions({ fillOpacity: 0.5 }));
+        kakao.maps.event.addListener(polygon, "mouseout", () => polygon.setOptions({ fillOpacity: isSelected ? 0.42 : 0.24 }));
+        polygon.setMap(mapRef.current);
+        polygonsRef.current.push(polygon);
+      }
 
       const el = document.createElement("div");
       el.style.cssText = `
-        position:relative; width:100px; display:flex; flex-direction:column; align-items:center;
-        cursor:pointer; font-family:Inter,sans-serif;
+        padding: 3px 8px; border-radius: 5px; background: rgba(0,0,0,.65);
+        border: 1px solid ${isSelected ? "#4de0f5" : "rgba(255,255,255,.25)"};
+        font: 700 10px Inter, sans-serif; color: #fff; white-space: nowrap;
+        text-shadow: 0 1px 3px rgba(0,0,0,.8); cursor: pointer; pointer-events: auto;
       `;
-      el.innerHTML = `
-        <div style="background:rgba(0,0,0,.62); padding:2px 7px; border-radius:4px; font-size:8px;
-          color:${override ? "#d6f3f7" : "#ffb35c"}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-          max-width:100px; margin-bottom:4px; box-shadow:0 2px 8px rgba(0,0,0,.4);">
-          ${f.name}${!override ? " ·미보정" : ""}
-        </div>
-        <div style="position:relative;">
-          <div style="width:34px;height:34px;border-radius:50%;
-            border:3px solid ${isPlacing ? "#ffd23f" : isSelected ? "#4de0f5" : color};
-            background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center;
-            box-shadow:0 0 10px ${isPlacing ? "rgba(255,210,63,.6)" : isDanger ? "rgba(255,36,72,.55)" : color + "88"};">
-            <span style="font-size:11px;font-weight:800;color:#fff;">${f.prog}</span>
-          </div>
-          ${isDanger ? `<div style="position:absolute;bottom:-3px;right:-3px;width:13px;height:13px;
-            background:#ff2448;border:1.5px solid #fff;transform:rotate(45deg);"></div>` : ""}
-        </div>
-        <div style="width:28px;height:3px;border-radius:2px;background:rgba(255,255,255,.2);margin-top:5px;overflow:hidden;">
-          <div style="height:100%;width:${f.prog}%;background:${color};"></div>
-        </div>
-      `;
-      el.addEventListener("click", (evt) => {
-        if (editMode) {
-          evt.stopPropagation?.();
-          setPlacing(f.code);
-          return;
-        }
-        setSelected(f);
-        if (f.code === "T-BAR-SHOP") onOpenShop?.(f.code);
-      });
+      el.textContent = f.name;
+      el.addEventListener("click", () => { setSelected(f); onOpenShop?.(f.code); });
 
-      const overlay = new kakao.maps.CustomOverlay({
-        position: new kakao.maps.LatLng(p.lat, p.lng),
+      const label = new kakao.maps.CustomOverlay({
+        position: new kakao.maps.LatLng(f.lat, f.lng),
         content: el,
-        yAnchor: 1,
+        yAnchor: 0.5,
       });
-      overlay.setMap(mapRef.current);
-      tagsRef.current.push(overlay);
+      label.setMap(mapRef.current);
+      labelsRef.current.push(label);
     });
-  }, [sdkReady, center, facilities, selected, filter, overrides, editMode, placing, onOpenShop]);
+  }, [sdkReady, center, facilities, selected, filter, onOpenShop]);
 
   useEffect(() => {
     if (!sdkReady || !center || !mapRef.current) return;
     const kakao = window.kakao;
     workerOverlaysRef.current.forEach((o) => o.setMap(null));
-    workerOverlaysRef.current = workers.map((w) => {
-      const p = gridToLatLng(center, w.x, w.y);
-      const overlay = new kakao.maps.CustomOverlay({
-        position: new kakao.maps.LatLng(p.lat, p.lng),
-        yAnchor: 0.5,
-        content: `<div style="display:flex;align-items:center;gap:5px;">
-          <span style="width:10px;height:10px;border-radius:50%;background:${w.danger ? "#ff2448" : "#00d2ff"};box-shadow:0 0 8px ${w.danger ? "#ff2448" : "#00d2ff"};display:inline-block;"></span>
-          <span style="font:800 11px 'JetBrains Mono',monospace;color:${w.danger ? "#ff2448" : "#00d2ff"};text-shadow:0 1px 4px rgba(0,0,0,.9);">${w.label}</span>
-        </div>`,
+    workerOverlaysRef.current = workers
+      .filter((w) => w.lat != null && w.lng != null)
+      .map((w) => {
+        const overlay = new kakao.maps.CustomOverlay({
+          position: new kakao.maps.LatLng(w.lat, w.lng),
+          yAnchor: 0.5,
+          content: `<div style="display:flex;align-items:center;gap:5px;">
+            <span style="width:10px;height:10px;border-radius:50%;background:${w.danger ? "#ff2448" : "#00d2ff"};box-shadow:0 0 8px ${w.danger ? "#ff2448" : "#00d2ff"};display:inline-block;"></span>
+            <span style="font:800 11px 'JetBrains Mono',monospace;color:${w.danger ? "#ff2448" : "#00d2ff"};text-shadow:0 1px 4px rgba(0,0,0,.9);">${w.label}</span>
+          </div>`,
+        });
+        overlay.setMap(mapRef.current);
+        return overlay;
       });
-      overlay.setMap(mapRef.current);
-      return overlay;
-    });
   }, [sdkReady, center, workers]);
 
   const zoomIn = () => mapRef.current?.setLevel(mapRef.current.getLevel() - 1);
@@ -230,11 +182,6 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
     mapRef.current.setCenter(new window.kakao.maps.LatLng(center.lat, center.lng));
     mapRef.current.setLevel(4);
   };
-  const clearOverrides = () => {
-    if (!window.confirm("보정한 모든 위치를 초기화할까요?")) return;
-    localStorage.removeItem(STORAGE_KEY);
-    setOverrides({});
-  };
 
   if (sdkError) {
     return <section className="rounded-xl bg-panel border border-edge p-6 text-sm text-slate-300">
@@ -242,8 +189,6 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
       <p>{sdkError}</p>
     </section>;
   }
-
-  const uncalibratedCount = facilities.filter((f) => !overrides[f.code]).length;
 
   return <section className="bg-panel border-b border-edge overflow-hidden">
     <style>{`
@@ -261,11 +206,11 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
           <div>
             <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-200 mb-2"><Layers3 size={13} className="text-cyan"/> 구역 필터</div>
             <div className="flex flex-col gap-1">
-              {categories.map(([value, label]) => <button key={value}
+              {typesPresent.map((value) => <button key={value}
                 onClick={() => setFilter(value)}
                 className={`text-left px-2 py-1.5 rounded-md text-[11px] font-mono transition-all ${filter === value
                   ? "bg-cyan/15 text-cyan border border-cyan/30" : "text-slate-300/80 hover:text-white border border-transparent"}`}>
-                {label}
+                {value === "ALL" ? "전체 야드" : typeLabels[value] || value}
               </button>)}
             </div>
           </div>
@@ -277,36 +222,13 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
               <button onClick={resetView} className="flex-1 h-7 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 flex items-center justify-center"><RotateCcw size={11}/></button>
             </div>
           </div>
-
-          <div className="pt-2 border-t border-white/10">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-200 mb-1.5"><Crosshair size={12} className="text-amber"/> 위치 보정</div>
-            <button onClick={() => { setEditMode((v) => !v); setPlacing(null); }}
-              className={`w-full h-7 rounded-md text-[11px] font-bold transition-colors ${
-                editMode ? "bg-amber/20 border border-amber/40 text-amber" : "bg-white/5 border border-white/10 text-slate-200 hover:bg-white/10"}`}>
-              {editMode ? "편집 모드 끄기" : "편집 모드 켜기"}
-            </button>
-            {editMode && <p className="text-[9px] text-slate-400 mt-1.5 leading-relaxed">
-              {placing ? "지도를 클릭해 위치를 지정하세요" : "옮길 태그를 먼저 클릭하세요"}
-            </p>}
-            {uncalibratedCount > 0 && <p className="text-[9px] text-amber mt-1.5">미보정 {uncalibratedCount}개 (주황 테두리)</p>}
-            {editMode && <button onClick={clearOverrides} className="w-full mt-1.5 h-6 rounded text-[9px] text-slate-400 hover:text-danger border border-white/10">전체 초기화</button>}
-          </div>
-
           <div>
             <div className="text-[10px] font-bold text-slate-200 mb-1.5">시설 현황</div>
             <div className="flex flex-col gap-1 text-[11px]">
-              <div className="flex items-center justify-between px-2 py-1 rounded bg-white/5">
-                <span className="flex items-center gap-1.5 text-slate-200"><span className="w-1.5 h-1.5 rounded-full" style={{ background: riskColors.low }}/>정상</span>
-                <span className="font-bold" style={{ color: riskColors.low }}>{counts.low}</span>
-              </div>
-              <div className="flex items-center justify-between px-2 py-1 rounded bg-white/5">
-                <span className="flex items-center gap-1.5 text-slate-200"><span className="w-1.5 h-1.5 rounded-full" style={{ background: riskColors.medium }}/>주의</span>
-                <span className="font-bold" style={{ color: riskColors.medium }}>{counts.medium}</span>
-              </div>
-              <div className="flex items-center justify-between px-2 py-1 rounded bg-white/5">
-                <span className="flex items-center gap-1.5 text-slate-200"><span className="w-1.5 h-1.5 rounded-full" style={{ background: riskColors.critical }}/>위험</span>
-                <span className="font-bold" style={{ color: riskColors.critical }}>{counts.danger}</span>
-              </div>
+              {Object.entries(counts).map(([type, n]) => <div key={type} className="flex items-center justify-between px-2 py-1 rounded bg-white/5">
+                <span className="flex items-center gap-1.5 text-slate-200"><span className="w-1.5 h-1.5 rounded-full" style={{ background: typeColors[type] }}/>{typeLabels[type] || type}</span>
+                <span className="font-bold" style={{ color: typeColors[type] }}>{n}</span>
+              </div>)}
             </div>
           </div>
         </div>
@@ -316,13 +238,9 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
         <div className="px-2.5 py-1.5 bg-ink/60 backdrop-blur-md border border-white/10 rounded text-[11px] font-bold text-slate-200 flex items-center gap-1.5">
           <i className="fa-solid fa-camera text-cyan text-[10px]"/> CAM-01: 실시간 분석 중
         </div>
-        {counts.danger > 0 && <div className="px-2.5 py-1.5 bg-danger/20 backdrop-blur-md border border-danger/40 rounded text-[11px] font-bold text-danger flex items-center gap-1.5 blink">
-          <i className="fa-solid fa-triangle-exclamation text-[10px]"/> 위험 시나리오 감지
-        </div>}
       </div>
 
       {alertBanner && <>
-        {/* 화면 테두리 플래시 — 긴급함 강조 */}
         <div className="absolute inset-0 border-4 border-danger/50 pointer-events-none z-30 blink"/>
         <div className="absolute z-40 left-1/2 -translate-x-1/2 pointer-events-none" style={{ bottom: 24, width: "min(92%, 440px)" }}>
           <div className="pointer-events-auto animate-toast-in">
@@ -336,14 +254,14 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
       </div>}
 
       <div className="absolute bottom-4 left-4 z-10 px-3 py-1.5 rounded-lg bg-ink/55 backdrop-blur-md border border-white/10 text-[11px] text-slate-300">
-        시설 {facilities.length}개 · 한화오션 거제사업장
+        시설 {facilities.length}개 · 한화오션 거제사업장 (실측 좌표)
       </div>
 
-      {selected && selected.code !== "T-BAR-SHOP" && <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 w-[min(90%,520px)] rounded-xl bg-ink/70 backdrop-blur-xl border border-white/10 px-4 py-3 flex items-center gap-4">
-        <div className="w-3 h-3 rounded-full shrink-0" style={{ background: riskColors[selected.risk] }}/>
+      {selected && <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 w-[min(90%,520px)] rounded-xl bg-ink/70 backdrop-blur-xl border border-white/10 px-4 py-3 flex items-center gap-4">
+        <div className="w-3 h-3 rounded-full shrink-0" style={{ background: typeColors[selected.type] }}/>
         <div className="min-w-0">
           <p className="text-sm font-bold text-slate-100 truncate">{selected.name}</p>
-          <p className="text-[10px] font-mono text-slate-400">{selected.code} · {selected.prog}%</p>
+          <p className="text-[10px] font-mono text-slate-400">{typeLabels[selected.type]} · {selected.lat.toFixed(5)}, {selected.lng.toFixed(5)}</p>
         </div>
         <button className="ml-auto text-xs font-semibold text-cyan border border-cyan/30 px-3 py-1.5 rounded-lg hover:bg-cyan/10 shrink-0"
           onClick={() => onUnavailable?.(selected.name)}>상세 설비 연동 예정</button>
