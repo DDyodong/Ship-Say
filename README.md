@@ -165,6 +165,19 @@ Authorization: Bearer {accessToken}
 
 ## 테스트와 빌드
 
+## OpenAI 현장 적용 안내 생성
+
+팀 규칙 모델의 허가서 판정 결과를 한국어 TBM과 작업자별 PPE 안내로 변환하려면 백엔드 또는 AWS ECS 태스크에 다음 환경변수를 설정합니다. API 키는 저장소나 프론트엔드 환경변수에 넣지 않습니다.
+
+```dotenv
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_MODEL=gpt-5.4-nano
+OPENAI_REASONING_EFFORT=none
+OPENAI_MAX_OUTPUT_TOKENS=16000
+```
+
+`POST /api/ai/work-permits/{permitId}/field-guidance`를 호출하면 가장 최근의 `permit_analysis_results`를 변경하지 않고 현장 안내를 생성합니다. 출력 형식은 백엔드의 구조화 출력 스키마로 고정되며 실행 결과는 `model_runs`에 저장됩니다. 시스템 프롬프트는 `backend/src/main/resources/prompts/work-permit-field-guidance.txt`에서 수정합니다.
+
 백엔드 테스트:
 
 ```powershell

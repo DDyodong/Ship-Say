@@ -41,6 +41,12 @@ app:
     password: ${BOOTSTRAP_ADMIN_PASSWORD:aivle123}
     name: ${BOOTSTRAP_ADMIN_NAME:테스트 관리자}
   ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+      model: ${OPENAI_MODEL:gpt-5.4-nano}
+      reasoning-effort: ${OPENAI_REASONING_EFFORT:none}
+      max-output-tokens: ${OPENAI_MAX_OUTPUT_TOKENS:16000}
     robot-anomaly:
       enabled: ${ROBOT_ANOMALY_AI_ENABLED:true}
       base-url: ${ROBOT_ANOMALY_AI_URL:http://127.0.0.1:8000}
