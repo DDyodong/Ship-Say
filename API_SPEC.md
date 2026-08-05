@@ -69,6 +69,7 @@ GET  /api/admin/ppe-checks                                   ADMIN
 POST /api/notifications/devices                             WORKER | ADMIN
 GET  /api/notifications/devices/status                      WORKER | ADMIN
 POST /api/admin/notifications/test                          ADMIN
+POST /api/admin/notifications/send                          ADMIN
 
 GET  /api/safety-events                                      ADMIN
 GET  /api/safety-events/reports?status=&sourceType=          ADMIN

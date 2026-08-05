@@ -552,14 +552,25 @@ CREATE TABLE notifications (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   event_id BIGINT,
   user_id BIGINT,
+  actor_id BIGINT,
   channel VARCHAR(30) NOT NULL,
+  notification_type VARCHAR(50) NOT NULL DEFAULT 'general',
+  dedupe_key VARCHAR(180),
   title TEXT NOT NULL,
   message TEXT,
+  target_url VARCHAR(500),
   status VARCHAR(30) NOT NULL DEFAULT 'pending',
+  push_status VARCHAR(30) NOT NULL DEFAULT 'not_attempted',
+  push_sent_count INT NOT NULL DEFAULT 0,
+  push_failed_count INT NOT NULL DEFAULT 0,
   sent_at TIMESTAMP(6),
+  acknowledged_at TIMESTAMP(6),
   created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   CONSTRAINT fk_notifications_event_id FOREIGN KEY (event_id) REFERENCES safety_events(id),
-  CONSTRAINT fk_notifications_user_id FOREIGN KEY (user_id) REFERENCES users(id)
+  CONSTRAINT fk_notifications_user_id FOREIGN KEY (user_id) REFERENCES users(id),
+  CONSTRAINT fk_notifications_actor_id FOREIGN KEY (actor_id) REFERENCES users(id),
+  CONSTRAINT uq_notifications_dedupe_key UNIQUE (dedupe_key),
+  INDEX ix_notifications_user_created (user_id, created_at DESC)
 );
 
 CREATE TABLE model_runs (

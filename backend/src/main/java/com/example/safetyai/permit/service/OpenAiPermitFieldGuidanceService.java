@@ -2,18 +2,29 @@ package com.example.safetyai.permit.service;
 
 import com.example.safetyai.common.exception.ApiException;
 import com.example.safetyai.common.util.JdbcInsert;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
+import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -21,7 +32,7 @@ import org.springframework.web.client.RestClientResponseException;
 
 @Service
 public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceService {
-    private static final String GUIDANCE_VERSION = "field-guidance-v1";
+    private static final String GUIDANCE_VERSION_PREFIX = "field-guidance-v2";
 
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
@@ -31,6 +42,7 @@ public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceServ
     private final String reasoningEffort;
     private final int maxOutputTokens;
     private final String systemPrompt;
+    private final String guidanceVersion;
 
     public OpenAiPermitFieldGuidanceService(
         JdbcTemplate jdbcTemplate,
@@ -41,21 +53,28 @@ public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceServ
         @Value("${app.ai.openai.model:gpt-5.4-nano}") String model,
         @Value("${app.ai.openai.reasoning-effort:none}") String reasoningEffort,
         @Value("${app.ai.openai.max-output-tokens:16000}") int maxOutputTokens,
+        @Value("${app.ai.openai.connect-timeout-ms:5000}") long connectTimeoutMs,
+        @Value("${app.ai.openai.read-timeout-ms:120000}") long readTimeoutMs,
         @Value("classpath:prompts/work-permit-field-guidance.txt") Resource promptResource
     ) throws IOException {
         this.jdbcTemplate = jdbcTemplate;
         this.objectMapper = objectMapper;
-        this.restClient = restClientBuilder.baseUrl(baseUrl).build();
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofMillis(connectTimeoutMs));
+        requestFactory.setReadTimeout(Duration.ofMillis(readTimeoutMs));
+        this.restClient = restClientBuilder.baseUrl(baseUrl).requestFactory(requestFactory).build();
         this.apiKey = apiKey;
         this.model = model;
         this.reasoningEffort = reasoningEffort;
         this.maxOutputTokens = maxOutputTokens;
         this.systemPrompt = promptResource.getContentAsString(StandardCharsets.UTF_8);
+        this.guidanceVersion = computeGuidanceVersion(objectMapper, systemPrompt, outputSchema());
     }
 
     @Override
     public Map<String, Object> generate(long permitId) {
-        Map<String, Object> cached = loadCachedGuidance(permitId);
+        List<Map<String, Object>> workers = loadWorkers(permitId);
+        Map<String, Object> cached = loadCachedGuidance(permitId, workers);
         if (cached != null) return cached;
 
         if (apiKey == null || apiKey.isBlank()) {
@@ -64,7 +83,6 @@ public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceServ
 
         Map<String, Object> permit = loadPermit(permitId);
         Map<String, Object> ruleDecision = loadRuleDecision(permitId);
-        List<Map<String, Object>> workers = loadWorkers(permitId);
         long runId = createRun(permitId);
 
         try {
@@ -74,7 +92,7 @@ public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceServ
             context.put("assignedWorkers", workers);
             JsonNode response = callOpenAi(objectMapper.writeValueAsString(context));
             JsonNode guidance = objectMapper.readTree(extractOutputText(response));
-            validateWorkerIds(guidance, workers);
+            validateGuidance(guidance, loadWorkers(permitId));
             finishRun(runId, guidance);
             return objectMapper.convertValue(guidance, new TypeReference<>() {});
         } catch (RestClientResponseException exception) {
@@ -136,7 +154,7 @@ public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceServ
     private List<Map<String, Object>> loadWorkers(long permitId) {
         return jdbcTemplate.queryForList(
             """
-                SELECT u.id AS worker_id, u.name, u.employee_no,
+                SELECT u.id AS worker_id, u.name,
                        COALESCE(NULLIF(u.language, ''), 'ko') AS language
                   FROM work_permit_workers wpw
                   JOIN users u ON u.id = wpw.user_id
@@ -193,7 +211,7 @@ public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceServ
      * 프론트/번역 모듈과 공유할 OpenAI 출력 계약입니다.
      * 팀 모델의 판정 필드는 의도적으로 출력에 넣지 않아 LLM이 판정을 덮어쓸 수 없게 합니다.
      */
-    private Map<String, Object> outputSchema() {
+    static Map<String, Object> outputSchema() {
         Map<String, Object> tbmItem = objectSchema(
             Map.of(
                 "phase", Map.of("type", "string", "enum", List.of("before", "during", "emergency")),
@@ -218,9 +236,9 @@ public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceServ
                 "language", Map.of("type", "string"),
                 "taskAssumption", Map.of("type", "string"),
                 "requiresTaskConfirmation", Map.of("type", "boolean"),
-                "requiredPpe", Map.of("type", "array", "items", ppeItem),
-                "checks", Map.of("type", "array", "items", Map.of("type", "string")),
-                "warnings", Map.of("type", "array", "items", Map.of("type", "string"))
+                "requiredPpe", boundedArraySchema(ppeItem, 6),
+                "checks", boundedArraySchema(Map.of("type", "string"), 4),
+                "warnings", boundedArraySchema(Map.of("type", "string"), 2)
             ),
             List.of(
                 "workerId", "workerName", "language", "taskAssumption",
@@ -231,8 +249,8 @@ public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceServ
             Map.of(
                 "tbmTitle", Map.of("type", "string"),
                 "tbmSummary", Map.of("type", "string"),
-                "tbmItems", Map.of("type", "array", "items", tbmItem),
-                "commonPpe", Map.of("type", "array", "items", ppeItem),
+                "tbmItems", boundedArraySchema(tbmItem, 8),
+                "commonPpe", boundedArraySchema(ppeItem, 6),
                 "workerGuidance", Map.of("type", "array", "items", workerItem),
                 "translationTargets", Map.of("type", "array", "items", Map.of("type", "string")),
                 "operatorWarnings", Map.of("type", "array", "items", Map.of("type", "string"))
@@ -244,7 +262,7 @@ public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceServ
         );
     }
 
-    private Map<String, Object> objectSchema(
+    private static Map<String, Object> objectSchema(
         Map<String, Object> properties,
         List<String> required
     ) {
@@ -256,17 +274,120 @@ public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceServ
         );
     }
 
-    private void validateWorkerIds(JsonNode guidance, List<Map<String, Object>> workers) {
-        var expected = workers.stream()
-            .map(row -> ((Number) row.get("worker_id")).longValue())
-            .collect(java.util.stream.Collectors.toSet());
-        var actual = new java.util.HashSet<Long>();
-        for (JsonNode item : guidance.path("workerGuidance")) {
-            actual.add(item.path("workerId").asLong());
+    private static Map<String, Object> boundedArraySchema(Object items, int maxItems) {
+        return Map.of(
+            "type", "array",
+            "items", items,
+            "maxItems", maxItems
+        );
+    }
+
+    static String computeGuidanceVersion(
+        ObjectMapper objectMapper,
+        String prompt,
+        Map<String, Object> schema
+    ) {
+        try {
+            String canonicalSchema = objectMapper.copy()
+                .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true)
+                .writeValueAsString(schema);
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            String hash = HexFormat.of().formatHex(
+                digest.digest((prompt + "\n" + canonicalSchema).getBytes(StandardCharsets.UTF_8))
+            );
+            return GUIDANCE_VERSION_PREFIX + "-" + hash.substring(0, 16);
+        } catch (JsonProcessingException | NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("현장 안내 버전을 계산할 수 없습니다.", exception);
         }
-        if (!actual.equals(expected)) {
+    }
+
+    static void validateGuidance(JsonNode guidance, List<Map<String, Object>> workers) {
+        if (guidance == null || !guidance.isObject()) {
+            throw new IllegalStateException("현장 안내가 JSON 객체가 아닙니다.");
+        }
+
+        validateMaxItems(guidance, "tbmItems", 8);
+        validateMaxItems(guidance, "commonPpe", 6);
+
+        Map<Long, Map<String, Object>> expectedById = new LinkedHashMap<>();
+        Set<String> expectedLanguages = new LinkedHashSet<>();
+        expectedLanguages.add("ko");
+        for (Map<String, Object> worker : workers) {
+            Object workerIdValue = worker.get("worker_id");
+            if (!(workerIdValue instanceof Number workerIdNumber)) {
+                throw new IllegalStateException("배정 작업자 정보에 유효한 작업자 ID가 없습니다.");
+            }
+            long workerId = workerIdNumber.longValue();
+            if (expectedById.put(workerId, worker) != null) {
+                throw new IllegalStateException("배정 작업자 명단에 중복된 작업자 ID가 있습니다.");
+            }
+            expectedLanguages.add(Objects.toString(worker.get("language"), "ko"));
+        }
+
+        JsonNode workerGuidance = requireArray(guidance, "workerGuidance");
+        if (workerGuidance.size() != expectedById.size()) {
+            throw new IllegalStateException("작업자별 안내 개수가 배정 작업자 수와 일치하지 않습니다.");
+        }
+
+        Set<Long> actualIds = new HashSet<>();
+        for (JsonNode item : workerGuidance) {
+            JsonNode workerIdNode = item.get("workerId");
+            if (workerIdNode == null || !workerIdNode.isIntegralNumber() || !workerIdNode.canConvertToLong()) {
+                throw new IllegalStateException("작업자별 안내에 유효한 작업자 ID가 없습니다.");
+            }
+            long workerId = workerIdNode.longValue();
+            if (!actualIds.add(workerId)) {
+                throw new IllegalStateException("작업자별 안내에 중복된 작업자 ID가 있습니다.");
+            }
+
+            Map<String, Object> expected = expectedById.get(workerId);
+            if (expected == null) {
+                throw new IllegalStateException("작업자별 안내에 배정되지 않은 작업자 ID가 있습니다.");
+            }
+            if (!Objects.equals(item.path("workerName").asText(), Objects.toString(expected.get("name"), ""))) {
+                throw new IllegalStateException("작업자별 안내의 작업자 이름이 배정 명단과 일치하지 않습니다.");
+            }
+            if (!Objects.equals(item.path("language").asText(), Objects.toString(expected.get("language"), "ko"))) {
+                throw new IllegalStateException("작업자별 안내의 언어가 배정 명단과 일치하지 않습니다.");
+            }
+
+            validateMaxItems(item, "requiredPpe", 6);
+            validateMaxItems(item, "checks", 4);
+            validateMaxItems(item, "warnings", 2);
+        }
+
+        if (!actualIds.equals(expectedById.keySet())) {
             throw new IllegalStateException("작업자별 안내의 작업자 ID가 배정 명단과 일치하지 않습니다.");
         }
+
+        JsonNode translationTargets = requireArray(guidance, "translationTargets");
+        Set<String> actualLanguages = new LinkedHashSet<>();
+        for (JsonNode language : translationTargets) {
+            if (!language.isTextual() || language.asText().isBlank()) {
+                throw new IllegalStateException("번역 대상 언어 코드가 유효하지 않습니다.");
+            }
+            if (!actualLanguages.add(language.asText())) {
+                throw new IllegalStateException("번역 대상 언어 코드가 중복되었습니다.");
+            }
+        }
+        if (!actualLanguages.equals(expectedLanguages)) {
+            throw new IllegalStateException("번역 대상 언어가 배정 작업자의 언어와 일치하지 않습니다.");
+        }
+    }
+
+    private static void validateMaxItems(JsonNode object, String field, int maxItems) {
+        JsonNode array = requireArray(object, field);
+        if (array.size() > maxItems) {
+            throw new IllegalStateException(field + " 항목 수가 최대 " + maxItems + "개를 초과했습니다.");
+        }
+    }
+
+    private static JsonNode requireArray(JsonNode object, String field) {
+        JsonNode array = object.get(field);
+        if (array == null || !array.isArray()) {
+            throw new IllegalStateException(field + " 필드가 배열이 아닙니다.");
+        }
+        return array;
     }
 
     private long createRun(long permitId) {
@@ -277,11 +398,11 @@ public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceServ
                 (model_name, model_version, input_type, input_ref_id, status, started_at, output_payload)
                 VALUES (?, ?, 'permit_field_guidance', ?, 'running', CURRENT_TIMESTAMP(6), JSON_OBJECT())
                 """,
-            List.of(model, model + ":" + GUIDANCE_VERSION, permitId)
+            List.of(model, guidanceVersion, permitId)
         );
     }
 
-    private Map<String, Object> loadCachedGuidance(long permitId) {
+    Map<String, Object> loadCachedGuidance(long permitId, List<Map<String, Object>> workers) {
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(
             """
                 SELECT mr.output_payload
@@ -312,7 +433,7 @@ public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceServ
                 """,
             permitId,
             model,
-            model + ":" + GUIDANCE_VERSION,
+            guidanceVersion,
             permitId,
             permitId,
             permitId
@@ -320,8 +441,9 @@ public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceServ
         if (rows.isEmpty()) return null;
         try {
             JsonNode cached = objectMapper.readTree(String.valueOf(rows.get(0).get("output_payload")));
+            validateGuidance(cached, workers);
             return objectMapper.convertValue(cached, new TypeReference<>() {});
-        } catch (IOException exception) {
+        } catch (IOException | RuntimeException exception) {
             return null;
         }
     }
