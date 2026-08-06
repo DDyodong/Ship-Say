@@ -2,6 +2,7 @@ package com.example.safetyai.permit.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -13,6 +14,7 @@ import com.example.safetyai.common.exception.ApiException;
 import com.example.safetyai.permit.dto.WorkPermitDecisionRequest;
 import com.example.safetyai.permit.dto.WorkPermitRequest;
 import com.example.safetyai.permit.dto.WorkPermitSupplementRequest;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -76,6 +78,30 @@ class WorkPermitServiceTest {
                 assertThat(exception.getStatus()).isEqualTo(HttpStatus.FORBIDDEN);
                 assertThat(exception.getMessage()).isEqualTo("배정된 작업허가서만 조회할 수 있습니다.");
             });
+    }
+
+    @Test
+    void assignedWorkerCanViewPermit() {
+        // PERMIT-002: work_permit_workers에 배정된 WORKER는 담당 허가서를 조회할 수 있어야 한다.
+        AuthService.AuthenticatedUser worker = user(7L, "WORKER");
+        when(jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM work_permit_workers WHERE permit_id = ? AND user_id = ?",
+            Integer.class,
+            10L,
+            7L
+        )).thenReturn(1);
+        Map<String, Object> permitRow = new HashMap<>(Map.of("id", 10L, "status", "approved"));
+        when(jdbcTemplate.queryForMap("SELECT * FROM work_permits WHERE id = ?", 10L))
+            .thenReturn(permitRow);
+        // get()이 조회하는 파일/분석결과/분석실행/SIMOPS충돌/위험점수/배정작업자 목록은
+        // 이 테스트의 관심사가 아니므로 공통 빈 목록으로 응답한다.
+        when(jdbcTemplate.queryForList(anyString(), any(Object[].class))).thenReturn(List.of());
+
+        Map<String, Object> response = workPermitService.get(worker, 10L);
+
+        assertThat(response).containsEntry("id", 10L).containsEntry("status", "approved");
+        assertThat(response)
+            .containsKeys("files", "analysisResults", "analysisRun", "simopsConflicts", "riskScores", "assignedWorkers");
     }
 
     @Test
