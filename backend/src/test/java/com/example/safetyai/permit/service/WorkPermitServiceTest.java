@@ -31,6 +31,9 @@ class WorkPermitServiceTest {
     @Mock
     private AuthService authService;
 
+    @Mock
+    private PermitAnalysisService permitAnalysisService;
+
     @InjectMocks
     private WorkPermitService workPermitService;
 
@@ -79,6 +82,7 @@ class WorkPermitServiceTest {
             "SELECT applicant_id, status FROM work_permits WHERE id = ?",
             10L
         )).thenReturn(List.of(Map.of("applicant_id", 2L, "status", "draft")));
+        when(permitAnalysisService.queue(10L)).thenReturn(Map.of("status", "queued"));
 
         Map<String, Object> response = workPermitService.update(
             "Bearer token",
@@ -89,6 +93,7 @@ class WorkPermitServiceTest {
         assertThat(response).containsEntry("id", 10L).containsEntry("status", "pending_review");
         verify(jdbcTemplate).update("DELETE FROM risk_simulations WHERE permit_id = ?", 10L);
         verify(jdbcTemplate).update("DELETE FROM risk_scores WHERE permit_id = ?", 10L);
+        verify(jdbcTemplate).update("DELETE FROM similar_accident_results WHERE permit_id = ?", 10L);
         verify(jdbcTemplate).update("DELETE FROM permit_analysis_results WHERE permit_id = ?", 10L);
     }
 

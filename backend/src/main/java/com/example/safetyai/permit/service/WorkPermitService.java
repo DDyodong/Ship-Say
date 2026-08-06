@@ -16,10 +16,16 @@ import org.springframework.transaction.annotation.Transactional;
 public class WorkPermitService {
     private final JdbcTemplate jdbcTemplate;
     private final AuthService authService;
+    private final PermitAnalysisService permitAnalysisService;
 
-    public WorkPermitService(JdbcTemplate jdbcTemplate, AuthService authService) {
+    public WorkPermitService(
+        JdbcTemplate jdbcTemplate,
+        AuthService authService,
+        PermitAnalysisService permitAnalysisService
+    ) {
         this.jdbcTemplate = jdbcTemplate;
         this.authService = authService;
+        this.permitAnalysisService = permitAnalysisService;
     }
 
     public List<Map<String, Object>> list(AuthService.AuthenticatedUser user, String status) {
@@ -118,7 +124,45 @@ public class WorkPermitService {
             id
         ));
         permit.put("analysisResults", jdbcTemplate.queryForList(
-            "SELECT * FROM permit_analysis_results WHERE permit_id = ? ORDER BY created_at DESC",
+            """
+                SELECT *
+                  FROM permit_analysis_results
+                 WHERE permit_id = ?
+                   AND analysis_type = 'permit_rule_simops'
+                 ORDER BY created_at DESC
+                """,
+            id
+        ));
+        List<Map<String, Object>> analysisRuns = jdbcTemplate.queryForList(
+            """
+                SELECT id, model_name, model_version, status, started_at, finished_at, error_message
+                  FROM model_runs
+                 WHERE input_type = 'permit_analysis'
+                   AND input_ref_id = ?
+                 ORDER BY id DESC
+                 LIMIT 1
+                """,
+            id
+        );
+        permit.put("analysisRun", analysisRuns.isEmpty() ? Map.of() : analysisRuns.get(0));
+        permit.put("simopsConflicts", jdbcTemplate.queryForList(
+            """
+                SELECT psc.id, psc.rule_code, psc.risk, psc.reason, psc.legal_ref,
+                       psc.work_types, psc.zone_relation, psc.detected_at,
+                       CASE WHEN psc.permit_a_id = ? THEN other_b.id ELSE other_a.id END AS counterpart_id,
+                       CASE WHEN psc.permit_a_id = ? THEN other_b.permit_no ELSE other_a.permit_no END AS counterpart_permit_no,
+                       CASE WHEN psc.permit_a_id = ? THEN other_b.work_title ELSE other_a.work_title END AS counterpart_work_title
+                  FROM permit_simops_conflicts psc
+                  JOIN work_permits other_a ON other_a.id = psc.permit_a_id
+                  JOIN work_permits other_b ON other_b.id = psc.permit_b_id
+                 WHERE psc.permit_a_id = ? OR psc.permit_b_id = ?
+                 ORDER BY CASE psc.risk WHEN '반려' THEN 0 WHEN '보류' THEN 1 ELSE 2 END,
+                          psc.detected_at DESC
+                """,
+            id,
+            id,
+            id,
+            id,
             id
         ));
         permit.put("riskScores", jdbcTemplate.queryForList(
@@ -169,7 +213,8 @@ public class WorkPermitService {
         );
         linkFiles(id, userId, request.fileIds());
         replaceAssignedWorkers(id, request.workerIds());
-        return Map.of("id", id);
+        Map<String, Object> analysis = permitAnalysisService.queue(id);
+        return Map.of("id", id, "analysis", analysis);
     }
 
     public List<Map<String, Object>> trash() {
@@ -221,7 +266,8 @@ public class WorkPermitService {
             replaceAssignedWorkers(id, request.workerIds());
         }
         clearAnalysisData(id);
-        return Map.of("id", id, "status", "pending_review");
+        Map<String, Object> analysis = permitAnalysisService.queue(id);
+        return Map.of("id", id, "status", "pending_review", "analysis", analysis);
     }
 
     @Transactional
@@ -229,6 +275,11 @@ public class WorkPermitService {
         requireAuthorizedPermitUser(authenticate(authorization), id, false);
         jdbcTemplate.update(
             "UPDATE work_permits SET status = 'deleted', updated_at = CURRENT_TIMESTAMP(6) WHERE id = ?",
+            id
+        );
+        jdbcTemplate.update(
+            "DELETE FROM permit_simops_conflicts WHERE permit_a_id = ? OR permit_b_id = ?",
+            id,
             id
         );
         return Map.of("id", id, "status", "deleted");
@@ -241,7 +292,12 @@ public class WorkPermitService {
             "UPDATE work_permits SET status = 'pending_review', updated_at = CURRENT_TIMESTAMP(6) WHERE id = ?",
             id
         );
-        return Map.of("id", id, "status", "pending_review");
+        Map<String, Object> analysis = permitAnalysisService.queue(id);
+        return Map.of("id", id, "status", "pending_review", "analysis", analysis);
+    }
+
+    public Map<String, Object> requestAnalysis(long id) {
+        return permitAnalysisService.queue(id);
     }
 
     @Transactional
@@ -383,8 +439,14 @@ public class WorkPermitService {
     }
 
     private void clearAnalysisData(long permitId) {
+        jdbcTemplate.update(
+            "DELETE FROM permit_simops_conflicts WHERE permit_a_id = ? OR permit_b_id = ?",
+            permitId,
+            permitId
+        );
         jdbcTemplate.update("DELETE FROM risk_simulations WHERE permit_id = ?", permitId);
         jdbcTemplate.update("DELETE FROM risk_scores WHERE permit_id = ?", permitId);
+        jdbcTemplate.update("DELETE FROM similar_accident_results WHERE permit_id = ?", permitId);
         jdbcTemplate.update("DELETE FROM permit_analysis_results WHERE permit_id = ?", permitId);
     }
 

@@ -133,6 +133,7 @@ public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceServ
                        risk_factors, recommended_conditions, confidence, created_at
                   FROM permit_analysis_results
                  WHERE permit_id = ?
+                   AND analysis_type = 'permit_rule_simops'
                  ORDER BY created_at DESC
                  LIMIT 1
                 """,

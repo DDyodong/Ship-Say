@@ -86,6 +86,11 @@ public class WorkPermitController {
         return workPermitService.restore(authorization, id);
     }
 
+    @PostMapping("/{id}/analyze")
+    public Map<String, Object> analyze(@PathVariable long id) {
+        return workPermitService.requestAnalysis(id);
+    }
+
     @DeleteMapping("/{id}/permanent")
     public Map<String, Object> permanentDelete(
         @RequestHeader(value = "Authorization", required = false) String authorization,

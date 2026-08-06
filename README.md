@@ -14,7 +14,7 @@
 
 ## 한 번에 실행
 
-Docker Desktop을 실행한 뒤 프로젝트 루트에서 다음 명령 하나로 MySQL, 백엔드, 프론트엔드를 모두 실행합니다.
+Docker Desktop을 실행한 뒤 프로젝트 루트에서 다음 명령 하나로 MySQL, 작업허가서 분석 서비스, 백엔드, 프론트엔드를 모두 실행합니다.
 
 ```powershell
 npm run dev
@@ -32,6 +32,7 @@ npm run dev:down
 | 영역 | 기술 |
 | --- | --- |
 | Backend | Java 17, Spring Boot 3.3.5, Spring Web, Spring Security, Spring Data JPA |
+| Permit AI | Python 3.11, FastAPI, pdfplumber, 규칙 기반 SIMOPS 엔진 |
 | Database | MySQL 8.4, Flyway |
 | Frontend | React 18, Vite 6, Lucide React |
 | Build | Gradle Wrapper, npm |
@@ -48,6 +49,7 @@ npm run dev:down
 │       ├── api/                   # API 클라이언트
 │       ├── components/            # 공통 UI와 레이아웃
 │       └── pages/                 # 인증·작업자·관리자 화면
+├── ai/permit_analysis/            # 작업허가서 PDF·규칙·SIMOPS 분석 API
 ├── compose.yml                    # 로컬 MySQL 구성
 ├── API_SPEC.md                    # API와 접근 권한 명세
 ├── db_design.md                   # 데이터베이스 설계 문서
