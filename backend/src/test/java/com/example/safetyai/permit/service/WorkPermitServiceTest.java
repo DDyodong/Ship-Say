@@ -2,13 +2,17 @@ package com.example.safetyai.permit.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.example.safetyai.auth.service.AuthService;
 import com.example.safetyai.common.exception.ApiException;
+import com.example.safetyai.permit.dto.WorkPermitDecisionRequest;
 import com.example.safetyai.permit.dto.WorkPermitRequest;
+import com.example.safetyai.permit.dto.WorkPermitSupplementRequest;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -95,6 +99,90 @@ class WorkPermitServiceTest {
         verify(jdbcTemplate).update("DELETE FROM risk_scores WHERE permit_id = ?", 10L);
         verify(jdbcTemplate).update("DELETE FROM similar_accident_results WHERE permit_id = ?", 10L);
         verify(jdbcTemplate).update("DELETE FROM permit_analysis_results WHERE permit_id = ?", 10L);
+    }
+
+    @Test
+    void decideRejectsNonAdminUser() {
+        AuthService.AuthenticatedUser worker = user(7L, "WORKER");
+        when(authService.authenticateBearer("Bearer token")).thenReturn(Optional.of(worker));
+
+        assertThatThrownBy(() -> workPermitService.decide(
+            "Bearer token", 10L, new WorkPermitDecisionRequest("approved", null)
+        )).isInstanceOfSatisfying(ApiException.class, exception -> {
+            assertThat(exception.getStatus()).isEqualTo(HttpStatus.FORBIDDEN);
+            assertThat(exception.getMessage()).isEqualTo("허가서를 승인할 권한이 없습니다.");
+        });
+        verifyNoInteractions(jdbcTemplate);
+    }
+
+    @Test
+    void decideRejectsUnknownDecisionValue() {
+        AuthService.AuthenticatedUser admin = user(1L, "ADMIN");
+        when(authService.authenticateBearer("Bearer token")).thenReturn(Optional.of(admin));
+
+        assertThatThrownBy(() -> workPermitService.decide(
+            "Bearer token", 10L, new WorkPermitDecisionRequest("보류중", null)
+        )).isInstanceOfSatisfying(ApiException.class, exception ->
+            assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST));
+        verifyNoInteractions(jdbcTemplate);
+    }
+
+    @Test
+    void decideRejectsWhenPermitAlreadyDeleted() {
+        AuthService.AuthenticatedUser admin = user(1L, "ADMIN");
+        when(authService.authenticateBearer("Bearer token")).thenReturn(Optional.of(admin));
+        when(jdbcTemplate.queryForList("SELECT status FROM work_permits WHERE id = ?", 10L))
+            .thenReturn(List.of(Map.of("status", "deleted")));
+
+        assertThatThrownBy(() -> workPermitService.decide(
+            "Bearer token", 10L, new WorkPermitDecisionRequest("approved", null)
+        )).isInstanceOfSatisfying(ApiException.class, exception ->
+            assertThat(exception.getStatus()).isEqualTo(HttpStatus.CONFLICT));
+    }
+
+    @Test
+    void decideUpdatesStatusForValidDecision() {
+        AuthService.AuthenticatedUser admin = user(1L, "ADMIN");
+        when(authService.authenticateBearer("Bearer token")).thenReturn(Optional.of(admin));
+        when(jdbcTemplate.queryForList("SELECT status FROM work_permits WHERE id = ?", 10L))
+            .thenReturn(List.of(Map.of("status", "pending_review")));
+
+        Map<String, Object> response = workPermitService.decide(
+            "Bearer token", 10L, new WorkPermitDecisionRequest("conditional_approved", "환기 확인 필요")
+        );
+
+        assertThat(response).containsEntry("id", 10L).containsEntry("status", "conditional_approved");
+        verify(jdbcTemplate).update(anyString(), eq("conditional_approved"), eq("환기 확인 필요"), eq(1L), eq(10L));
+    }
+
+    @Test
+    void requestSupplementRequiresAdmin() {
+        AuthService.AuthenticatedUser worker = user(7L, "WORKER");
+        when(authService.authenticateBearer("Bearer token")).thenReturn(Optional.of(worker));
+
+        assertThatThrownBy(() -> workPermitService.requestSupplement(
+            "Bearer token", 10L, new WorkPermitSupplementRequest("가스농도 재측정 필요")
+        )).isInstanceOfSatisfying(ApiException.class, exception ->
+            assertThat(exception.getStatus()).isEqualTo(HttpStatus.FORBIDDEN));
+        verifyNoInteractions(jdbcTemplate);
+    }
+
+    @Test
+    void requestSupplementStoresNoteAndStatus() {
+        AuthService.AuthenticatedUser admin = user(1L, "ADMIN");
+        when(authService.authenticateBearer("Bearer token")).thenReturn(Optional.of(admin));
+        when(jdbcTemplate.queryForList("SELECT status FROM work_permits WHERE id = ?", 10L))
+            .thenReturn(List.of(Map.of("status", "pending_review")));
+
+        Map<String, Object> response = workPermitService.requestSupplement(
+            "Bearer token", 10L, new WorkPermitSupplementRequest("가스농도 재측정 필요")
+        );
+
+        assertThat(response)
+            .containsEntry("id", 10L)
+            .containsEntry("status", "supplement_requested")
+            .containsEntry("note", "가스농도 재측정 필요");
+        verify(jdbcTemplate).update(anyString(), eq("가스농도 재측정 필요"), eq(1L), eq(10L));
     }
 
     @Test

@@ -3,10 +3,13 @@ package com.example.safetyai.permit.service;
 import com.example.safetyai.auth.service.AuthService;
 import com.example.safetyai.common.exception.ApiException;
 import com.example.safetyai.common.util.JdbcInsert;
+import com.example.safetyai.permit.dto.WorkPermitDecisionRequest;
 import com.example.safetyai.permit.dto.WorkPermitRequest;
+import com.example.safetyai.permit.dto.WorkPermitSupplementRequest;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -14,6 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class WorkPermitService {
+    // 규칙 엔진 판정(승인/조건부 승인/반려)을 반영한 관리자 최종 처리 상태.
+    // 규칙 엔진의 판정 로직 자체는 변경하지 않고, 그 결과를 확정할 때만 사용한다.
+    private static final Set<String> ALLOWED_DECISIONS = Set.of("approved", "conditional_approved", "rejected");
+
     private final JdbcTemplate jdbcTemplate;
     private final AuthService authService;
     private final PermitAnalysisService permitAnalysisService;
@@ -301,6 +308,56 @@ public class WorkPermitService {
     }
 
     @Transactional
+    public Map<String, Object> decide(String authorization, long id, WorkPermitDecisionRequest request) {
+        AuthService.AuthenticatedUser user = authenticate(authorization);
+        if (!isAdmin(user)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "허가서를 승인할 권한이 없습니다.");
+        }
+        String decision = request.decision();
+        if (!ALLOWED_DECISIONS.contains(decision)) {
+            throw new ApiException(
+                HttpStatus.BAD_REQUEST,
+                "decision은 approved, conditional_approved, rejected 중 하나여야 합니다."
+            );
+        }
+        requirePermitExistsAndNotDeleted(id, "승인 처리할 허가서를 찾을 수 없습니다.");
+        jdbcTemplate.update(
+            """
+                UPDATE work_permits
+                   SET status = ?, decision_note = ?, decided_by = ?, decided_at = CURRENT_TIMESTAMP(6),
+                       updated_at = CURRENT_TIMESTAMP(6)
+                 WHERE id = ?
+                """,
+            decision,
+            blankToNull(request.note()),
+            user.id(),
+            id
+        );
+        return Map.of("id", id, "status", decision);
+    }
+
+    @Transactional
+    public Map<String, Object> requestSupplement(String authorization, long id, WorkPermitSupplementRequest request) {
+        AuthService.AuthenticatedUser user = authenticate(authorization);
+        if (!isAdmin(user)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "보완을 요청할 권한이 없습니다.");
+        }
+        requirePermitExistsAndNotDeleted(id, "보완을 요청할 허가서를 찾을 수 없습니다.");
+        jdbcTemplate.update(
+            """
+                UPDATE work_permits
+                   SET status = 'supplement_requested', decision_note = ?, decided_by = ?,
+                       decided_at = CURRENT_TIMESTAMP(6), updated_at = CURRENT_TIMESTAMP(6)
+                 WHERE id = ?
+                """,
+            request.note(),
+            user.id(),
+            id
+        );
+        return Map.of("id", id, "status", "supplement_requested", "note", request.note());
+    }
+
+    @Transactional
     public Map<String, Object> permanentDelete(String authorization, long id) {
         requireAuthorizedPermitUser(authenticate(authorization), id, true);
         Integer linkedEvents = jdbcTemplate.queryForObject(
@@ -359,6 +416,23 @@ public class WorkPermitService {
         if (mustBeDeleted && !"deleted".equals(permit.get("status"))) {
             throw new ApiException(HttpStatus.CONFLICT, "보관함에 있는 허가서만 처리할 수 있습니다.");
         }
+    }
+
+    private void requirePermitExistsAndNotDeleted(long id, String notFoundMessage) {
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+            "SELECT status FROM work_permits WHERE id = ?",
+            id
+        );
+        if (rows.isEmpty()) {
+            throw new ApiException(HttpStatus.NOT_FOUND, notFoundMessage);
+        }
+        if ("deleted".equals(rows.get(0).get("status"))) {
+            throw new ApiException(HttpStatus.CONFLICT, "보관함에 있는 허가서는 처리할 수 없습니다.");
+        }
+    }
+
+    private String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
     }
 
     private void requireAuthenticated(AuthService.AuthenticatedUser user) {

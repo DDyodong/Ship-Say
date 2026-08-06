@@ -3285,6 +3285,37 @@ button {
   background: #e85f00;
 }
 
+.analysis-panel .permit-approve-btn.reject {
+  background: #d93f52;
+  box-shadow: 0 5px 14px #d93f521f;
+}
+
+.analysis-panel .permit-approve-btn.reject:hover {
+  background: #c23347;
+}
+
+.analysis-panel .permit-approve-btn:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
+.permit-decision-status {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 13px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #25c8840d;
+  font-size: 11px;
+}
+
+.permit-decision-status p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+}
+
 .analysis-panel .permit-review-btn {
   min-width: 80px;
 }

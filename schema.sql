@@ -217,11 +217,15 @@ CREATE TABLE work_permits (
   gps_lng NUMERIC(10, 7),
   is_high_risk BOOLEAN NOT NULL DEFAULT false,
   status VARCHAR(30) NOT NULL DEFAULT 'draft',
+  decision_note TEXT,
+  decided_by BIGINT,
+  decided_at TIMESTAMP(6),
   created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   CONSTRAINT fk_work_permits_site_id FOREIGN KEY (site_id) REFERENCES sites(id),
   CONSTRAINT fk_work_permits_block_id FOREIGN KEY (block_id) REFERENCES blocks(id),
-  CONSTRAINT fk_work_permits_applicant_id FOREIGN KEY (applicant_id) REFERENCES users(id)
+  CONSTRAINT fk_work_permits_applicant_id FOREIGN KEY (applicant_id) REFERENCES users(id),
+  CONSTRAINT fk_work_permits_decided_by FOREIGN KEY (decided_by) REFERENCES users(id)
 );
 
 CREATE TABLE work_permit_files (

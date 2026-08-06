@@ -1,7 +1,9 @@
 package com.example.safetyai.permit.controller;
 
 import com.example.safetyai.auth.service.AuthService;
+import com.example.safetyai.permit.dto.WorkPermitDecisionRequest;
 import com.example.safetyai.permit.dto.WorkPermitRequest;
+import com.example.safetyai.permit.dto.WorkPermitSupplementRequest;
 import com.example.safetyai.permit.service.WorkPermitService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -97,5 +99,23 @@ public class WorkPermitController {
         @PathVariable long id
     ) {
         return workPermitService.permanentDelete(authorization, id);
+    }
+
+    @PostMapping("/{id}/decision")
+    public Map<String, Object> decide(
+        @RequestHeader(value = "Authorization", required = false) String authorization,
+        @PathVariable long id,
+        @Valid @RequestBody WorkPermitDecisionRequest request
+    ) {
+        return workPermitService.decide(authorization, id, request);
+    }
+
+    @PostMapping("/{id}/supplement-request")
+    public Map<String, Object> requestSupplement(
+        @RequestHeader(value = "Authorization", required = false) String authorization,
+        @PathVariable long id,
+        @Valid @RequestBody WorkPermitSupplementRequest request
+    ) {
+        return workPermitService.requestSupplement(authorization, id, request);
     }
 }

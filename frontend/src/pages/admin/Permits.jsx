@@ -30,6 +30,20 @@ const analysisStatusText = status => ({
   failed: "분석 실패",
 })[status] || "분석 대기";
 
+const permitStatusText = status => ({
+  draft: "임시 저장",
+  pending_review: "검토 대기",
+  approved: "승인 완료",
+  conditional_approved: "조건부 승인",
+  rejected: "반려",
+  supplement_requested: "보완 요청",
+  deleted: "삭제됨",
+})[status] || status;
+
+// 규칙 엔진의 판정 문구(승인/조건부 승인/반려)를 최종 승인 처리 API가 받는 상태 코드로 변환한다.
+// 판정 자체는 여기서 만들지 않고, 이미 화면에 표시된 규칙 엔진 판정을 그대로 확정할 때만 사용한다.
+const decisionCodeMap = { 승인: "approved", "조건부 승인": "conditional_approved", 반려: "rejected" };
+
 function Permits({ notify, session }) {
   const [permits, setPermits] = useState([]);
   const [sites, setSites] = useState([]);
@@ -48,6 +62,8 @@ function Permits({ notify, session }) {
   const [trashedPermits, setTrashedPermits] = useState([]);
   const [trashBusyId, setTrashBusyId] = useState(null);
   const [analysisRefreshKey, setAnalysisRefreshKey] = useState(0);
+  const [decisionSubmitting, setDecisionSubmitting] = useState(false);
+  const [supplementSubmitting, setSupplementSubmitting] = useState(false);
   const authorization = useMemo(() => ({ Authorization: `Bearer ${session.token}` }), [session.token]);
 
   const loadPermits = async (preferredId) => {
@@ -226,6 +242,51 @@ function Permits({ notify, session }) {
     }
   };
 
+  const finalizeDecision = async () => {
+    if (!detail || decisionSubmitting) return;
+    const decision = decisionCodeMap[effectiveDecision];
+    if (!decision) return notify("분석 완료 후 승인할 수 있습니다.");
+    setDecisionSubmitting(true);
+    try {
+      await apiRequest(`/api/work-permits/${detail.id}/decision`, {
+        method: "POST",
+        headers: authorization,
+        body: JSON.stringify({ decision }),
+      });
+      const updated = await apiRequest(`/api/work-permits/${detail.id}`, { headers: authorization });
+      setDetail(updated);
+      await loadPermits(detail.id);
+      notify(`${detail.permit_no} 허가서를 "${permitStatusText(decision)}" 상태로 처리했습니다.`);
+    } catch (error) {
+      notify(error.message);
+    } finally {
+      setDecisionSubmitting(false);
+    }
+  };
+
+  const requestSupplement = async () => {
+    if (!detail || supplementSubmitting) return;
+    const note = window.prompt("보완이 필요한 사유를 입력해 주세요.", "");
+    if (note == null) return;
+    if (!note.trim()) return notify("보완 요청 사유를 입력해 주세요.");
+    setSupplementSubmitting(true);
+    try {
+      await apiRequest(`/api/work-permits/${detail.id}/supplement-request`, {
+        method: "POST",
+        headers: authorization,
+        body: JSON.stringify({ note: note.trim() }),
+      });
+      const updated = await apiRequest(`/api/work-permits/${detail.id}`, { headers: authorization });
+      setDetail(updated);
+      await loadPermits(detail.id);
+      notify(`${detail.permit_no} 허가서에 보완을 요청했습니다.`);
+    } catch (error) {
+      notify(error.message);
+    } finally {
+      setSupplementSubmitting(false);
+    }
+  };
+
   const closePreview = () => setPreview(null);
 
   const deletePermit = async () => {
@@ -294,7 +355,7 @@ function Permits({ notify, session }) {
     <div className="permit-layout">
       <div className="permit-list">
         <div className="list-tools"><Search/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="허가서, 작업명 검색"/></div>
-        {filtered.length ? filtered.map(permit => <button className={selectedId === permit.id ? "selected" : ""} onClick={() => setSelectedId(permit.id)} key={permit.id}><div><span className="badge orange">{permit.status === "pending_review" ? "검토 대기" : permit.status}</span><small>{permit.permit_no}</small></div><b>{permit.work_title || "작업명 미입력"}</b><span>{permit.work_type || "공종 미입력"}</span></button>) : <div className="permit-list-empty"><FileText/><b>{permits.length ? "검색 결과가 없습니다" : "등록된 허가서가 없습니다"}</b><span>{permits.length ? "다른 검색어를 입력해 보세요." : "새 허가서를 등록하면 여기에 표시됩니다."}</span></div>}
+        {filtered.length ? filtered.map(permit => <button className={selectedId === permit.id ? "selected" : ""} onClick={() => setSelectedId(permit.id)} key={permit.id}><div><span className={`badge ${["rejected", "deleted"].includes(permit.status) ? "red" : ["approved", "conditional_approved"].includes(permit.status) ? "cyan" : "orange"}`}>{permitStatusText(permit.status)}</span><small>{permit.permit_no}</small></div><b>{permit.work_title || "작업명 미입력"}</b><span>{permit.work_type || "공종 미입력"}</span></button>) : <div className="permit-list-empty"><FileText/><b>{permits.length ? "검색 결과가 없습니다" : "등록된 허가서가 없습니다"}</b><span>{permits.length ? "다른 검색어를 입력해 보세요." : "새 허가서를 등록하면 여기에 표시됩니다."}</span></div>}
       </div>
       <div className="analysis-panel">
         {detail ? <><div className="analysis-head"><div><span>{detail.permit_no}</span><h3>{detail.work_title}</h3></div><span className={`ai-chip ${analysisRun.status || "queued"}`}><Sparkles/>{analysisStatusText(analysisRun.status)}</span></div>
@@ -313,7 +374,8 @@ function Permits({ notify, session }) {
             <h4>추천 승인 조건</h4>
             {analysisFinished && recommendedConditions.length ? <div className="analysis-condition-list">{recommendedConditions.map((condition, index) => <div className="approval-item" key={`${condition}-${index}`}><Check/><span><b>{condition}</b><small>규칙 엔진이 도출한 보완·확인 조건</small></span></div>)}</div> : <div className="approval-empty"><div><Sparkles/></div><span><b>{analysisFinished ? "추가 보완 조건이 없습니다" : "추천 조건을 준비하고 있습니다"}</b><small>{analysisFinished ? "관리자가 원문 허가서와 현장 조건을 최종 확인해 주세요." : "분석이 완료되면 작업 전 확인해야 할 조건이 표시됩니다."}</small></span></div>}
           </>}
-          <div className="approve-actions"><div className="permit-manage-actions"><button className="delete-permit-btn" type="button" disabled={deleting} onClick={deletePermit}><Trash2/>{deleting ? "삭제 중..." : "허가서 삭제"}</button><button className="outline-btn" type="button" onClick={openEditModal}><Pencil/>허가서 수정</button></div><button className="outline-btn permit-review-btn">보완 요청</button><button className="primary-small permit-approve-btn" onClick={() => notify(analysisFinished ? "최종 승인 처리는 다음 단계에서 연결합니다." : "분석 완료 후 승인할 수 있습니다.")}><Check/>조건부 승인</button></div></> : <div className="permit-welcome"><div className="permit-welcome-icon"><FileText/></div><span>WORK PERMIT</span><h3>{permits.length ? "분석할 허가서를 선택하세요" : "첫 작업 허가서를 등록하세요"}</h3><p>{permits.length ? "왼쪽 목록에서 허가서를 선택하면 AI 분석 결과와 승인 조건을 확인할 수 있습니다." : "PDF 허가서를 등록하면 SIMOPS 충돌과 유사 사고를 분석해 승인 조건을 추천합니다."}</p>{!permits.length && <button className="primary-small" onClick={openCreateModal}><Plus/>허가서 등록</button>}</div>}
+          {["approved", "conditional_approved", "rejected", "supplement_requested"].includes(detail.status) && <div className="permit-decision-status"><b>현재 상태: {permitStatusText(detail.status)}</b>{detail.decision_note && <p>{detail.decision_note}</p>}</div>}
+          <div className="approve-actions"><div className="permit-manage-actions"><button className="delete-permit-btn" type="button" disabled={deleting} onClick={deletePermit}><Trash2/>{deleting ? "삭제 중..." : "허가서 삭제"}</button><button className="outline-btn" type="button" onClick={openEditModal}><Pencil/>허가서 수정</button></div><button className="outline-btn permit-review-btn" type="button" disabled={supplementSubmitting} onClick={requestSupplement}>{supplementSubmitting ? "처리 중..." : "보완 요청"}</button><button className={`primary-small permit-approve-btn${effectiveRisk === "반려" ? " reject" : ""}`} type="button" disabled={!analysisFinished || decisionSubmitting} onClick={finalizeDecision}><Check/>{decisionSubmitting ? "처리 중..." : (effectiveDecision || "분석 대기")}</button></div></> : <div className="permit-welcome"><div className="permit-welcome-icon"><FileText/></div><span>WORK PERMIT</span><h3>{permits.length ? "분석할 허가서를 선택하세요" : "첫 작업 허가서를 등록하세요"}</h3><p>{permits.length ? "왼쪽 목록에서 허가서를 선택하면 AI 분석 결과와 승인 조건을 확인할 수 있습니다." : "PDF 허가서를 등록하면 SIMOPS 충돌과 유사 사고를 분석해 승인 조건을 추천합니다."}</p>{!permits.length && <button className="primary-small" onClick={openCreateModal}><Plus/>허가서 등록</button>}</div>}
       </div>
     </div>
     <section className="permit-trash">
