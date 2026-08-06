@@ -16,7 +16,7 @@ function EquipmentTwinScene({ factory, selectedAsset, selectedWorker, onSelectAs
     controlsRef.current.target.set(0, 1.5, 0);
     controlsRef.current.update();
   };
-  return <div className="relative h-[610px] overflow-hidden rounded-2xl border border-cyan-400/15 bg-[#06111a]">
+  return <div className="twin-preserve-dark relative h-[610px] overflow-hidden rounded-2xl border border-cyan-400/15 bg-[#06111a]">
     <Canvas shadows dpr={[1, 1.65]} camera={{ position: [13, 10, 16], fov: 40, near: .1, far: 90 }}>
       <Suspense fallback={null}>
         <color attach="background" args={["#06111a"]}/><fog attach="fog" args={["#06111a", 20, 46]}/>

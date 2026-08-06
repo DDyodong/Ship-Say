@@ -2788,6 +2788,99 @@ button {
   }
 }
 
+/* AI safety digital twin: follow the dashboard theme while keeping map/3D canvases dark. */
+.light-theme .twin-theme-page {
+  background: #eef3f8 !important;
+  color: #172033 !important;
+}
+
+.light-theme .twin-theme-hero {
+  background:
+    radial-gradient(circle at 82% 15%, rgba(8, 145, 178, .12), transparent 32%),
+    linear-gradient(135deg, #ffffff, #edf7fa) !important;
+  border-color: #bfd6df !important;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, .08) !important;
+}
+
+.light-theme .twin-theme-surface,
+.light-theme .twin-theme-panel,
+.light-theme .safety-twin > section.my-4 > article,
+.light-theme .factory-detail-twin > section,
+.light-theme .factory-detail-twin article,
+.light-theme .factory-detail-twin aside {
+  background: #ffffff !important;
+  border-color: #d5e0e8 !important;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, .065) !important;
+}
+
+.light-theme .safety-twin [class*="bg-[#07111a]"],
+.light-theme .factory-detail-twin [class*="bg-[#06121b]"] {
+  background: #f8fafc !important;
+}
+
+.light-theme .twin-theme-page [class*="border-red"] {
+  border-color: rgba(220, 38, 38, .32) !important;
+}
+
+.light-theme .twin-theme-page [class*="bg-red"] {
+  background-color: rgba(239, 68, 68, .085) !important;
+}
+
+.light-theme .twin-theme-page [class*="bg-white/"],
+.light-theme .twin-theme-page [class*="bg-black/"] {
+  background-color: rgba(15, 23, 42, .035) !important;
+}
+
+.light-theme .twin-theme-page [class*="border-white"] {
+  border-color: #dce5ec !important;
+}
+
+.light-theme .twin-theme-page .text-white,
+.light-theme .twin-theme-page .text-slate-100,
+.light-theme .twin-theme-page .text-slate-200,
+.light-theme .twin-theme-page .text-slate-300 {
+  color: #172033 !important;
+}
+
+.light-theme .twin-theme-page .text-slate-400,
+.light-theme .twin-theme-page .text-slate-500 {
+  color: #526276 !important;
+}
+
+.light-theme .twin-theme-page .text-slate-600,
+.light-theme .twin-theme-page .text-slate-700 {
+  color: #738196 !important;
+}
+
+.light-theme .twin-theme-page .twin-preserve-dark {
+  color: #e2e8f0 !important;
+}
+
+.light-theme .twin-theme-page .twin-preserve-dark [class*="border-white"] {
+  border-color: rgba(255, 255, 255, .1) !important;
+}
+
+.light-theme .twin-theme-page .twin-preserve-dark [class*="bg-white/"],
+.light-theme .twin-theme-page .twin-preserve-dark [class*="bg-black/"] {
+  background-color: rgba(255, 255, 255, .035) !important;
+}
+
+.light-theme .twin-theme-page .twin-preserve-dark .text-white {
+  color: #ffffff !important;
+}
+
+.light-theme .twin-theme-page .twin-preserve-dark .text-slate-100,
+.light-theme .twin-theme-page .twin-preserve-dark .text-slate-200,
+.light-theme .twin-theme-page .twin-preserve-dark .text-slate-300 {
+  color: #dce7ef !important;
+}
+
+.light-theme .twin-theme-page .twin-preserve-dark .text-slate-400,
+.light-theme .twin-theme-page .twin-preserve-dark .text-slate-500,
+.light-theme .twin-theme-page .twin-preserve-dark .text-slate-600 {
+  color: #8395a7 !important;
+}
+
 .analysis-result-list,.analysis-condition-list {
   display: grid;
   gap: 8px;

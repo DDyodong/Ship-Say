@@ -35,8 +35,8 @@ function FactoryDetailTwin({ facilityCode, onBack, notify }) {
     setSelectedAsset(factory.equipment.find((asset) => asset.assetCode === worker.assignedAssetCode) || selectedAsset);
   };
 
-  return <div className="min-h-full bg-[#050b12] px-5 py-5 text-slate-100 md:px-7 md:py-6">
-    <header className="rounded-3xl border border-cyan-400/15 bg-[radial-gradient(circle_at_85%_10%,rgba(0,210,255,.12),transparent_30%),linear-gradient(135deg,#0b1a27,#071019)] p-6 shadow-2xl">
+  return <div className="twin-theme-page factory-detail-twin min-h-full bg-[#050b12] px-5 py-5 text-slate-100 md:px-7 md:py-6">
+    <header className="twin-theme-hero rounded-3xl border border-cyan-400/15 bg-[radial-gradient(circle_at_85%_10%,rgba(0,210,255,.12),transparent_30%),linear-gradient(135deg,#0b1a27,#071019)] p-6 shadow-2xl">
       <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-center">
         <div className="flex items-start gap-4"><button onClick={onBack} className="mt-1 grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[.035] text-slate-300 hover:text-cyan-200"><ArrowLeft size={17}/></button><div><div className="flex items-center gap-2 text-[9px] font-black tracking-[.2em] text-cyan-300"><Factory size={14}/> HANWHA OCEAN · FACILITY SAFETY TWIN</div><h1 className="mt-2 text-2xl font-black text-white">{factory.name}</h1><p className="mt-1 text-xs text-slate-400">{factory.code} · {factory.profileLabel} · 작업자·허가·설비·센서 통합 운영</p></div></div>
         <div className="flex flex-wrap items-center gap-2"><span className="flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-400/[.06] px-3 py-2 text-[9px] font-black text-emerald-300"><Radio size={13}/> EDGE GATEWAY CONNECTED</span><span className="rounded-xl border border-white/10 bg-white/[.035] px-3 py-2 text-[9px] font-bold text-slate-400">LAST SYNC · 13:42:21</span></div>
@@ -52,7 +52,7 @@ function FactoryDetailTwin({ facilityCode, onBack, notify }) {
 
     <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
       <EquipmentTwinScene factory={factory} selectedAsset={selectedAsset} selectedWorker={selectedWorker} onSelectAsset={chooseAsset} onSelectWorker={chooseWorker}/>
-      <aside className="rounded-2xl border border-cyan-400/15 bg-[#08131d] p-4 shadow-xl">
+      <aside className="twin-theme-panel rounded-2xl border border-cyan-400/15 bg-[#08131d] p-4 shadow-xl">
         <p className="text-[9px] font-black tracking-[.16em] text-cyan-300">LIVE OPERATION INVENTORY</p>
         <h2 className="mt-2 text-sm font-black text-white">현장 객체 실시간 연계</h2>
         <div className="mt-3 grid grid-cols-2 rounded-xl bg-black/20 p-1">

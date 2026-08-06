@@ -120,12 +120,12 @@ function SafetyScenarioTwin({ notify, onOpenFactory }) {
   };
   const reset = () => { setPlaying(false); setPhaseIndex(0); };
 
-  const alertBanner = phaseIndex === 1 ? <div className="rounded-2xl border border-red-400/50 bg-[#17090e]/95 px-5 py-4 shadow-[0_0_32px_rgba(255,59,48,.4)]">
+  const alertBanner = phaseIndex === 1 ? <div className="twin-preserve-dark rounded-2xl border border-red-400/50 bg-[#17090e]/95 px-5 py-4 shadow-[0_0_32px_rgba(255,59,48,.4)]">
     <div className="flex items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-red-500 text-white"><Siren size={18}/></span><div><p className="text-[9px] font-black tracking-[.17em] text-red-300">CAM-01 · AI DETECTION</p><p className="mt-1 text-sm font-black text-white">W-088 안전벨트 미착용 · 신뢰도 97.4%</p><p className="mt-1 text-[10px] text-slate-400">소부재조립공장 고소 용접 구역</p></div></div>
   </div> : null;
 
-  return <div className="min-h-full bg-[#050b12] px-5 py-5 text-slate-100 md:px-7 md:py-6">
-    <header className="rounded-3xl border border-cyan-400/20 bg-[radial-gradient(circle_at_82%_15%,rgba(0,210,255,.13),transparent_30%),linear-gradient(135deg,#0b1a27,#071019)] p-6 shadow-2xl md:p-7">
+  return <div className="twin-theme-page safety-twin min-h-full bg-[#050b12] px-5 py-5 text-slate-100 md:px-7 md:py-6">
+    <header className="twin-theme-hero rounded-3xl border border-cyan-400/20 bg-[radial-gradient(circle_at_82%_15%,rgba(0,210,255,.13),transparent_30%),linear-gradient(135deg,#0b1a27,#071019)] p-6 shadow-2xl md:p-7">
       <div className="flex flex-col justify-between gap-5 xl:flex-row xl:items-center">
         <div><div className="flex items-center gap-2 text-[10px] font-black tracking-[.22em] text-cyan-300"><Sparkles size={15}/> HANWHA OCEAN · SAFETY OPERATIONS PLATFORM</div><h1 className="mt-2 text-2xl font-black tracking-tight text-white md:text-3xl">통합 안전 운영 디지털 트윈</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">CCTV·작업자·작업허가서·설비 데이터를 공간 모델에 결합해 위험 예측부터 현장 조치까지 통합 운영합니다.</p></div>
         <div className="flex flex-wrap items-center gap-2">
@@ -143,7 +143,7 @@ function SafetyScenarioTwin({ notify, onOpenFactory }) {
       <Kpi icon={Clock3} label="사건 경과" value={phase.time} unit={phase.short.toUpperCase()}/>
     </section>
 
-    <section className={`overflow-hidden rounded-3xl border bg-[#07121c] shadow-2xl ${RISK_SCORE[phaseIndex] >= 60 ? "border-red-500/40" : "border-cyan-400/15"}`}>
+    <section className={`twin-theme-surface overflow-hidden rounded-3xl border bg-[#07121c] shadow-2xl ${RISK_SCORE[phaseIndex] >= 60 ? "border-red-500/40" : "border-cyan-400/15"}`}>
       <div className="flex items-center justify-between gap-4 border-b border-white/10 px-5 py-4"><div><p className="text-[10px] font-black tracking-[.16em] text-cyan-300">{phase.code}</p><h2 className="mt-1 text-sm font-black text-white">{phase.title}</h2><p className="mt-1 text-[10px] text-slate-500">{phase.description}</p></div><span className={`h-2.5 w-2.5 shrink-0 rounded-full ${playing ? "animate-pulse bg-emerald-400 shadow-[0_0_12px_#34d399]" : "bg-slate-600"}`}/></div>
       <div className="grid xl:grid-cols-[minmax(0,1fr)_370px]">
         <div className="min-w-0 overflow-hidden border-b border-white/10 xl:border-b-0 xl:border-r">
@@ -158,7 +158,7 @@ function SafetyScenarioTwin({ notify, onOpenFactory }) {
 
 function StoryPanel({ phaseIndex, facilityRisks, optimization, onAdvance }) {
   const content = [<ReadyPanel/>, <DetectionPanel/>, <FusionPanel/>, <ForecastPanel risks={facilityRisks}/>, <OptimizationPanel optimization={optimization}/>, <ExecutionPanel optimization={optimization}/>, <StablePanel/>][phaseIndex];
-  return <aside className="flex min-h-[640px] flex-col bg-[#08131d] p-4"><div className="flex-1">{content}</div>{phaseIndex < PHASES.length - 1 && <button onClick={onAdvance} className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-cyan-400/25 bg-cyan-400/[.07] text-[10px] font-black text-cyan-200 hover:bg-cyan-400/15">다음 단계 보기 <ChevronRight size={14}/></button>}</aside>;
+  return <aside className="twin-theme-panel flex min-h-[640px] flex-col bg-[#08131d] p-4"><div className="flex-1">{content}</div>{phaseIndex < PHASES.length - 1 && <button onClick={onAdvance} className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-cyan-400/25 bg-cyan-400/[.07] text-[10px] font-black text-cyan-200 hover:bg-cyan-400/15">다음 단계 보기 <ChevronRight size={14}/></button>}</aside>;
 }
 
 function PanelHeader({ eyebrow, title, status, danger }) {
