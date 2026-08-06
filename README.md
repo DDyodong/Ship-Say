@@ -14,7 +14,7 @@
 
 ## 한 번에 실행
 
-Docker Desktop을 실행한 뒤 프로젝트 루트에서 다음 명령 하나로 MySQL, 백엔드, 프론트엔드를 모두 실행합니다.
+Docker Desktop을 실행한 뒤 프로젝트 루트에서 다음 명령 하나로 MySQL, 작업허가서 분석 서비스, 백엔드, 프론트엔드를 모두 실행합니다.
 
 ```powershell
 npm run dev
@@ -32,6 +32,7 @@ npm run dev:down
 | 영역 | 기술 |
 | --- | --- |
 | Backend | Java 17, Spring Boot 3.3.5, Spring Web, Spring Security, Spring Data JPA |
+| Permit AI | Python 3.11, FastAPI, pdfplumber, 규칙 기반 SIMOPS 엔진 |
 | Database | MySQL 8.4, Flyway |
 | Frontend | React 18, Vite 6, Lucide React |
 | Build | Gradle Wrapper, npm |
@@ -48,6 +49,7 @@ npm run dev:down
 │       ├── api/                   # API 클라이언트
 │       ├── components/            # 공통 UI와 레이아웃
 │       └── pages/                 # 인증·작업자·관리자 화면
+├── ai/permit_analysis/            # 작업허가서 PDF·규칙·SIMOPS 분석 API
 ├── compose.yml                    # 로컬 MySQL 구성
 ├── API_SPEC.md                    # API와 접근 권한 명세
 ├── db_design.md                   # 데이터베이스 설계 문서
@@ -164,6 +166,19 @@ Authorization: Bearer {accessToken}
 `AI_SERVICE` 역할은 자동 배정되지 않으므로 관리자가 DB에서 명시적으로 배정해야 합니다. `SAFETY_MANAGER` 역할은 Flyway V8에서 기존 배정 범위를 유지한 채 `ADMIN`으로 통합됩니다. 전체 엔드포인트와 역할별 권한은 [API_SPEC.md](API_SPEC.md)를 참고하세요.
 
 ## 테스트와 빌드
+
+## OpenAI 현장 적용 안내 생성
+
+팀 규칙 모델의 허가서 판정 결과를 한국어 TBM과 작업자별 PPE 안내로 변환하려면 백엔드 또는 AWS ECS 태스크에 다음 환경변수를 설정합니다. API 키는 저장소나 프론트엔드 환경변수에 넣지 않습니다.
+
+```dotenv
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_MODEL=gpt-5.4-nano
+OPENAI_REASONING_EFFORT=none
+OPENAI_MAX_OUTPUT_TOKENS=16000
+```
+
+`POST /api/ai/work-permits/{permitId}/field-guidance`를 호출하면 가장 최근의 `permit_analysis_results`를 변경하지 않고 현장 안내를 생성합니다. 출력 형식은 백엔드의 구조화 출력 스키마로 고정되며 실행 결과는 `model_runs`에 저장됩니다. 시스템 프롬프트는 `backend/src/main/resources/prompts/work-permit-field-guidance.txt`에서 수정합니다.
 
 백엔드 테스트:
 

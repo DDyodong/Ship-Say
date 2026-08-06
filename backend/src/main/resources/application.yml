@@ -41,11 +41,24 @@ app:
     password: ${BOOTSTRAP_ADMIN_PASSWORD:aivle123}
     name: ${BOOTSTRAP_ADMIN_NAME:테스트 관리자}
   ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+      model: ${OPENAI_MODEL:gpt-5.4-nano}
+      reasoning-effort: ${OPENAI_REASONING_EFFORT:none}
+      max-output-tokens: ${OPENAI_MAX_OUTPUT_TOKENS:16000}
+      connect-timeout-ms: ${OPENAI_CONNECT_TIMEOUT_MS:5000}
+      read-timeout-ms: ${OPENAI_READ_TIMEOUT_MS:120000}
     robot-anomaly:
       enabled: ${ROBOT_ANOMALY_AI_ENABLED:true}
       base-url: ${ROBOT_ANOMALY_AI_URL:http://127.0.0.1:8000}
       connect-timeout-ms: ${ROBOT_ANOMALY_AI_CONNECT_TIMEOUT_MS:1000}
       request-timeout-ms: ${ROBOT_ANOMALY_AI_REQUEST_TIMEOUT_MS:1500}
+    permit-analysis:
+      enabled: ${PERMIT_ANALYSIS_AI_ENABLED:true}
+      base-url: ${PERMIT_ANALYSIS_AI_URL:http://127.0.0.1:8001}
+      connect-timeout-ms: ${PERMIT_ANALYSIS_AI_CONNECT_TIMEOUT_MS:3000}
+      request-timeout-ms: ${PERMIT_ANALYSIS_AI_REQUEST_TIMEOUT_MS:120000}
   firebase:
     enabled: ${FIREBASE_ENABLED:false}
     project-id: ${FIREBASE_PROJECT_ID:aivle25}

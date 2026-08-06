@@ -68,6 +68,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/api/work-permits/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/work-permits/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/work-permits/*/restore").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/work-permits/*/analyze").hasRole("ADMIN")
 
                 // Board and file features are for interactive human accounts.
                 .requestMatchers("/api/board/**", "/api/files/**").hasAnyRole(HUMAN_ROLES)

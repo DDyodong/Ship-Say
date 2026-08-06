@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "backend/**"
+      - "ai/permit_analysis/**"
       - "Dockerfile.backend"
       - "build.gradle"
       - "settings.gradle"
@@ -26,6 +27,7 @@ env:
   ECS_SERVICE: safety-backend-service
   ECS_TASK_DEFINITION: safety-backend-task
   CONTAINER_NAME: safety-backend
+  ANALYSIS_CONTAINER_NAME: permit-analysis
 
 jobs:
   deploy:
@@ -46,22 +48,29 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and push Docker image
+      - name: Build and push Docker images
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          BACKEND_IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          ANALYSIS_IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG-permit-analysis"
 
           docker build \
             -f Dockerfile.backend \
-            -t "$IMAGE_URI" \
+            -t "$BACKEND_IMAGE_URI" \
             .
+          docker build \
+            -f ai/permit_analysis/Dockerfile \
+            -t "$ANALYSIS_IMAGE_URI" \
+            ai/permit_analysis
 
-          docker push "$IMAGE_URI"
+          docker push "$BACKEND_IMAGE_URI"
+          docker push "$ANALYSIS_IMAGE_URI"
 
-          echo "image=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+          echo "backend-image=$BACKEND_IMAGE_URI" >> "$GITHUB_OUTPUT"
+          echo "analysis-image=$ANALYSIS_IMAGE_URI" >> "$GITHUB_OUTPUT"
 
       - name: Download current ECS task definition
         run: |
@@ -80,13 +89,79 @@ jobs:
             .registeredBy
           )' task-definition-original.json > task-definition.json
 
+      - name: Add permit analysis sidecar
+        env:
+          ANALYSIS_IMAGE_URI: ${{ steps.build-image.outputs.analysis-image }}
+        run: |
+          jq \
+            --arg backend "$CONTAINER_NAME" \
+            --arg analysis "$ANALYSIS_CONTAINER_NAME" \
+            --arg image "$ANALYSIS_IMAGE_URI" \
+            --arg health "python -c 'import urllib.request; urllib.request.urlopen(\"http://127.0.0.1:8001/health\", timeout=2)'" \
+            '
+              (.containerDefinitions[] | select(.name == $backend) | .logConfiguration // null) as $backendLogs
+              | .containerDefinitions |= (
+                  map(
+                    if .name == $backend then
+                      .environment = (
+                        ((.environment // [])
+                          | map(select(
+                              .name != "PERMIT_ANALYSIS_AI_URL"
+                              and .name != "PERMIT_ANALYSIS_AI_ENABLED"
+                            )))
+                        + [
+                            {"name": "PERMIT_ANALYSIS_AI_ENABLED", "value": "true"},
+                            {"name": "PERMIT_ANALYSIS_AI_URL", "value": "http://127.0.0.1:8001"}
+                          ]
+                      )
+                      | .dependsOn = (
+                          ((.dependsOn // []) | map(select(.containerName != $analysis)))
+                          + [{"containerName": $analysis, "condition": "HEALTHY"}]
+                        )
+                    elif .name == $analysis then
+                      .image = $image
+                      | .essential = true
+                      | .healthCheck = {
+                          "command": ["CMD-SHELL", $health],
+                          "interval": 10,
+                          "timeout": 5,
+                          "retries": 5,
+                          "startPeriod": 20
+                        }
+                    else . end
+                  )
+                  | if any(.name == $analysis) then . else
+                      . + [(
+                        {
+                          "name": $analysis,
+                          "image": $image,
+                          "essential": true,
+                          "healthCheck": {
+                            "command": ["CMD-SHELL", $health],
+                            "interval": 10,
+                            "timeout": 5,
+                            "retries": 5,
+                            "startPeriod": 20
+                          }
+                        }
+                        + if $backendLogs == null then {} else {
+                            "logConfiguration": (
+                              $backendLogs
+                              | .options["awslogs-stream-prefix"] = "permit-analysis"
+                            )
+                          } end
+                      )]
+                    end
+                )
+            ' task-definition.json > task-definition-with-analysis.json
+
       - name: Update image in task definition
         id: render-task-definition
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          task-definition: task-definition.json
+          task-definition: task-definition-with-analysis.json
           container-name: ${{ env.CONTAINER_NAME }}
-          image: ${{ steps.build-image.outputs.image }}
+          image: ${{ steps.build-image.outputs.backend-image }}
 
       - name: Deploy task definition to ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2

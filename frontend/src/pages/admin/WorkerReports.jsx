@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  AlertTriangle, BrainCircuit, CheckCircle2, Clock3, FileImage, MapPin,
-  Maximize2, Search, ShieldCheck, Siren, UserRound, Wrench, X,
+  AlertTriangle, BellRing, BrainCircuit, CheckCircle2, Clock3, FileImage, MapPin,
+  Maximize2, Search, Send, ShieldCheck, Siren, UserRound, Wrench, X,
 } from "lucide-react";
 import { apiBlob, apiRequest } from "../../api/client";
 import { SectionHead } from "../../components/common";
@@ -48,6 +48,9 @@ function WorkerReports({ session, notify }) {
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [notifyReporter, setNotifyReporter] = useState(true);
+  const [alertDraft, setAlertDraft] = useState(null);
+  const [sendingAlert, setSendingAlert] = useState(false);
   const headers = { Authorization:`Bearer ${session.token}` };
 
   const loadReports = async () => {
@@ -74,6 +77,11 @@ function WorkerReports({ session, notify }) {
   const missingItems = parseMissingItems(selected?.missingItems);
 
   useEffect(() => {
+    setNotifyReporter(selected?.sourceType === "user_report");
+    setAlertDraft(null);
+  }, [selectedId, selected?.sourceType]);
+
+  useEffect(() => {
     let active = true;
     let objectUrl = "";
     setPhotoUrl("");
@@ -96,11 +104,58 @@ function WorkerReports({ session, notify }) {
     if (!selected) return;
     setSaving(true);
     try {
-      await apiRequest(`/api/safety-events/${selected.id}/actions`, { method:"POST", headers, body:JSON.stringify({ status:nextStatus, comment:comment.trim() }) });
+      const result = await apiRequest(`/api/safety-events/${selected.id}/actions`, {
+        method:"POST",
+        headers,
+        body:JSON.stringify({
+          status:nextStatus,
+          comment:comment.trim(),
+          notifyReporter:selected.sourceType === "user_report" && notifyReporter,
+        }),
+      });
+      if (result.notificationScheduled) notify("신고자에게 처리 상태 알림을 예약했습니다.");
       notify(`안전 이벤트가 '${statusLabels[nextStatus]}' 단계로 변경되었습니다.`);
       setComment("");
       await loadReports();
     } catch (error) { notify(error.message); } finally { setSaving(false); }
+  };
+
+  const openAlertComposer = () => {
+    if (!selected?.targetUserId) return;
+    setAlertDraft({
+      title:"안전 관리자 알림",
+      body:`${riskLabels[selected.eventType] || selected.title} 관련 안내입니다. 현장 안전관리자의 지시에 따라 주세요.`,
+    });
+  };
+
+  const sendConfirmedAlert = async () => {
+    if (!selected?.targetUserId || !alertDraft?.title.trim() || !alertDraft?.body.trim()) {
+      notify("알림 제목과 내용을 입력해 주세요.");
+      return;
+    }
+    setSendingAlert(true);
+    try {
+      const result = await apiRequest("/api/admin/notifications/send", {
+        method:"POST",
+        headers,
+        body:JSON.stringify({
+          userId:selected.targetUserId,
+          eventId:selected.id,
+          title:alertDraft.title.trim(),
+          body:alertDraft.body.trim(),
+          url:"/worker/work",
+          confirmed:true,
+        }),
+      });
+      setAlertDraft(null);
+      notify(result.pushStatus === "sent"
+        ? "작업자에게 앱 알림과 푸시 알림을 발송했습니다."
+        : "작업자 앱 알림함에 저장했습니다. 푸시 수신 기기는 확인되지 않았습니다.");
+    } catch (error) {
+      notify(error.message);
+    } finally {
+      setSendingAlert(false);
+    }
   };
 
   const currentStep = selected ? Math.max(0, statusSteps.indexOf(selected.status)) : 0;
@@ -108,6 +163,11 @@ function WorkerReports({ session, notify }) {
   const analysisDone = selected?.analysisStatus === "completed";
 
   return <>
+    {selected && <div className="report-notification-controls">
+      <div><BellRing/><span><b>확인 기반 알림</b><small>{maskName(selected.reporterName)} · {selected.employeeNo || "사번 없음"}</small></span></div>
+      {nextStatus && selected.sourceType === "user_report" && <label className="report-notify-confirm"><input type="checkbox" checked={notifyReporter} onChange={event=>setNotifyReporter(event.target.checked)}/><span><b>상태 저장 후 신고자에게 알림</b><small>관리자의 상태 변경을 발송 확인으로 사용합니다.</small></span></label>}
+      {selected.targetUserId && <button type="button" className="outline-btn report-alert-button" onClick={openAlertComposer}><BellRing/>작업자 알림 작성</button>}
+    </div>}
     <SectionHead eyebrow="SAFETY EVENT MANAGEMENT" title="안전 이벤트 관리" desc="작업자 위험 신고와 AI 보호구 미착용 감지 결과를 한 화면에서 확인하고 조치합니다."/>
     <div className="worker-report-source-tabs">{sourceOptions.map(([value,label])=><button key={label} className={sourceFilter===value?"active":""} onClick={()=>setSourceFilter(value)}>{label}</button>)}</div>
     <div className="worker-report-admin">
@@ -151,6 +211,17 @@ function WorkerReports({ session, notify }) {
       </section>
     </div>
     {photoExpanded&&photoUrl&&<div className="report-photo-lightbox" role="dialog" aria-modal="true" aria-label="첨부 사진 원본 보기" onClick={()=>setPhotoExpanded(false)}><button type="button" className="lightbox-close" onClick={()=>setPhotoExpanded(false)} aria-label="닫기"><X/></button><img src={photoUrl} alt={isAiPpe?"AI 보호구 검사 원본":"작업자가 첨부한 위험 현장 원본"} onClick={event=>event.stopPropagation()}/><span>사진 바깥을 클릭하거나 ESC 키를 누르면 닫힙니다.</span></div>}
+    {alertDraft && <div className="report-alert-modal" role="dialog" aria-modal="true" aria-labelledby="report-alert-title" onClick={()=>!sendingAlert&&setAlertDraft(null)}>
+      <div className="report-alert-dialog" onClick={event=>event.stopPropagation()}>
+        <div className="report-alert-head"><div><span>CONFIRMED DELIVERY</span><h3 id="report-alert-title">작업자 알림 발송</h3></div><button type="button" onClick={()=>setAlertDraft(null)} disabled={sendingAlert} aria-label="닫기"><X/></button></div>
+        <div className="report-alert-target"><UserRound/><span>발송 대상<b>{maskName(selected?.reporterName)} · {selected?.employeeNo || "사번 없음"}</b></span></div>
+        <label><span>알림 제목</span><input value={alertDraft.title} maxLength={160} onChange={event=>setAlertDraft(current=>({...current,title:event.target.value}))}/></label>
+        <label><span>알림 내용</span><textarea value={alertDraft.body} maxLength={1000} onChange={event=>setAlertDraft(current=>({...current,body:event.target.value}))}/></label>
+        <div className="report-alert-preview"><small>작업자에게 표시될 내용</small><b>{alertDraft.title || "제목 없음"}</b><p>{alertDraft.body || "내용 없음"}</p></div>
+        <p className="report-alert-caution"><AlertTriangle/>발송 버튼을 누르면 선택한 작업자 1명에게 즉시 전달되며 감사 로그에 기록됩니다.</p>
+        <div className="report-alert-actions"><button type="button" className="outline-btn" onClick={()=>setAlertDraft(null)} disabled={sendingAlert}>취소</button><button type="button" className="primary-small" onClick={sendConfirmedAlert} disabled={sendingAlert}><Send/>{sendingAlert?"발송 중...":"1명에게 발송"}</button></div>
+      </div>
+    </div>}
   </>;
 }
 

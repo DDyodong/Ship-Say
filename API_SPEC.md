@@ -58,6 +58,7 @@ PUT  /api/work-permits/{id}                                  ADMIN
 DELETE /api/work-permits/{id}                                ADMIN
 GET  /api/work-permits/trash                                 ADMIN
 POST /api/work-permits/{id}/restore                          ADMIN
+POST /api/work-permits/{id}/analyze                          ADMIN
 DELETE /api/work-permits/{id}/permanent                      ADMIN
 
 GET  /api/worker/tbm/today?language=ko                       WORKER | ADMIN
@@ -69,6 +70,7 @@ GET  /api/admin/ppe-checks                                   ADMIN
 POST /api/notifications/devices                             WORKER | ADMIN
 GET  /api/notifications/devices/status                      WORKER | ADMIN
 POST /api/admin/notifications/test                          ADMIN
+POST /api/admin/notifications/send                          ADMIN
 
 GET  /api/safety-events                                      ADMIN
 GET  /api/safety-events/reports?status=&sourceType=          ADMIN
@@ -79,6 +81,7 @@ POST /api/safety-events/{id}/actions                         ADMIN
 GET  /api/ai/model-runs                                      ADMIN
 POST /api/ai/model-runs                                      ADMIN | AI_SERVICE
 POST /api/ai/work-permits/{permitId}/analysis-results        ADMIN | AI_SERVICE
+POST /api/ai/work-permits/{permitId}/field-guidance          ADMIN | AI_SERVICE
 POST /api/ai/personal-checks/{id}/result                     ADMIN | AI_SERVICE
 
 GET  /api/risks/scores                                       ADMIN
@@ -90,6 +93,8 @@ GET|POST|PATCH /api/digital-twin/**                          ADMIN
 ```
 
 게시판과 파일 API는 대화형 사용자 역할인 `WORKER`, `ADMIN`만 사용할 수 있습니다. `AI_SERVICE`는 AI 모델 결과와 위험 점수를 등록하는 API에만 접근할 수 있으며, 위에 명시되지 않은 API는 기본적으로 거부됩니다.
+
+작업허가서를 등록하거나 PDF를 교체하면 작업허가서 분석이 자동으로 대기열에 들어갑니다. `POST /api/work-permits/{id}/analyze`는 실패한 분석이나 최신 규칙 재적용을 위한 관리자 재실행 API이며, 상태는 작업허가서 상세 응답의 `analysisRun`에서 `queued`, `running`, `finished`, `failed`로 확인합니다.
 
 작업자의 보호구 제출 API는 사진, 안전화 확인, 안전복 확인을 저장한 뒤 `202 Accepted`로 즉시 응답합니다. 안전모(Helmet), 하네스(Harness), 용접면(Welding mask)의 YOLO 탐지 결과는 작업자 응답에 포함하지 않고 관리자용 `/api/admin/ppe-checks`에서만 제공합니다.
 
