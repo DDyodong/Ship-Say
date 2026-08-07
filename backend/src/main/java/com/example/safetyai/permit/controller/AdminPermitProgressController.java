@@ -70,7 +70,7 @@ public class AdminPermitProgressController {
                        ts.title,
                        ts.session_date,
                        ts.status,
-                       COUNT(ta.id) AS attendance_count,
+                       COUNT(ta.user_id) AS attendance_count,
                        SUM(CASE WHEN ta.confirmed_at IS NOT NULL THEN 1 ELSE 0 END) AS confirmed_count
                   FROM tbm_sessions ts
              LEFT JOIN tbm_attendance ta ON ta.tbm_session_id = ts.id

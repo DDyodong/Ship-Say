@@ -41,6 +41,10 @@ public class SecurityConfig {
             .httpBasic(basic -> basic.disable())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                // Internal error dispatch (e.g. an uncaught DB exception forwarding to /error).
+                // Without this, /error falls through to anyRequest().denyAll() below and a real
+                // 500 gets masked as a misleading 401 "로그인이 필요합니다.".
+                .requestMatchers("/error").permitAll()
                 .requestMatchers("/api/health", "/api/auth/register", "/api/auth/login").permitAll()
                 .requestMatchers("/api/auth/employees/verify", "/api/auth/usernames/*/availability").permitAll()
                 .requestMatchers("/api/auth/logout").authenticated()
