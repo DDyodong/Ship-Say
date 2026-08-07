@@ -1,9 +1,20 @@
-import React from "react";
+import React, { useCallback, useState } from "react";
 import { Settings, Siren } from "lucide-react";
 import { SectionHead } from "../../components/common";
+import LiveHlsPlayer from "../../components/monitoring/LiveHlsPlayer";
+
+// index 1 = "C-03 배관 구역" → processed-camera03 실시간 HLS 스트림
+const LIVE_STREAMS = {
+  1: import.meta.env.VITE_CAMERA03_HLS_URL,
+};
 
 function Monitoring({ notify }) {
   const cameras = ["B-07 상부 작업장", "C-03 배관 구역", "A-12 도장 구역", "D-02 자재 적치장"];
+  const [liveFailed, setLiveFailed] = useState({});
+
+  const handleLiveError = useCallback((index) => {
+    setLiveFailed((prev) => (prev[index] ? prev : { ...prev, [index]: true }));
+  }, []);
 
   return (
     <>
@@ -14,9 +25,19 @@ function Monitoring({ notify }) {
         action={<button className="outline-btn"><Settings />관제 설정</button>}
       />
       <div className="monitor-grid">
-        {cameras.map((name, index) => (
+        {cameras.map((name, index) => {
+          const liveSrc = LIVE_STREAMS[index];
+          const showLive = Boolean(liveSrc) && !liveFailed[index];
+          return (
           <div className="camera-card" key={name}>
             <div className={`camera-feed cam${index + 1}`}>
+              {showLive && (
+                <LiveHlsPlayer
+                  src={liveSrc}
+                  className="camera-feed-video"
+                  onError={() => handleLiveError(index)}
+                />
+              )}
               <div className="camera-head">
                 <span><i />LIVE · CAM-{[12, 8, 3, 21][index]}</span>
                 <small>10:45:2{index}</small>
@@ -41,7 +62,8 @@ function Monitoring({ notify }) {
               </button>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
     </>
   );
