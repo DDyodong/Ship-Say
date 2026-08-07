@@ -4,6 +4,7 @@ import com.example.safetyai.auth.service.AuthService;
 import com.example.safetyai.permit.dto.WorkPermitDecisionRequest;
 import com.example.safetyai.permit.dto.WorkPermitRequest;
 import com.example.safetyai.permit.dto.WorkPermitSupplementRequest;
+import com.example.safetyai.permit.service.PermitAnalysisService;
 import com.example.safetyai.permit.service.WorkPermitService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -24,9 +25,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/work-permits")
 public class WorkPermitController {
     private final WorkPermitService workPermitService;
+    private final PermitAnalysisService permitAnalysisService;
 
-    public WorkPermitController(WorkPermitService workPermitService) {
+    public WorkPermitController(WorkPermitService workPermitService, PermitAnalysisService permitAnalysisService) {
         this.workPermitService = workPermitService;
+        this.permitAnalysisService = permitAnalysisService;
     }
 
     @GetMapping
@@ -91,6 +94,13 @@ public class WorkPermitController {
     @PostMapping("/{id}/analyze")
     public Map<String, Object> analyze(@PathVariable long id) {
         return workPermitService.requestAnalysis(id);
+    }
+
+    // 허가서를 만들기 전, 업로드만 해둔 PDF(fileId)를 파싱해서 허가서 번호/작업명/작업유형/작업내용
+    // 초안을 돌려준다. 아직 아무 허가서도 생성되지 않는다.
+    @PostMapping("/draft-parse")
+    public Map<String, Object> draftParse(@RequestParam long fileId) {
+        return permitAnalysisService.parseDraft(fileId);
     }
 
     @DeleteMapping("/{id}/permanent")

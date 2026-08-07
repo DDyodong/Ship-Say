@@ -15,6 +15,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
@@ -78,6 +79,74 @@ public class PermitAnalysisService {
         );
         eventPublisher.publishEvent(new PermitAnalysisRequested(permitId, runId));
         return Map.of("permitId", permitId, "runId", runId, "status", "queued");
+    }
+
+    // 허가서를 아직 만들기 전에, 업로드만 된 PDF를 곧바로 파싱해서 허가서 번호/작업명/작업
+    // 유형/작업 내용 초안을 돌려준다. 여기서는 아무것도 DB에 저장하지 않는다 — 관리자가 검토·수정한
+    // 뒤 실제로 "등록" 버튼을 눌러야 work_permits row가 생기고, 그때 이 파일이 fileIds로 연결된다.
+    public Map<String, Object> parseDraft(long fileId) {
+        Map<String, Object> file;
+        try {
+            file = jdbcTemplate.queryForMap(
+                "SELECT storage_key, original_name FROM files WHERE id = ? AND file_type = 'permit'",
+                fileId
+            );
+        } catch (EmptyResultDataAccessException exception) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "업로드한 허가서 PDF를 찾을 수 없습니다.");
+        }
+        Map<String, Object> response;
+        try {
+            Resource resource = fileStorage.load(String.valueOf(file.get("storage_key")));
+            response = client.analyze(resource, String.valueOf(file.get("original_name")), null, List.of());
+        } catch (IOException exception) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "허가서 PDF를 읽지 못했습니다.");
+        }
+        return toDraftFields(response);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> toDraftFields(Map<String, Object> response) {
+        Map<String, Object> parsed = response.get("parsed_permit") instanceof Map<?, ?> map
+            ? (Map<String, Object>) map
+            : Map.of();
+        Map<String, Object> period = parsed.get("period") instanceof Map<?, ?> periodMap
+            ? (Map<String, Object>) periodMap
+            : Map.of();
+
+        List<String> mainWorks = asStringList(parsed.get("main_works"));
+        List<String> conditions = asStringList(parsed.get("conditions"));
+        String formType = trimToNull(parsed.get("form_type"));
+        String workType = formType != null ? formType + " 작업" : "일반 작업";
+
+        List<String> titleParts = !mainWorks.isEmpty() ? mainWorks : conditions;
+        String workTitle = !titleParts.isEmpty() ? String.join("·", titleParts) + " 작업" : workType;
+
+        Map<String, Object> draft = new LinkedHashMap<>();
+        draft.put("permitNo", trimToNull(parsed.get("permit_id")));
+        draft.put("workType", workType);
+        draft.put("workTitle", workTitle);
+        draft.put("workContent", trimToNull(parsed.get("work_summary")));
+        draft.put("startTime", period.get("start"));
+        draft.put("endTime", period.get("end"));
+        draft.put("zone", trimToNull(parsed.get("zone")));
+        draft.put("warnings", parsed.getOrDefault("parse_warnings", List.of()));
+        draft.put("summary", response.get("summary"));
+        return draft;
+    }
+
+    private String trimToNull(Object value) {
+        if (value == null) {
+            return null;
+        }
+        String text = String.valueOf(value).trim();
+        return text.isEmpty() ? null : text;
+    }
+
+    private List<String> asStringList(Object value) {
+        if (!(value instanceof List<?> list)) {
+            return List.of();
+        }
+        return list.stream().map(String::valueOf).filter(item -> !item.isBlank()).toList();
     }
 
     @Async("permitAnalysisExecutor")

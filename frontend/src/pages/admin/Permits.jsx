@@ -55,6 +55,10 @@ function Permits({ notify, session }) {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [file, setFile] = useState(null);
+  const [step, setStep] = useState("upload"); // "upload" | "details" — create 흐름에서만 의미 있음, 수정은 항상 "details"
+  const [parsing, setParsing] = useState(false);
+  const [uploadedFileId, setUploadedFileId] = useState(null);
+  const [parseWarning, setParseWarning] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [preview, setPreview] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -147,6 +151,9 @@ function Permits({ notify, session }) {
   const openCreateModal = () => {
     setEditingId(null);
     setFile(null);
+    setUploadedFileId(null);
+    setParseWarning(null);
+    setStep("upload");
     setForm({ ...emptyForm(), siteId: String(sites[0]?.id || "") });
     setModalOpen(true);
   };
@@ -155,6 +162,9 @@ function Permits({ notify, session }) {
     if (!detail) return;
     setEditingId(detail.id);
     setFile(null);
+    setUploadedFileId(null);
+    setParseWarning(null);
+    setStep("details");
     setForm({
       permitNo: detail.permit_no || "",
       siteId: String(detail.site_id || ""),
@@ -167,28 +177,72 @@ function Permits({ notify, session }) {
   };
 
   const closeModal = (force = false) => {
-    if (submitting && !force) return;
+    if ((submitting || parsing) && !force) return;
     setModalOpen(false);
     setEditingId(null);
     setFile(null);
+    setUploadedFileId(null);
+    setParseWarning(null);
+    setStep("upload");
     setForm({ ...emptyForm(), siteId: String(sites[0]?.id || "") });
+  };
+
+  // 1단계: PDF만 업로드하고 "다음"을 누르면, 그 파일을 먼저 /api/files에 올린 뒤
+  // /api/work-permits/draft-parse로 보내 AI 파서가 뽑아낸 허가서 번호/작업명/작업유형/작업내용으로
+  // 폼을 미리 채운다. 아직 work_permits row는 생기지 않는다 — 2단계에서 검토·수정 후 등록해야 생성됨.
+  const generateDraft = async () => {
+    if (!file) return notify("허가서 PDF를 먼저 선택해 주세요.");
+    setParsing(true);
+    try {
+      const fileData = new FormData();
+      fileData.append("file", file);
+      fileData.append("fileType", "permit");
+      const uploaded = await apiRequest("/api/files", { method: "POST", headers: authorization, body: fileData });
+      setUploadedFileId(uploaded.id);
+      try {
+        const draft = await apiRequest(`/api/work-permits/draft-parse?fileId=${uploaded.id}`, {
+          method: "POST",
+          headers: authorization,
+        });
+        setForm(current => ({
+          ...current,
+          permitNo: draft.permitNo || current.permitNo,
+          workType: draft.workType || current.workType,
+          workTitle: draft.workTitle || current.workTitle,
+          workContent: draft.workContent || current.workContent,
+        }));
+        setParseWarning(Array.isArray(draft.warnings) && draft.warnings.length ? draft.warnings.join(" · ") : null);
+        notify("AI가 PDF 내용을 기반으로 초안을 작성했습니다. 확인 후 등록해 주세요.");
+      } catch (parseError) {
+        setParseWarning(null);
+        notify(`AI 초안 생성에 실패했습니다: ${parseError.message} — 직접 입력해 주세요.`);
+      }
+      setStep("details");
+    } catch (error) {
+      notify(error.message);
+    } finally {
+      setParsing(false);
+    }
   };
 
   const submit = async (event) => {
     event.preventDefault();
     if (!form.siteId) return notify("등록된 사업장이 없습니다. 기준 정보에서 사업장을 먼저 등록해 주세요.");
     if (!form.permitNo.trim() || !form.workTitle.trim()) return notify("허가서 번호와 작업명을 입력해 주세요.");
-    if (!editingId && !file) return notify("허가서 PDF 파일을 선택해 주세요.");
+    if (!editingId && !uploadedFileId) return notify("허가서 PDF를 먼저 업로드해 주세요.");
     setSubmitting(true);
     try {
+      // 수정 화면에서 PDF를 새로 골랐을 때만 여기서 업로드한다. 등록 화면은 1단계(generateDraft)에서
+      // 이미 업로드가 끝나 있으므로 uploadedFileId를 그대로 재사용하고 여기서 다시 올리지 않는다.
       let uploaded = null;
-      if (file) {
+      if (editingId && file) {
         const fileData = new FormData();
         fileData.append("file", file);
         fileData.append("fileType", "permit");
         uploaded = await apiRequest("/api/files", { method: "POST", headers: authorization, body: fileData });
       }
       const permitId = editingId;
+      const fileIdForSubmit = editingId ? uploaded?.id : uploadedFileId;
       const saved = await apiRequest(editingId ? `/api/work-permits/${editingId}` : "/api/work-permits", {
         method: editingId ? "PUT" : "POST",
         headers: authorization,
@@ -197,7 +251,7 @@ function Permits({ notify, session }) {
           siteId: Number(form.siteId),
           status: "pending_review",
           isHighRisk: false,
-          fileIds: uploaded ? [uploaded.id] : null,
+          fileIds: fileIdForSubmit ? [fileIdForSubmit] : null,
         }),
       });
       closeModal(true);
@@ -411,35 +465,61 @@ function Permits({ notify, session }) {
       </div> : <div className="permit-trash-empty"><ArchiveRestore/><span>보관 중인 허가서가 없습니다.</span></div>}
     </section>
     {modalOpen && <div className="modal-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) closeModal(); }}>
-      <form className="permit-modal" role="dialog" aria-modal="true" aria-labelledby="permit-modal-title" onSubmit={submit}>
+      <form
+        className="permit-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="permit-modal-title"
+        onSubmit={!editingId && step === "upload" ? e => { e.preventDefault(); generateDraft(); } : submit}
+      >
         <div className="modal-head"><div><span>WORK PERMIT</span><h3 id="permit-modal-title">허가서 {editingId ? "수정" : "등록"}</h3></div><button type="button" className="icon-btn" title="닫기" onClick={closeModal}><X/></button></div>
-        <div className="permit-form-grid">
-          <label><span>허가서 번호</span><input value={form.permitNo} onChange={e => setForm({ ...form, permitNo: e.target.value })}/></label>
-          <label><span>사업장</span><select value={form.siteId} onChange={e => setForm({ ...form, siteId: e.target.value })}><option value="">사업장 선택</option>{sites.map(site => <option value={site.id} key={site.id}>{site.name}</option>)}</select></label>
-          <label className="wide-field"><span>작업명</span><input value={form.workTitle} onChange={e => setForm({ ...form, workTitle: e.target.value })} placeholder="예: C-03 블록 배관 화기 작업"/></label>
-          <label><span>작업 유형</span><select value={form.workType} onChange={e => setForm({ ...form, workType: e.target.value })}><option>화기 작업</option><option>고소 작업</option><option>밀폐 공간 작업</option><option>중량물 작업</option><option>일반 작업</option></select></label>
-          <label className="wide-field"><span>작업 내용</span><textarea value={form.workContent} onChange={e => setForm({ ...form, workContent: e.target.value })} placeholder="작업 범위와 특이사항을 입력해 주세요."/></label>
-          <fieldset className="permit-worker-field wide-field">
-            <legend>작업자 배정 <small>{form.workerIds.length}명 선택</small></legend>
-            {workers.length ? <div className="permit-worker-options">
-              {workers.map(worker => <label className={form.workerIds.includes(Number(worker.id)) ? "selected" : ""} key={worker.id}>
-                <input
-                  type="checkbox"
-                  checked={form.workerIds.includes(Number(worker.id))}
-                  onChange={() => setForm(current => ({
-                    ...current,
-                    workerIds: current.workerIds.includes(Number(worker.id))
-                      ? current.workerIds.filter(id => id !== Number(worker.id))
-                      : [...current.workerIds, Number(worker.id)],
-                  }))}
-                />
-                <span><b>{worker.name}</b><small>{worker.employee_no} · {worker.username}</small></span>
-              </label>)}
-            </div> : <div className="permit-worker-empty">가입된 WORKER 계정이 없습니다.</div>}
-          </fieldset>
-        </div>
-        <div className={file ? "permit-upload selected" : "permit-upload"} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); selectFile(e.dataTransfer.files[0]); }}><UploadCloud/><b>{file ? file.name : editingId && attachedFile ? attachedFile.original_name : "허가서 PDF를 업로드하세요"}</b><span>{file ? formatSize(file.size) : editingId && attachedFile ? "새 PDF를 선택하면 기존 파일을 교체합니다." : "PDF · 최대 10MB"}</span><input id="permit-file" type="file" accept="application/pdf,.pdf" onChange={e => selectFile(e.target.files[0])}/><label htmlFor="permit-file" className="outline-btn">{editingId ? "PDF 교체" : "파일 선택"}</label></div>
-        <div className="modal-actions"><button type="button" className="outline-btn" onClick={closeModal}>취소</button><button className="primary-small" disabled={submitting}>{submitting ? "저장 중..." : editingId ? "변경사항 저장" : "업로드 및 등록"}</button></div>
+        {!editingId && step === "upload" ? <>
+          <div className={file ? "permit-upload selected" : "permit-upload"} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); selectFile(e.dataTransfer.files[0]); }}>
+            <UploadCloud/>
+            <b>{file ? file.name : "허가서 PDF를 업로드하세요"}</b>
+            <span>{file ? formatSize(file.size) : "PDF · 최대 10MB — 업로드하면 AI가 허가서 번호·작업명·작업유형·작업내용을 채워드립니다."}</span>
+            <input id="permit-file" type="file" accept="application/pdf,.pdf" onChange={e => selectFile(e.target.files[0])} disabled={parsing}/>
+            <label htmlFor="permit-file" className="outline-btn">파일 선택</label>
+          </div>
+          <div className="modal-actions">
+            <button type="button" className="outline-btn" onClick={closeModal}>취소</button>
+            <button className="primary-small" disabled={!file || parsing}><Sparkles/>{parsing ? "내용을 생성하고 있습니다..." : "다음"}</button>
+          </div>
+        </> : <>
+          {!editingId && <div className="doc-preview"><FileText/><div><b>{file?.name}</b><span>{file ? formatSize(file.size) : ""}</span></div></div>}
+          {parseWarning && <div className="collision"><AlertTriangle/><div><b>PDF 파싱 경고</b><p>{parseWarning}</p></div></div>}
+          <div className="permit-form-grid">
+            <label><span>허가서 번호</span><input value={form.permitNo} onChange={e => setForm({ ...form, permitNo: e.target.value })}/></label>
+            <label><span>사업장</span><select value={form.siteId} onChange={e => setForm({ ...form, siteId: e.target.value })}><option value="">사업장 선택</option>{sites.map(site => <option value={site.id} key={site.id}>{site.name}</option>)}</select></label>
+            <label className="wide-field"><span>작업명</span><input value={form.workTitle} onChange={e => setForm({ ...form, workTitle: e.target.value })} placeholder="예: C-03 블록 배관 화기 작업"/></label>
+            <label><span>작업 유형</span><select value={form.workType} onChange={e => setForm({ ...form, workType: e.target.value })}><option>화기 작업</option><option>고소 작업</option><option>밀폐 공간 작업</option><option>중량물 작업</option><option>일반 작업</option></select></label>
+            <label className="wide-field"><span>작업 내용</span><textarea value={form.workContent} onChange={e => setForm({ ...form, workContent: e.target.value })} placeholder="작업 범위와 특이사항을 입력해 주세요."/></label>
+            <fieldset className="permit-worker-field wide-field">
+              <legend>작업자 배정 <small>{form.workerIds.length}명 선택</small></legend>
+              {workers.length ? <div className="permit-worker-options">
+                {workers.map(worker => <label className={form.workerIds.includes(Number(worker.id)) ? "selected" : ""} key={worker.id}>
+                  <input
+                    type="checkbox"
+                    checked={form.workerIds.includes(Number(worker.id))}
+                    onChange={() => setForm(current => ({
+                      ...current,
+                      workerIds: current.workerIds.includes(Number(worker.id))
+                        ? current.workerIds.filter(id => id !== Number(worker.id))
+                        : [...current.workerIds, Number(worker.id)],
+                    }))}
+                  />
+                  <span><b>{worker.name}</b><small>{worker.employee_no} · {worker.username}</small></span>
+                </label>)}
+              </div> : <div className="permit-worker-empty">가입된 WORKER 계정이 없습니다.</div>}
+            </fieldset>
+          </div>
+          {editingId && <div className={file ? "permit-upload selected" : "permit-upload"} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); selectFile(e.dataTransfer.files[0]); }}><UploadCloud/><b>{file ? file.name : attachedFile ? attachedFile.original_name : "허가서 PDF를 업로드하세요"}</b><span>{file ? formatSize(file.size) : attachedFile ? "새 PDF를 선택하면 기존 파일을 교체합니다." : "PDF · 최대 10MB"}</span><input id="permit-file" type="file" accept="application/pdf,.pdf" onChange={e => selectFile(e.target.files[0])}/><label htmlFor="permit-file" className="outline-btn">PDF 교체</label></div>}
+          <div className="modal-actions">
+            <button type="button" className="outline-btn" onClick={closeModal}>취소</button>
+            {!editingId && <button type="button" className="outline-btn" onClick={() => setStep("upload")}>이전</button>}
+            <button className="primary-small" disabled={submitting}>{submitting ? "저장 중..." : editingId ? "변경사항 저장" : "허가서 등록"}</button>
+          </div>
+        </>}
       </form>
     </div>}
     {preview && <div className="modal-backdrop preview-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) closePreview(); }}>

@@ -67,6 +67,7 @@ public class SecurityConfig {
                 // Administrators manage permits. Workers may read only permits assigned to them;
                 // WorkPermitController enforces that row-level boundary.
                 .requestMatchers(HttpMethod.POST, "/api/work-permits").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/work-permits/draft-parse").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/work-permits/trash").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/work-permits", "/api/work-permits/**").hasAnyRole(HUMAN_ROLES)
                 .requestMatchers(HttpMethod.PUT, "/api/work-permits/**").hasRole("ADMIN")
