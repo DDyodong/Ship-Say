@@ -89,7 +89,6 @@ function TwinContent({ snapshot, onOpenShop, onUnavailable }) {
   return <>
     <style>{`
       .twin-content { background-image: radial-gradient(circle at 50% 0%, #0c1a33 0%, #050811 55%); }
-      .light-theme .twin-content { background-image: radial-gradient(circle at 50% 0%, #ffffff 0%, #f3f6f8 58%); }
       .grid-bg { background-image: linear-gradient(rgba(26,35,58,.4) 1px,transparent 1px), linear-gradient(90deg,rgba(26,35,58,.4) 1px,transparent 1px); background-size: 32px 32px; }
       .glow-cyan { box-shadow: 0 0 0 1px rgba(0,210,255,.15), 0 0 18px rgba(0,210,255,.10); }
       .blink { animation: blink 1.4s steps(2,start) infinite; }
@@ -98,27 +97,14 @@ function TwinContent({ snapshot, onOpenShop, onUnavailable }) {
       @keyframes scan { 0% { top:0; } 100% { top:100%; } }
     `}</style>
 
-    <div className="twin-content p-6 lg:p-8 rounded-xl">
+    <div className="twin-content">
 
-      {/* 배너 — .content의 max-width/패딩을 벗어나 화면 전체 폭으로 확장 */}
-      <section className="mb-8 bg-[var(--panel)] overflow-hidden relative p-6">
-        <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-          <i className="fa-solid fa-microchip text-[120px]"/>
-        </div>
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] px-2 py-0.5 rounded bg-cyan text-ink font-bold uppercase tracking-tighter">Spatial AI</span>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-emerald/20 text-emerald border border-emerald/30 font-bold uppercase tracking-tighter">Predictive Mode Active</span>
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight">공간형 디지털 트윈 모니터링</h1>
-          <p className="text-[var(--muted)] text-sm mt-1 max-w-lg">CCTV·센서·작업자 정보를 실제 좌표와 연동하여 위험을 실시간 분석하고 진입 위험을 예측합니다.</p>
-        </div>
-      </section>
-
-      {/* 지도 — 엣지투엣지. 알림 배너와 상세 패널은 지도 위에 오버레이로 표시 */}
-      <div className="mb-8">
+      {/* 지도 — 풀스크린. 알림 배너와 상세 패널은 지도 위에 오버레이로 표시 */}
+      <div>
         <KakaoYardMap
           // facilities는 더 이상 넘기지 않음 — KakaoYardMap이 실측 데이터(geojeShipyardTags.json)를 자체 사용
+          cameraFacilityCode="TAG-22" // "1도크와 900톤 골리앗 크레인" — CAM-01 데모용 담당 구역
+          cameraDanger={!harnessOn}
           workers={workers}
           onOpenShop={onOpenShop}
           onUnavailable={onUnavailable}
@@ -152,7 +138,7 @@ function TwinContent({ snapshot, onOpenShop, onUnavailable }) {
             <div className="rounded-2xl border border-cyan/15 bg-ink/60 backdrop-blur-xl shadow-xl overflow-hidden">
               <div className="px-4 py-3 flex items-center justify-between gap-2">
                 <div>
-                  <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-cyan/60">T-BAR 자동용접 SHOP · CAM-01</span>
+                  <span className="text-[7px] font-mono font-bold uppercase tracking-widest text-cyan/60">T-BAR 자동용접 SHOP · CAM-01</span>
                   <h3 className="text-sm font-bold text-white mt-0.5">구역 상세</h3>
                 </div>
                 <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full border text-[8px] font-mono font-bold shrink-0 ${

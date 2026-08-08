@@ -35,7 +35,7 @@ const defaultFacilities = realFacilityTags
 
 const defaultWorkers = [];
 
-function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers, overlayPanel, alertBanner, onOpenShop, onUnavailable }) {
+function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers, overlayPanel, alertBanner, cameraFacilityCode, cameraDanger, onOpenShop, onUnavailable }) {
   const [filter, setFilter] = useState("ALL");
   const [selected, setSelected] = useState(null);
   const [sdkReady, setSdkReady] = useState(false);
@@ -48,6 +48,7 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
   const polygonsRef = useRef([]);
   const labelsRef = useRef([]);
   const workerOverlaysRef = useRef([]);
+  const blinkIntervalsRef = useRef([]);
 
   const typesPresent = useMemo(() => {
     const set = new Set(facilities.map((f) => f.type));
@@ -93,10 +94,27 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
       center: new kakao.maps.LatLng(center.lat, center.lng),
       level: 4,
     });
-// 위성영상만 표시하고 HYBRID의 도로명·지명 레이어는 제외한다.
+    // 위성영상만 표시하고 HYBRID의 도로명·지명 레이어는 제외한다.
     map.setMapTypeId(kakao.maps.MapTypeId.SKYVIEW);
-    map.setZoomable(false); // 휠 스크롤로 지도가 확대되며 페이지 스크롤을 가로채는 것 방지 (드래그 이동은 그대로 유지, +/- 버튼도 별개로 동작)
+    map.setZoomable(true); // 페이지가 지도 하나뿐이라 스크롤 충돌 걱정 없음 — 휠로 확대/축소 가능
     mapRef.current = map;
+
+    // 컨테이너 크기가 바뀔 때(사이드바 유무 전환, 창 크기 변경 등) 지도가 처음 그려진 크기로
+    // 굳어버리는 걸 방지 — 카카오맵은 리사이즈를 자동 감지 못 하는 경우가 있어서 명시적으로 알려줘야 함
+    const relayout = () => {
+      map.relayout();
+      map.setCenter(new kakao.maps.LatLng(center.lat, center.lng));
+    };
+    const resizeObserver = new ResizeObserver(() => relayout());
+    resizeObserver.observe(mapDivRef.current);
+    window.addEventListener("resize", relayout);
+    const initialTimer = setTimeout(relayout, 100); // 초기 레이아웃이 다 자리잡은 직후 한 번 더 보정
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", relayout);
+      clearTimeout(initialTimer);
+    };
   }, [sdkReady, center]);
 
   // 실제 건물 외곽선(폴리곤) + 이름 라벨 그리기
@@ -104,6 +122,8 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
     if (!sdkReady || !center || !mapRef.current) return;
     const kakao = window.kakao;
 
+    blinkIntervalsRef.current.forEach((id) => clearInterval(id));
+    blinkIntervalsRef.current = [];
     polygonsRef.current.forEach((p) => p.setMap(null));
     labelsRef.current.forEach((l) => l.setMap(null));
     polygonsRef.current = [];
@@ -113,37 +133,50 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
       const show = filter === "ALL" || f.type === filter;
       if (!show) return;
 
-      const color = typeColors[f.type] || typeColors.ASSEMBLY;
+      const isCameraZone = cameraFacilityCode && f.code === cameraFacilityCode;
+      const isDanger = isCameraZone && cameraDanger;
+      const color = isDanger ? "#ff2448" : isCameraZone ? "#00d2ff" : (typeColors[f.type] || typeColors.ASSEMBLY);
       const isSelected = selected?.code === f.code;
 
       if (f.ring && f.ring.length > 2) {
         const path = f.ring.map((pt) => new kakao.maps.LatLng(pt.lat, pt.lng));
         const polygon = new kakao.maps.Polygon({
           path,
-          strokeWeight: isSelected ? 3 : 1.6,
+          strokeWeight: isDanger ? 4 : isSelected || isCameraZone ? 3 : 1.6,
           strokeColor: color,
           strokeOpacity: 0.95,
           fillColor: color,
-          fillOpacity: isSelected ? 0.42 : 0.24,
+          fillOpacity: isSelected || isCameraZone ? 0.42 : 0.24,
         });
         kakao.maps.event.addListener(polygon, "click", () => {
           setSelected(f);
           onOpenShop?.(f.code);
         });
         kakao.maps.event.addListener(polygon, "mouseover", () => polygon.setOptions({ fillOpacity: 0.5 }));
-        kakao.maps.event.addListener(polygon, "mouseout", () => polygon.setOptions({ fillOpacity: isSelected ? 0.42 : 0.24 }));
+        kakao.maps.event.addListener(polygon, "mouseout", () => polygon.setOptions({ fillOpacity: isSelected || isCameraZone ? 0.42 : 0.24 }));
         polygon.setMap(mapRef.current);
         polygonsRef.current.push(polygon);
+
+        // 위험 감지 중이면 테두리를 깜빡여서 시선을 끔
+        if (isDanger) {
+          let on = true;
+          const blinkId = setInterval(() => {
+            on = !on;
+            polygon.setOptions({ fillOpacity: on ? 0.5 : 0.2, strokeOpacity: on ? 1 : 0.4 });
+          }, 550);
+          blinkIntervalsRef.current.push(blinkId);
+        }
       }
 
       const el = document.createElement("div");
       el.style.cssText = `
-        padding: 3px 8px; border-radius: 5px; background: rgba(0,0,0,.65);
-        border: 1px solid ${isSelected ? "#4de0f5" : "rgba(255,255,255,.25)"};
+        padding: 3px 8px; border-radius: 5px; background: ${isDanger ? "rgba(255,36,72,.85)" : "rgba(0,0,0,.65)"};
+        border: 1px solid ${isDanger ? "#ff2448" : isCameraZone ? "#00d2ff" : isSelected ? "#4de0f5" : "rgba(255,255,255,.25)"};
         font: 700 10px Inter, sans-serif; color: #fff; white-space: nowrap;
         text-shadow: 0 1px 3px rgba(0,0,0,.8); cursor: pointer; pointer-events: auto;
+        display: flex; align-items: center; gap: 4px;
       `;
-      el.textContent = f.name;
+      el.innerHTML = `${isCameraZone ? `<span style="font-size:8px;opacity:.9;">📹</span>` : ""}${f.name}${isDanger ? ` <span style="font-size:8px;font-weight:800;">⚠ 위험감지</span>` : ""}`;
       el.addEventListener("click", () => { setSelected(f); onOpenShop?.(f.code); });
 
       const label = new kakao.maps.CustomOverlay({
@@ -154,7 +187,8 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
       label.setMap(mapRef.current);
       labelsRef.current.push(label);
     });
-  }, [sdkReady, center, facilities, selected, filter, onOpenShop]);
+    return () => blinkIntervalsRef.current.forEach((id) => clearInterval(id));
+  }, [sdkReady, center, facilities, selected, filter, cameraFacilityCode, cameraDanger, onOpenShop]);
 
   useEffect(() => {
     if (!sdkReady || !center || !mapRef.current) return;
@@ -196,7 +230,7 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
       @keyframes toastIn { 0% { transform: translateY(24px) scale(.96); opacity: 0; } 60% { transform: translateY(-4px) scale(1.01); opacity: 1; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
       .animate-toast-in { animation: toastIn .35s cubic-bezier(.34,1.56,.64,1); }
     `}</style>
-    <div ref={containerRef} className="relative" style={{ height: 640 }}>
+    <div ref={containerRef} className="relative" style={{ height: "calc(100dvh - 46px)" }}>
       <div ref={mapDivRef} className="absolute inset-0"/>
       {(!sdkReady || !center) && <div className="absolute inset-0 flex items-center justify-center bg-ink/70 text-slate-300 text-sm z-20">
         {!sdkReady ? "카카오맵 SDK 불러오는 중..." : "주소 좌표 확인 중..."}
@@ -216,12 +250,12 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
             </div>
           </div>
           <div>
-            <div className="text-[10px] font-bold text-slate-200 mb-1.5">지도 조작</div>
+            {/* <div className="text-[10px] font-bold text-slate-200 mb-1.5">지도 조작</div>
             <div className="flex gap-1.5">
               <button onClick={zoomOut} className="flex-1 h-7 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 flex items-center justify-center"><Minus size={11}/></button>
               <button onClick={zoomIn} className="flex-1 h-7 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 flex items-center justify-center"><Plus size={11}/></button>
               <button onClick={resetView} className="flex-1 h-7 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 flex items-center justify-center"><RotateCcw size={11}/></button>
-            </div>
+            </div> */}
           </div>
           <div>
             <div className="text-[10px] font-bold text-slate-200 mb-1.5">시설 현황</div>
@@ -250,7 +284,7 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
         </div>
       </>}
 
-      {overlayPanel && <div style={{ position: "absolute", right: 16, top: 16, width: 320, zIndex: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+      {overlayPanel && <div style={{ position: "absolute", right: 16, top: 16, width: 230, zIndex: 20, display: "flex", flexDirection: "column", gap: 10 }}>
         {overlayPanel}
       </div>}
 
