@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from "react";
+﻿import React, { useCallback, useEffect, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { apiRequest } from "./api/client";
@@ -28,7 +28,11 @@ function App() {
     if (meta) meta.setAttribute("content", theme === "light" ? "#f7f9fb" : "#07111b");
   }, [theme]);
   const toggleTheme = () => setTheme(current => current === "dark" ? "light" : "dark");
-  const notify = (message) => { setToast(message); window.clearTimeout(window.__toast); window.__toast = window.setTimeout(() => setToast(""), 2600); };
+  const notify = useCallback((message) => {
+    setToast(message);
+    window.clearTimeout(window.__toast);
+    window.__toast = window.setTimeout(() => setToast(""), 2600);
+  }, []);
   const login = (nextSession) => {
     sessionStorage.setItem("safety-session", JSON.stringify(nextSession));
     setSession(nextSession);

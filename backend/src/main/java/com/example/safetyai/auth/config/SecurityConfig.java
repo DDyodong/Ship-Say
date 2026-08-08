@@ -41,6 +41,10 @@ public class SecurityConfig {
             .httpBasic(basic -> basic.disable())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                // Internal error dispatch (e.g. an uncaught DB exception forwarding to /error).
+                // Without this, /error falls through to anyRequest().denyAll() below and a real
+                // 500 gets masked as a misleading 401 "로그인이 필요합니다.".
+                .requestMatchers("/error").permitAll()
                 .requestMatchers("/api/health", "/api/auth/register", "/api/auth/login").permitAll()
                 .requestMatchers("/api/auth/employees/verify", "/api/auth/usernames/*/availability").permitAll()
                 .requestMatchers("/api/auth/logout").authenticated()
@@ -63,11 +67,15 @@ public class SecurityConfig {
                 // Administrators manage permits. Workers may read only permits assigned to them;
                 // WorkPermitController enforces that row-level boundary.
                 .requestMatchers(HttpMethod.POST, "/api/work-permits").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/work-permits/draft-parse").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/work-permits/trash").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/work-permits", "/api/work-permits/**").hasAnyRole(HUMAN_ROLES)
                 .requestMatchers(HttpMethod.PUT, "/api/work-permits/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/work-permits/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/work-permits/*/restore").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/work-permits/*/analyze").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/work-permits/*/decision").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/work-permits/*/supplement-request").hasRole("ADMIN")
 
                 // Board and file features are for interactive human accounts.
                 .requestMatchers("/api/board/**", "/api/files/**").hasAnyRole(HUMAN_ROLES)

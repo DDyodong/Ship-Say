@@ -2,6 +2,7 @@ package com.example.safetyai.risk.service;
 
 import com.example.safetyai.auth.service.AuthService;
 import com.example.safetyai.common.exception.ApiException;
+import com.example.safetyai.notification.service.NotificationService;
 import com.example.safetyai.risk.dto.CreateSafetyEventRequest;
 import com.example.safetyai.risk.dto.SafetyEventActionRequest;
 import com.example.safetyai.risk.dto.SafetyEventAnalysisRequest;
@@ -20,10 +21,16 @@ public class SafetyEventService {
 
     private final SafetyEventRepository safetyEventRepository;
     private final AuthService authService;
+    private final NotificationService notificationService;
 
-    public SafetyEventService(SafetyEventRepository safetyEventRepository, AuthService authService) {
+    public SafetyEventService(
+        SafetyEventRepository safetyEventRepository,
+        AuthService authService,
+        NotificationService notificationService
+    ) {
         this.safetyEventRepository = safetyEventRepository;
         this.authService = authService;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -101,7 +108,23 @@ public class SafetyEventService {
         if (!updated) {
             throw new ApiException(HttpStatus.NOT_FOUND, "안전 이벤트를 찾을 수 없습니다.");
         }
-        return Map.of("id", eventId, "status", request.status());
+        boolean notificationScheduled = Boolean.TRUE.equals(request.notifyReporter());
+        if (notificationScheduled) {
+            String comment = request.comment() == null ? "" : request.comment().trim();
+            notificationService.afterCommit(
+                () -> notificationService.notifyReportStatus(
+                    actorId,
+                    eventId,
+                    request.status(),
+                    comment
+                )
+            );
+        }
+        return Map.of(
+            "id", eventId,
+            "status", request.status(),
+            "notificationScheduled", notificationScheduled
+        );
     }
 
     private static Map<String, String> eventTypes() {

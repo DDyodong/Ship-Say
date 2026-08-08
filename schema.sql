@@ -217,11 +217,15 @@ CREATE TABLE work_permits (
   gps_lng NUMERIC(10, 7),
   is_high_risk BOOLEAN NOT NULL DEFAULT false,
   status VARCHAR(30) NOT NULL DEFAULT 'draft',
+  decision_note TEXT,
+  decided_by BIGINT,
+  decided_at TIMESTAMP(6),
   created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   CONSTRAINT fk_work_permits_site_id FOREIGN KEY (site_id) REFERENCES sites(id),
   CONSTRAINT fk_work_permits_block_id FOREIGN KEY (block_id) REFERENCES blocks(id),
-  CONSTRAINT fk_work_permits_applicant_id FOREIGN KEY (applicant_id) REFERENCES users(id)
+  CONSTRAINT fk_work_permits_applicant_id FOREIGN KEY (applicant_id) REFERENCES users(id),
+  CONSTRAINT fk_work_permits_decided_by FOREIGN KEY (decided_by) REFERENCES users(id)
 );
 
 CREATE TABLE work_permit_files (
@@ -552,15 +556,45 @@ CREATE TABLE notifications (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   event_id BIGINT,
   user_id BIGINT,
+  actor_id BIGINT,
   channel VARCHAR(30) NOT NULL,
+  notification_type VARCHAR(50) NOT NULL DEFAULT 'general',
+  dedupe_key VARCHAR(180),
   title TEXT NOT NULL,
   message TEXT,
+  target_url VARCHAR(500),
   status VARCHAR(30) NOT NULL DEFAULT 'pending',
+  push_status VARCHAR(30) NOT NULL DEFAULT 'not_attempted',
+  push_sent_count INT NOT NULL DEFAULT 0,
+  push_failed_count INT NOT NULL DEFAULT 0,
   sent_at TIMESTAMP(6),
+  acknowledged_at TIMESTAMP(6),
   created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   CONSTRAINT fk_notifications_event_id FOREIGN KEY (event_id) REFERENCES safety_events(id),
-  CONSTRAINT fk_notifications_user_id FOREIGN KEY (user_id) REFERENCES users(id)
+  CONSTRAINT fk_notifications_user_id FOREIGN KEY (user_id) REFERENCES users(id),
+  CONSTRAINT fk_notifications_actor_id FOREIGN KEY (actor_id) REFERENCES users(id),
+  CONSTRAINT uq_notifications_dedupe_key UNIQUE (dedupe_key),
+  INDEX ix_notifications_user_created (user_id, created_at DESC)
 );
+
+CREATE TABLE permit_simops_conflicts (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  permit_a_id BIGINT NOT NULL,
+  permit_b_id BIGINT NOT NULL,
+  rule_code VARCHAR(80) NOT NULL,
+  risk VARCHAR(30) NOT NULL,
+  reason TEXT NOT NULL,
+  legal_ref TEXT,
+  work_types JSON NOT NULL DEFAULT (JSON_ARRAY()),
+  zone_relation VARCHAR(50),
+  detected_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  UNIQUE KEY uk_permit_simops_pair_rule (permit_a_id, permit_b_id, rule_code),
+  CONSTRAINT fk_permit_simops_conflicts_a FOREIGN KEY (permit_a_id) REFERENCES work_permits(id) ON DELETE CASCADE,
+  CONSTRAINT fk_permit_simops_conflicts_b FOREIGN KEY (permit_b_id) REFERENCES work_permits(id) ON DELETE CASCADE,
+  CONSTRAINT chk_permit_simops_order CHECK (permit_a_id < permit_b_id)
+);
+
+CREATE INDEX idx_permit_simops_conflicts_b ON permit_simops_conflicts(permit_b_id);
 
 CREATE TABLE model_runs (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,

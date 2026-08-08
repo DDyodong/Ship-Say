@@ -442,7 +442,8 @@ function WorkerApp({ session, onLogout, notify }) {
     }
   };
 
-  const acknowledgeNotification = async notificationId => {
+  const acknowledgeNotification = async notification => {
+    const notificationId = notification.id;
     setBusy(`notification-${notificationId}`);
     try {
       await apiRequest(`/api/notifications/${notificationId}/acknowledge`, {
@@ -454,7 +455,8 @@ function WorkerApp({ session, onLogout, notify }) {
           ? { ...item, acknowledgedAt: new Date().toISOString() }
           : item
       )));
-      openTab("check");
+      const targetTab = workerTabFromPath(notification.targetUrl || "/worker/work");
+      openTab(targetTab);
     } catch (error) {
       notify(error.message);
     } finally {
@@ -483,7 +485,7 @@ function WorkerApp({ session, onLogout, notify }) {
               <button
                 type="button"
                 disabled={Boolean(item.acknowledgedAt) || busy === `notification-${item.id}`}
-                onClick={() => acknowledgeNotification(item.id)}
+                onClick={() => acknowledgeNotification(item)}
               >
                 {item.acknowledgedAt ? <><Check />확인됨</> : "확인"}
               </button>

@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.safetyai.auth.security.BearerTokenAuthenticationFilter;
@@ -177,5 +178,21 @@ class SecurityAuthorizationTest {
     void unlistedApiIsDeniedByDefault() throws Exception {
         mockMvc.perform(get("/api/not-configured").with(user("admin").roles("ADMIN")))
             .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void unauthenticatedAndForbiddenResponsesShareConsistentBodyFormat() throws Exception {
+        // EXC-003: 인증 실패(401)와 권한 부족(403)이 GlobalExceptionHandler의 다른 오류들과
+        // 동일하게 {"message": ...} 형식의 JSON 바디를 반환하는지 확인한다.
+        mockMvc.perform(get("/api/master/sites"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.message").value("로그인이 필요합니다."));
+
+        mockMvc.perform(post("/api/master/sites")
+                .with(user("worker").roles("WORKER"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.message").value("접근 권한이 없습니다."));
     }
 }

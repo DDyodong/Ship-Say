@@ -1,6 +1,7 @@
 package com.example.safetyai.worker.controller;
 
 import com.example.safetyai.common.exception.ApiException;
+import com.example.safetyai.notification.service.NotificationService;
 import com.example.safetyai.risk.repository.SafetyEventRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
@@ -26,15 +27,18 @@ public class PersonalCheckAiController {
 
     private final JdbcTemplate jdbcTemplate;
     private final SafetyEventRepository safetyEventRepository;
+    private final NotificationService notificationService;
     private final ObjectMapper objectMapper;
 
     public PersonalCheckAiController(
         JdbcTemplate jdbcTemplate,
         SafetyEventRepository safetyEventRepository,
+        NotificationService notificationService,
         ObjectMapper objectMapper
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.safetyEventRepository = safetyEventRepository;
+        this.notificationService = notificationService;
         this.objectMapper = objectMapper;
     }
 
@@ -80,6 +84,10 @@ public class PersonalCheckAiController {
                 id,
                 missingDescription(missingItems),
                 eventPayload(id, request, missingItems)
+            );
+            Long notificationEventId = eventId;
+            notificationService.afterCommit(
+                () -> notificationService.notifyPpeRetry(id, notificationEventId, missingItems)
             );
         }
 

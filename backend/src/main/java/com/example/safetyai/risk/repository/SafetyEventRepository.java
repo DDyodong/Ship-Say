@@ -146,6 +146,7 @@ public class SafetyEventRepository {
                    se.status,
                    se.severity,
                    se.event_time AS eventTime,
+                   COALESCE(se.reporter_id, se.target_user_id) AS targetUserId,
                    COALESCE(u.name, target.name) AS reporterName,
                    COALESCE(u.employee_no, target.employee_no) AS employeeNo,
                    f.id AS fileId,

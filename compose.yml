@@ -39,14 +39,36 @@ services:
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-aivle25}
       FIREBASE_CREDENTIALS_PATH: /run/secrets/firebase-adminsdk.json
       FIREBASE_SERVICE_ACCOUNT_BASE64: ${FIREBASE_SERVICE_ACCOUNT_BASE64:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-nano}
+      OPENAI_REASONING_EFFORT: ${OPENAI_REASONING_EFFORT:-none}
+      OPENAI_MAX_OUTPUT_TOKENS: ${OPENAI_MAX_OUTPUT_TOKENS:-16000}
+      PERMIT_ANALYSIS_AI_ENABLED: ${PERMIT_ANALYSIS_AI_ENABLED:-true}
+      PERMIT_ANALYSIS_AI_URL: http://permit-analysis:8001
     ports:
       - "${BACKEND_PORT:-8180}:8080"
     volumes:
       - backend-uploads:/app/uploads
-      - "${FIREBASE_CREDENTIALS_HOST_PATH}:/run/secrets/firebase-adminsdk.json:ro"
+      # Keep Compose runnable when Firebase is disabled and no credential file is configured.
+      # When Firebase is enabled, set FIREBASE_CREDENTIALS_HOST_PATH to the service-account JSON.
+      - "${FIREBASE_CREDENTIALS_HOST_PATH:-./.firebaserc}:/run/secrets/firebase-adminsdk.json:ro"
     depends_on:
       mysql:
         condition: service_healthy
+      permit-analysis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  permit-analysis:
+    build:
+      context: ./ai/permit_analysis
+      dockerfile: Dockerfile
+    container_name: safety-ai-permit-analysis
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
     restart: unless-stopped
 
   frontend:
