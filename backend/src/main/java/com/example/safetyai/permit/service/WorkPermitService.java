@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -24,15 +25,18 @@ public class WorkPermitService {
     private final JdbcTemplate jdbcTemplate;
     private final AuthService authService;
     private final PermitAnalysisService permitAnalysisService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public WorkPermitService(
         JdbcTemplate jdbcTemplate,
         AuthService authService,
-        PermitAnalysisService permitAnalysisService
+        PermitAnalysisService permitAnalysisService,
+        ApplicationEventPublisher eventPublisher
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.authService = authService;
         this.permitAnalysisService = permitAnalysisService;
+        this.eventPublisher = eventPublisher;
     }
 
     public List<Map<String, Object>> list(AuthService.AuthenticatedUser user, String status) {
@@ -333,6 +337,12 @@ public class WorkPermitService {
             user.id(),
             id
         );
+        // 승인/조건부승인 시점에 TBM 현장 안내를 백그라운드로 미리 만들어 둔다. 작업자가
+        // "오늘 작업"을 열 때 OpenAI 응답을 기다리지 않도록, 여기서는 이벤트만 발행하고
+        // 실제 생성은 트랜잭션 커밋 후 비동기로 처리된다 (OpenAiPermitFieldGuidanceService 참고).
+        if ("approved".equals(decision) || "conditional_approved".equals(decision)) {
+            eventPublisher.publishEvent(new FieldGuidanceRequested(id));
+        }
         return Map.of("id", id, "status", decision);
     }
 
