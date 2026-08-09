@@ -9,6 +9,7 @@ import {
   Radio,
   Search,
   ShieldAlert,
+  Sparkles,
 } from "lucide-react";
 import { apiRequest } from "../../api/client";
 import { SectionHead } from "../../components/common";
@@ -106,8 +107,21 @@ function PermitProgress({ session, notify }) {
   const [selectedId, setSelectedId] = useState(null);
   const [progress, setProgress] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [generatingTbm, setGeneratingTbm] = useState(false);
   const [search, setSearch] = useState("");
   const authorization = useMemo(() => ({ Authorization: `Bearer ${session.token}` }), [session.token]);
+
+  const generateTbm = () => {
+    if (!selectedId || generatingTbm) return;
+    setGeneratingTbm(true);
+    apiRequest(`/api/admin/work-permits/${selectedId}/tbm/generate`, { method: "POST", headers: authorization })
+      .then(data => {
+        setProgress(data);
+        notify("TBM 안내를 생성했습니다.");
+      })
+      .catch(error => notify(error.message))
+      .finally(() => setGeneratingTbm(false));
+  };
 
   useEffect(() => {
     apiRequest("/api/work-permits", { headers: authorization })
@@ -202,20 +216,34 @@ function PermitProgress({ session, notify }) {
 
               <ProcessStrip steps={steps} />
 
-              <h4>TBM 브리핑</h4>
+              <div className="section-head-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <h4 style={{ margin: 0 }}>TBM 브리핑</h4>
+                <button className="outline-btn" onClick={generateTbm} disabled={generatingTbm}>
+                  <Sparkles />{generatingTbm ? "생성 중..." : "TBM 즉시 생성"}
+                </button>
+              </div>
               {progress.tbmSessions.length ? (
                 progress.tbmSessions.map(tbm => (
-                  <div className="event-row" key={tbm.id}>
-                    <span className="cyan">
-                      <Radio />
-                    </span>
-                    <div>
-                      <b>{tbm.title || "TBM 세션"}</b>
-                      <small>
-                        {tbm.sessionDate} · 참석 확인 {tbm.confirmedCount}/{progress.assignedWorkerCount}명
-                      </small>
+                  <div key={tbm.id}>
+                    <div className="event-row">
+                      <span className="cyan">
+                        <Radio />
+                      </span>
+                      <div>
+                        <b>{tbm.title || "TBM 세션"}</b>
+                        <small>
+                          {tbm.sessionDate} · 참석 확인 {tbm.confirmedCount}/{progress.assignedWorkerCount}명
+                        </small>
+                      </div>
+                      <time>{tbm.status === "completed" ? "완료" : "진행 중"}</time>
                     </div>
-                    <time>{tbm.status === "completed" ? "완료" : "진행 중"}</time>
+                    {tbm.content && (
+                      <pre style={{
+                        whiteSpace: "pre-wrap", fontFamily: "inherit", fontSize: 12, lineHeight: 1.6,
+                        color: "var(--muted)", background: "var(--panel)", border: "1px solid var(--border)",
+                        borderRadius: 10, padding: "12px 14px", margin: "8px 0 16px",
+                      }}>{tbm.content}</pre>
+                    )}
                   </div>
                 ))
               ) : (
@@ -223,7 +251,7 @@ function PermitProgress({ session, notify }) {
                   <Clock3 />
                   <div>
                     <b>아직 TBM 기록이 없습니다</b>
-                    <p>작업자가 TBM 안내를 확인하면 여기 표시됩니다.</p>
+                    <p>작업자가 TBM 안내를 확인하거나, 위 &quot;TBM 즉시 생성&quot;을 누르면 여기 표시됩니다.</p>
                   </div>
                 </div>
               )}
