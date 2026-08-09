@@ -41,7 +41,7 @@ function ShopTwinScene({ snapshot, selectedRobot, onSelectRobot }) {
           minPolarAngle={.55} maxPolarAngle={1.42}/>
       </Suspense>
     </Canvas>
-    <div className="shop-scene-status"><i className={danger ? "danger" : "normal"}/><div><b>{danger ? "설비 이상 감지" : "공정 정상 운전"}</b><span>실시간 텔레메트리 · {snapshot.dataSource === "SIMULATOR" ? "시뮬레이션 데이터" : snapshot.dataSource}</span></div></div>
+    <div className="shop-scene-status"><i className={danger ? "danger" : "normal"}/><div><b>{danger ? "설비 이상 감지" : "공정 정상 운전"}</b><span>{snapshot.dataSource === "SIMULATOR" ? "생성 텔레메트리 (실제 설비 미연동)" : snapshot.dataSource}</span></div>{snapshot.dataSource === "SIMULATOR" && <span className="sim-badge">SIMULATION</span>}</div>
     <div className="shop-camera-controls"><span>천천히 드래그하여 회전</span><button onClick={() => changeZoom(1.2)} aria-label="축소"><Minus/></button><button onClick={() => changeZoom(.82)} aria-label="확대"><Plus/></button><button onClick={resetCamera} aria-label="카메라 초기화"><RotateCcw/></button></div>
   </div>;
 }

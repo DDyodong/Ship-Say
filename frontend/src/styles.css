@@ -7719,6 +7719,33 @@ button {
   margin-top: 2px;
 }
 
+/* 실제 센서/카메라 연동 없이 코드로 생성·재현되는 화면(디지털 트윈 텔레메트리,
+   작업자 이동경로 예측, 시나리오 스토리 데모)에 공통으로 붙이는 표시.
+   "실시간"이라는 인상을 주지 않도록 항상 눈에 띄는 자리에 붙일 것. */
+.sim-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,179,0,.45);
+  background: rgba(255,179,0,.12);
+  color: #ffb300;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  white-space: nowrap;
+}
+
+.sim-badge::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #ffb300;
+  box-shadow: 0 0 6px #ffb300;
+}
+
 .shop-scene-help {
   position: absolute;
   right: 14px;

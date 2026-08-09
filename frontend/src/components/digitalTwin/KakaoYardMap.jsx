@@ -41,7 +41,7 @@ function offsetCoordinate(origin, eastMeters, northMeters) {
   };
 }
 
-function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers, cameraAlerts = [], cameraConnected = false, cameraStatusText, riskSimulation, overlayPanel, alertBanner, onOpenShop, onUnavailable }) {
+function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers, cameraAlerts = [], cameraConnected = false, cameraStatusText, riskSimulation, overlayPanel, alertBanner, onOpenShop, onUnavailable, fillViewport = true }) {
   const [filter, setFilter] = useState("ALL");
   const [selected, setSelected] = useState(null);
   const [sdkReady, setSdkReady] = useState(false);
@@ -320,7 +320,7 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
       @keyframes toastIn { 0% { transform: translateY(24px) scale(.96); opacity: 0; } 60% { transform: translateY(-4px) scale(1.01); opacity: 1; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
       .animate-toast-in { animation: toastIn .35s cubic-bezier(.34,1.56,.64,1); }
     `}</style>
-    <div ref={containerRef} className="relative" style={{ height: "calc(100dvh - 46px)" }}>
+    <div ref={containerRef} className="relative h-full" style={fillViewport ? { height: "calc(100dvh - 46px)" } : undefined}>
       <div ref={mapDivRef} className="absolute inset-0"/>
       {(!sdkReady || !center) && <div className="absolute inset-0 flex items-center justify-center bg-ink/70 text-slate-300 text-sm z-20">
         {!sdkReady ? "카카오맵 SDK 불러오는 중..." : "주소 좌표 확인 중..."}
