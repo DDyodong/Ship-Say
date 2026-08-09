@@ -5,8 +5,6 @@ import realFacilityTags from "./geojeShipyardTags.json";
 const KAKAO_JS_KEY = import.meta.env.VITE_KAKAO_JS_KEY;
 const YARD_ADDRESS = "경상남도 거제시 거제대로 3370";
 
-// 실제 서베이된 이름 기준으로 대략적인 공정 분류를 추정 (원본 데이터의 category 필드는
-// 전부 "조립/블록공장"으로 통일되어 있어서 필터용으로 쓰기엔 부정확함 — 이름으로 재분류)
 function classifyType(name) {
   if (name.includes("도크") || name.includes("골리앗")) return "DOCK";
   if (name.includes("도장")) return "PAINTING";
@@ -21,7 +19,6 @@ const typeColors = {
 };
 const typeLabels = { DOCK: "도크·크레인", PAINTING: "도장", OUTFITTING: "의장", FABRICATION: "가공", ASSEMBLY: "조립·블록" };
 
-// 업로드된 실측 데이터(위경도 + 실제 건물 외곽선 GeoJSON)를 그대로 사용
 const defaultFacilities = realFacilityTags
   .filter((t) => t.status === "confirmed")
   .map((t) => ({
@@ -114,12 +111,26 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
       center: new kakao.maps.LatLng(center.lat, center.lng),
       level: 4,
     });
-    map.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
-    map.setZoomable(false); // 휠 스크롤이 페이지 스크롤을 가로채는 것 방지 (드래그 이동/+-버튼은 그대로 동작)
+    map.setMapTypeId(kakao.maps.MapTypeId.SKYVIEW);
+    map.setZoomable(false);
     mapRef.current = map;
+
+    const relayout = () => {
+      map.relayout();
+      map.setCenter(new kakao.maps.LatLng(center.lat, center.lng));
+    };
+    const resizeObserver = new ResizeObserver(() => relayout());
+    resizeObserver.observe(mapDivRef.current);
+    window.addEventListener("resize", relayout);
+    const initialTimer = setTimeout(relayout, 100);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", relayout);
+      clearTimeout(initialTimer);
+    };
   }, [sdkReady, center]);
 
-  // 실제 건물 외곽선(폴리곤) + 이름 라벨 그리기
   useEffect(() => {
     if (!sdkReady || !center || !mapRef.current) return;
     const kakao = window.kakao;
@@ -151,9 +162,7 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
           fillColor,
           fillOpacity: isCameraDanger ? 0.4 : isSelected ? 0.42 : 0.24,
         });
-        kakao.maps.event.addListener(polygon, "click", () => {
-          setSelected(f);
-        });
+        kakao.maps.event.addListener(polygon, "click", () => { setSelected(f); });
         kakao.maps.event.addListener(polygon, "mouseover", () => polygon.setOptions({ fillOpacity: isCameraDanger ? 0.62 : 0.5 }));
         kakao.maps.event.addListener(polygon, "mouseout", () => polygon.setOptions({ fillOpacity: isCameraDanger ? 0.4 : isSelected ? 0.42 : 0.24 }));
         polygon.setMap(mapRef.current);
@@ -168,6 +177,7 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
         box-shadow: ${isCameraDanger ? "0 0 18px rgba(255,36,72,.95)" : "none"};
         font: 700 10px Inter, sans-serif; color: #fff; white-space: nowrap;
         text-shadow: 0 1px 3px rgba(0,0,0,.8); cursor: pointer; pointer-events: auto;
+        display: flex; align-items: center; gap: 4px;
       `;
       el.textContent = isCameraDanger ? `⚠ ${f.name}` : f.name;
       el.addEventListener("click", () => setSelected(f));
@@ -182,7 +192,6 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
     });
   }, [sdkReady, center, facilities, selected, filter, cameraAlertByFacility]);
 
-  // 카카오맵 Polygon은 DOM 요소가 아니므로 setOptions를 주기적으로 바꿔 위험 테두리를 점멸시킵니다.
   useEffect(() => {
     if (!dangerPolygonsRef.current.length) return undefined;
     let emphasized = true;
@@ -311,7 +320,7 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
       @keyframes toastIn { 0% { transform: translateY(24px) scale(.96); opacity: 0; } 60% { transform: translateY(-4px) scale(1.01); opacity: 1; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
       .animate-toast-in { animation: toastIn .35s cubic-bezier(.34,1.56,.64,1); }
     `}</style>
-    <div ref={containerRef} className="relative" style={{ height: 640 }}>
+    <div ref={containerRef} className="relative" style={{ height: "calc(100dvh - 46px)" }}>
       <div ref={mapDivRef} className="absolute inset-0"/>
       {(!sdkReady || !center) && <div className="absolute inset-0 flex items-center justify-center bg-ink/70 text-slate-300 text-sm z-20">
         {!sdkReady ? "카카오맵 SDK 불러오는 중..." : "주소 좌표 확인 중..."}
@@ -374,7 +383,7 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
         </div>
       </>}
 
-      {overlayPanel && <div style={{ position: "absolute", right: 16, top: 16, width: 320, zIndex: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+      {overlayPanel && <div style={{ position: "absolute", right: 16, top: 16, width: 230, zIndex: 20, display: "flex", flexDirection: "column", gap: 10 }}>
         {overlayPanel}
       </div>}
 
