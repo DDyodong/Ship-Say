@@ -315,7 +315,7 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
     </section>;
   }
 
-  return <section className="twin-preserve-dark bg-panel border-b border-edge overflow-hidden">
+  return <section className={`twin-preserve-dark bg-panel border-b border-edge overflow-hidden ${fillViewport ? "" : "h-full"}`}>
     <style>{`
       @keyframes toastIn { 0% { transform: translateY(24px) scale(.96); opacity: 0; } 60% { transform: translateY(-4px) scale(1.01); opacity: 1; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
       .animate-toast-in { animation: toastIn .35s cubic-bezier(.34,1.56,.64,1); }
