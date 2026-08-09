@@ -719,6 +719,137 @@ button {
   display: none;
 }
 
+/* 모든 관리자 페이지 공통 상단 네비게이션. 예전엔 디지털 트윈(지도) 페이지만
+   이 스타일을 쓰고 나머지는 좌측 사이드바를 썼는데, 페이지마다 골격이 달라
+   일관성이 없다는 피드백에 따라 사이드바를 없애고 전 페이지에 통일했다. */
+.topnav-header {
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 18px;
+  background: var(--navy);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.topnav-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.topnav-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cyan);
+  font-weight: 700;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.topnav-brand b {
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.topnav-brand span {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topnav-menu {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.topnav-menu::-webkit-scrollbar {
+  display: none;
+}
+
+.topnav-menu>button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  flex-shrink: 0;
+  padding: 2px 0;
+}
+
+.topnav-menu>button.active {
+  color: var(--cyan);
+}
+
+.topnav-icon-btn {
+  position: relative;
+  background: none;
+  border: none;
+  color: var(--cyan);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+}
+
+.topnav-icon-btn.muted {
+  color: var(--muted);
+}
+
+.topnav-icon-btn i {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  min-width: 12px;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--red);
+  color: #fff;
+  font-size: 7px;
+  font-weight: 700;
+  font-style: normal;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 760px) {
+  .topnav-brand span {
+    display: none;
+  }
+  .topnav-menu {
+    gap: 12px;
+  }
+  .topnav-menu>button small {
+    display: none;
+  }
+}
+
+.light-theme .topnav-header {
+  background: #fff;
+  border-color: #d9e2e8;
+}
+
 .content {
   padding: 28px 30px 50px;
   max-width: 1600px;
