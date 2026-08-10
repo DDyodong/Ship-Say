@@ -116,11 +116,11 @@ jobs:
                       )
                       | .dependsOn = (
                           ((.dependsOn // []) | map(select(.containerName != $analysis)))
-                          + [{"containerName": $analysis, "condition": "HEALTHY"}]
+                          + [{"containerName": $analysis, "condition": "START"}]
                         )
                     elif .name == $analysis then
                       .image = $image
-                      | .essential = true
+                      | .essential = false
                       | .healthCheck = {
                           "command": ["CMD-SHELL", $health],
                           "interval": 10,
@@ -135,7 +135,7 @@ jobs:
                         {
                           "name": $analysis,
                           "image": $image,
-                          "essential": true,
+                          "essential": false,
                           "healthCheck": {
                             "command": ["CMD-SHELL", $health],
                             "interval": 10,
