@@ -12,10 +12,7 @@
     "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.18.0",
     "@vitejs/plugin-react": "^4.3.4",
-<<<<<<< HEAD
     "firebase": "^12.17.0",
-=======
->>>>>>> 3dd3b97 (Yolo 엔드포인트 추가)
     "hls.js": "^1.6.16",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
