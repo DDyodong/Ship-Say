@@ -1,7 +1,19 @@
 import React, { useCallback, useState } from "react";
 import { Settings, Siren } from "lucide-react";
 import { SectionHead } from "../../components/common";
+<<<<<<< HEAD
 import LiveHlsPlayer from "../../components/monitoring/LiveHlsPlayer";
+=======
+import HlsPlayer from "../../components/common/HlsPlayer";
+
+const STREAM_BASE = import.meta.env.VITE_STREAM_BASE_URL
+  || "https://df47xszv4nn0z.cloudfront.net";
+
+const CAMERA_STREAMS = ["01", "02", "03", "04"].map(id => ({
+  id,
+  src: `${STREAM_BASE}/processed-camera${id}/index.m3u8`,
+}));
+>>>>>>> 3dd3b97 (Yolo 엔드포인트 추가)
 
 // 카메라 파이프라인 서버(CloudFront)에 올라오는 4개 실시간 HLS 스트림.
 // .env에 VITE_CAMERAxx_HLS_URL이 있으면 그 값을, 없으면 알려진 배포 경로를 그대로 사용합니다
@@ -30,6 +42,7 @@ function Monitoring({ notify }) {
         desc="CCTV 영상에서 PPE 미착용과 위험구역 침입을 감지합니다."
         action={<button className="outline-btn"><Settings />관제 설정</button>}
       />
+<<<<<<< HEAD
       <div className="monitor-grid">
         {cameras.map((name, index) => {
           const liveSrc = LIVE_STREAMS[index];
@@ -61,6 +74,29 @@ function Monitoring({ notify }) {
           </div>
           );
         })}
+=======
+
+      <div className="monitor-grid">
+        {CAMERA_STREAMS.map(camera => (
+          <HlsPlayer
+            key={camera.id}
+            title={`CAM-${camera.id}`}
+            src={camera.src}
+          />
+        ))}
+      </div>
+
+      <div className="ppe-scope-banner">
+        <HardHat />
+        <div>
+          <b>YOLO 탐지 대상</b>
+          <span>Helmet · Harness · Welding mask</span>
+        </div>
+        <div>
+          <b>작업자 직접 확인</b>
+          <span>안전화 · 안전복</span>
+        </div>
+>>>>>>> 3dd3b97 (Yolo 엔드포인트 추가)
       </div>
     </>
   );
