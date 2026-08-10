@@ -1894,12 +1894,18 @@ button {
   filter: saturate(.75);
 }
 
+.camera-card .camera-feed {
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+
 .camera-feed-video {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  background: #000;
 }
 
 .cam1,.cam3 {
