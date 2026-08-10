@@ -92,11 +92,17 @@ jobs:
       - name: Add permit analysis sidecar
         env:
           ANALYSIS_IMAGE_URI: ${{ steps.build-image.outputs.analysis-image }}
+          PPE_IMAGE_API_KEY: ${{ secrets.PPE_IMAGE_API_KEY }}
         run: |
+          set -euo pipefail
+          test -n "$PPE_IMAGE_API_KEY"
+
           jq \
             --arg backend "$CONTAINER_NAME" \
             --arg analysis "$ANALYSIS_CONTAINER_NAME" \
             --arg image "$ANALYSIS_IMAGE_URI" \
+            --arg ppeImageUrl "http://172.31.43.100:8000" \
+            --arg ppeImageApiKey "$PPE_IMAGE_API_KEY" \
             --arg health "python -c 'import urllib.request; urllib.request.urlopen(\"http://127.0.0.1:8001/health\", timeout=2)'" \
             '
               (.containerDefinitions[] | select(.name == $backend) | .logConfiguration // null) as $backendLogs
@@ -108,10 +114,16 @@ jobs:
                           | map(select(
                               .name != "PERMIT_ANALYSIS_AI_URL"
                               and .name != "PERMIT_ANALYSIS_AI_ENABLED"
+                              and .name != "PPE_IMAGE_AI_ENABLED"
+                              and .name != "PPE_IMAGE_AI_URL"
+                              and .name != "PPE_IMAGE_API_KEY"
                             )))
                         + [
                             {"name": "PERMIT_ANALYSIS_AI_ENABLED", "value": "true"},
-                            {"name": "PERMIT_ANALYSIS_AI_URL", "value": "http://127.0.0.1:8001"}
+                            {"name": "PERMIT_ANALYSIS_AI_URL", "value": "http://127.0.0.1:8001"},
+                            {"name": "PPE_IMAGE_AI_ENABLED", "value": "true"},
+                            {"name": "PPE_IMAGE_AI_URL", "value": $ppeImageUrl},
+                            {"name": "PPE_IMAGE_API_KEY", "value": $ppeImageApiKey}
                           ]
                       )
                       | .dependsOn = (
