@@ -3,6 +3,7 @@ package com.example.safetyai.worker.controller;
 import com.example.safetyai.common.exception.ApiException;
 import com.example.safetyai.notification.service.NotificationService;
 import com.example.safetyai.risk.repository.SafetyEventRepository;
+import com.example.safetyai.risk.service.PermitRiskScoringService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -11,6 +12,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,22 +27,26 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/ai/personal-checks")
 public class PersonalCheckAiController {
+    private static final Logger log = LoggerFactory.getLogger(PersonalCheckAiController.class);
     private static final Set<String> SUPPORTED_PPE = Set.of("helmet", "harness", "welding_mask");
 
     private final JdbcTemplate jdbcTemplate;
     private final SafetyEventRepository safetyEventRepository;
     private final NotificationService notificationService;
+    private final PermitRiskScoringService riskScoringService;
     private final ObjectMapper objectMapper;
 
     public PersonalCheckAiController(
         JdbcTemplate jdbcTemplate,
         SafetyEventRepository safetyEventRepository,
         NotificationService notificationService,
+        PermitRiskScoringService riskScoringService,
         ObjectMapper objectMapper
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.safetyEventRepository = safetyEventRepository;
         this.notificationService = notificationService;
+        this.riskScoringService = riskScoringService;
         this.objectMapper = objectMapper;
     }
 
@@ -91,11 +99,32 @@ public class PersonalCheckAiController {
             );
         }
 
+        recomputeRiskScoreSafely(id);
+
         Map<String, Object> response = findById(id);
         if (eventId != null) {
             response.put("safetyEventId", eventId);
         }
         return response;
+    }
+
+    // 특정 허가서 없이 제출된 개인 점검(permit_id NULL)도 있어서, 그 경우는 조용히 건너뛴다.
+    // 재계산 실패도 PPE 결과 저장 자체를 실패시키지 않는다.
+    private void recomputeRiskScoreSafely(long ppeCheckId) {
+        try {
+            Long permitId = jdbcTemplate.queryForObject(
+                "SELECT permit_id FROM personal_ppe_checks WHERE id = ?",
+                Long.class,
+                ppeCheckId
+            );
+            if (permitId != null) {
+                riskScoringService.recompute(permitId);
+            }
+        } catch (EmptyResultDataAccessException exception) {
+            // 조회 시점에 이미 삭제된 경우 — 무시
+        } catch (Exception exception) {
+            log.warn("Risk score recompute failed after PPE check {}: {}", ppeCheckId, exception.getMessage());
+        }
     }
 
     private List<String> normalizeMissingItems(List<String> items) {

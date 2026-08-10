@@ -51,7 +51,7 @@ function FactoryDetailTwin({ facilityCode, onBack, notify }) {
     </section>
 
     <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-      <EquipmentTwinScene factory={factory} selectedAsset={selectedAsset} selectedWorker={selectedWorker} onSelectAsset={chooseAsset} onSelectWorker={chooseWorker}/>
+      <EquipmentTwinScene factory={factory} selectedAsset={selectedAsset} onSelectAsset={chooseAsset}/>
       <aside className="twin-theme-panel rounded-2xl border border-cyan-400/15 bg-[#08131d] p-4 shadow-xl">
         <p className="text-[9px] font-black tracking-[.16em] text-cyan-300">OPERATION INVENTORY <span className="text-slate-600">(SIMULATION)</span></p>
         <h2 className="mt-2 text-sm font-black text-white">현장 객체 실시간 연계</h2>

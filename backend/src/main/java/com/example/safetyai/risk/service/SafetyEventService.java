@@ -11,26 +11,37 @@ import java.time.Year;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class SafetyEventService {
+    private static final Logger log = LoggerFactory.getLogger(SafetyEventService.class);
     private static final Map<String, String> EVENT_TYPES = eventTypes();
 
     private final SafetyEventRepository safetyEventRepository;
     private final AuthService authService;
     private final NotificationService notificationService;
+    private final PermitRiskScoringService riskScoringService;
+    private final JdbcTemplate jdbcTemplate;
 
     public SafetyEventService(
         SafetyEventRepository safetyEventRepository,
         AuthService authService,
-        NotificationService notificationService
+        NotificationService notificationService,
+        PermitRiskScoringService riskScoringService,
+        JdbcTemplate jdbcTemplate
     ) {
         this.safetyEventRepository = safetyEventRepository;
         this.authService = authService;
         this.notificationService = notificationService;
+        this.riskScoringService = riskScoringService;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Transactional
@@ -89,6 +100,7 @@ public class SafetyEventService {
         if (!updated) {
             throw new ApiException(HttpStatus.NOT_FOUND, "안전 이벤트를 찾을 수 없습니다.");
         }
+        recomputeRiskScoreSafely(eventId);
         return Map.of("id", eventId, "analysisStatus", "completed");
     }
 
@@ -108,6 +120,7 @@ public class SafetyEventService {
         if (!updated) {
             throw new ApiException(HttpStatus.NOT_FOUND, "안전 이벤트를 찾을 수 없습니다.");
         }
+        recomputeRiskScoreSafely(eventId);
         boolean notificationScheduled = Boolean.TRUE.equals(request.notifyReporter());
         if (notificationScheduled) {
             String comment = request.comment() == null ? "" : request.comment().trim();
@@ -125,6 +138,25 @@ public class SafetyEventService {
             "status", request.status(),
             "notificationScheduled", notificationScheduled
         );
+    }
+
+    // 이벤트에 연결된 허가서가 있을 때만 재계산한다(permit_id가 없는 이벤트도 있음).
+    // 재계산 실패로 이벤트 처리 자체가 실패해서는 안 되므로 예외를 삼킨다.
+    private void recomputeRiskScoreSafely(long eventId) {
+        try {
+            Long permitId = jdbcTemplate.queryForObject(
+                "SELECT permit_id FROM safety_events WHERE id = ?",
+                Long.class,
+                eventId
+            );
+            if (permitId != null) {
+                riskScoringService.recompute(permitId);
+            }
+        } catch (EmptyResultDataAccessException exception) {
+            // 조회 시점에 이미 삭제된 경우 — 무시
+        } catch (Exception exception) {
+            log.warn("Risk score recompute failed after safety event {}: {}", eventId, exception.getMessage());
+        }
     }
 
     private static Map<String, String> eventTypes() {

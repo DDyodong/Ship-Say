@@ -3,6 +3,7 @@ package com.example.safetyai.permit.controller;
 import com.example.safetyai.common.exception.ApiException;
 import com.example.safetyai.common.util.JdbcInsert;
 import com.example.safetyai.permit.service.PermitFieldGuidanceService;
+import com.example.safetyai.risk.service.PermitRiskScoringService;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -26,13 +27,24 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminPermitProgressController {
     private final JdbcTemplate jdbcTemplate;
     private final PermitFieldGuidanceService fieldGuidanceService;
+    private final PermitRiskScoringService riskScoringService;
 
     public AdminPermitProgressController(
         JdbcTemplate jdbcTemplate,
-        PermitFieldGuidanceService fieldGuidanceService
+        PermitFieldGuidanceService fieldGuidanceService,
+        PermitRiskScoringService riskScoringService
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.fieldGuidanceService = fieldGuidanceService;
+        this.riskScoringService = riskScoringService;
+    }
+
+    // PPE 점검·허가서 분석·안전 이벤트가 새로 생길 때 자동으로도 재계산되지만(각 서비스에서
+    // 트리거), 관리자가 그 사이에 수동으로 다시 계산하고 싶을 때 쓰는 버튼용 엔드포인트.
+    @PostMapping("/{permitId}/risk-score/recompute")
+    public Map<String, Object> recomputeRiskScore(@PathVariable long permitId) {
+        riskScoringService.recompute(permitId);
+        return progress(permitId);
     }
 
     // 관리자가 "지금 바로" OpenAI 현장 안내(TBM 요약·단계별 행동요령)를 생성하고,
