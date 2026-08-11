@@ -6,6 +6,8 @@ import com.example.safetyai.common.util.JdbcInsert;
 import com.example.safetyai.permit.dto.WorkPermitDecisionRequest;
 import com.example.safetyai.permit.dto.WorkPermitRequest;
 import com.example.safetyai.permit.dto.WorkPermitSupplementRequest;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -26,17 +28,31 @@ public class WorkPermitService {
     private final AuthService authService;
     private final PermitAnalysisService permitAnalysisService;
     private final ApplicationEventPublisher eventPublisher;
+    private final ObjectMapper objectMapper;
 
     public WorkPermitService(
         JdbcTemplate jdbcTemplate,
         AuthService authService,
         PermitAnalysisService permitAnalysisService,
-        ApplicationEventPublisher eventPublisher
+        ApplicationEventPublisher eventPublisher,
+        ObjectMapper objectMapper
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.authService = authService;
         this.permitAnalysisService = permitAnalysisService;
         this.eventPublisher = eventPublisher;
+        this.objectMapper = objectMapper;
+    }
+
+    // 보충작업(밀폐공간/정전/굴착/방사선/고소/중장비) 목록을 work_permits.supplementary_work
+    // JSON 칸에 저장하기 위해 문자열로 직렬화한다. 실패해도 허가서 등록 자체가 막히면 안 되므로
+    // 빈 배열로 대체한다.
+    private String toSupplementaryWorkJson(List<String> values) {
+        try {
+            return objectMapper.writeValueAsString(values == null ? List.of() : values);
+        } catch (JsonProcessingException exception) {
+            return "[]";
+        }
     }
 
     public List<Map<String, Object>> list(AuthService.AuthenticatedUser user, String status) {
@@ -200,9 +216,9 @@ public class WorkPermitService {
             jdbcTemplate,
             """
                 INSERT INTO work_permits
-                (permit_no, site_id, block_id, applicant_id, work_type, work_title, work_content,
-                 worker_count, equipment, start_time, end_time, gps_lat, gps_lng, is_high_risk, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (permit_no, site_id, block_id, applicant_id, work_type, supplementary_work, work_title,
+                 work_content, worker_count, equipment, start_time, end_time, gps_lat, gps_lng, is_high_risk, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
             Arrays.asList(
                 request.permitNo(),
@@ -210,6 +226,7 @@ public class WorkPermitService {
                 request.blockId(),
                 userId,
                 request.workType(),
+                toSupplementaryWorkJson(request.supplementaryWork()),
                 request.workTitle(),
                 request.workContent(),
                 request.workerCount(),
@@ -248,9 +265,9 @@ public class WorkPermitService {
         jdbcTemplate.update(
             """
                 UPDATE work_permits
-                   SET permit_no = ?, site_id = ?, block_id = ?, work_type = ?, work_title = ?,
-                       work_content = ?, worker_count = ?, equipment = ?, start_time = ?, end_time = ?,
-                       gps_lat = ?, gps_lng = ?, is_high_risk = ?, status = 'pending_review',
+                   SET permit_no = ?, site_id = ?, block_id = ?, work_type = ?, supplementary_work = ?,
+                       work_title = ?, work_content = ?, worker_count = ?, equipment = ?, start_time = ?,
+                       end_time = ?, gps_lat = ?, gps_lng = ?, is_high_risk = ?, status = 'pending_review',
                        updated_at = CURRENT_TIMESTAMP(6)
                  WHERE id = ?
                 """,
@@ -258,6 +275,7 @@ public class WorkPermitService {
             request.siteId(),
             request.blockId(),
             request.workType(),
+            toSupplementaryWorkJson(request.supplementaryWork()),
             request.workTitle(),
             request.workContent(),
             request.workerCount(),

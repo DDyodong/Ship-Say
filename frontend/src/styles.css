@@ -8906,6 +8906,17 @@ button {
   padding-right: 3px;
 }
 
+.permit-worker-options.compact-options {
+  max-height: none;
+  overflow: visible;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+}
+
+.permit-worker-options.compact-options label {
+  min-height: 34px;
+  padding: 6px 9px;
+}
+
 .permit-worker-options label {
   width: 100%;
   min-height: 46px;

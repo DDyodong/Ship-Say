@@ -207,6 +207,7 @@ CREATE TABLE work_permits (
   block_id BIGINT,
   applicant_id BIGINT NOT NULL,
   work_type VARCHAR(80),
+  supplementary_work JSON NOT NULL DEFAULT (JSON_ARRAY()),
   work_title TEXT,
   work_content TEXT,
   worker_count INT,

@@ -431,8 +431,9 @@ def _parse_signatures(text):
         warnings.append(f"발급자({issuer})는 표 레이아웃 순서로 추정한 값 — 원본 확인 권장")
     if approver:
         warnings.append(f"승인자({approver})는 표 레이아웃 순서로 추정한 값 — 원본 확인 권장")
-    if not tuples:
-        warnings.append("발급자·승인자 서명이 비어 있음(미서명 또는 밑줄 플레이스홀더)")
+    # 발급자·승인자 서명이 둘 다 비어 있는 경우 경고를 띄우던 부분 — 관리자 화면에서
+    # 매번 뜨는 게 번거롭다는 요청으로 제거함. issuer/approver 값 자체는 그대로 비워둔
+    # 채 반환되므로, 서명이 비었다는 사실 자체는 데이터에 남아있고 화면에만 안 뜬다.
 
     return applicant, issuer, approver, warnings
 

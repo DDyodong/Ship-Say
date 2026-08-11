@@ -7,10 +7,15 @@ const emptyForm = () => ({
   permitNo: `PTW-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`,
   siteId: "",
   workType: "화기 작업",
+  supplementaryWork: [],
   workTitle: "",
   workContent: "",
   workerIds: [],
 });
+
+// PDF 양식 하단 "보충작업허가" 체크박스 6종. AI 분석 서버(ptw_parser.py)의 SUPPLEMENTARY
+// 목록과 순서·표기를 그대로 맞춰서, AI가 뽑아낸 값이 옵션과 항상 일치하도록 한다.
+const SUPPLEMENTARY_OPTIONS = ["밀폐공간", "정전", "굴착", "방사선", "고소", "중장비"];
 
 const formatSize = (bytes) => {
   if (!bytes) return "0 KB";
@@ -169,6 +174,7 @@ function Permits({ notify, session }) {
       permitNo: detail.permit_no || "",
       siteId: String(detail.site_id || ""),
       workType: detail.work_type || "화기 작업",
+      supplementaryWork: parseJsonValue(detail.supplementary_work, []),
       workTitle: detail.work_title || "",
       workContent: detail.work_content || "",
       workerIds: (detail.assignedWorkers || []).map(worker => Number(worker.id)),
@@ -208,6 +214,7 @@ function Permits({ notify, session }) {
           ...current,
           permitNo: draft.permitNo || current.permitNo,
           workType: draft.workType || current.workType,
+          supplementaryWork: Array.isArray(draft.supplementaryWork) ? draft.supplementaryWork : current.supplementaryWork,
           workTitle: draft.workTitle || current.workTitle,
           workContent: draft.workContent || current.workContent,
         }));
@@ -415,6 +422,7 @@ function Permits({ notify, session }) {
         {detail ? <><div className="analysis-head"><div><span>{detail.permit_no}</span><h3>{detail.work_title}</h3></div><span className={`ai-chip ${analysisRun.status || "queued"}`}><Sparkles/>{analysisStatusText(analysisRun.status)}</span></div>
           {attachedFile ? <div className="doc-preview"><FileText/><div><b>{attachedFile.original_name}</b><span>{formatSize(attachedFile.file_size)}</span></div><button type="button" title="허가서 미리보기" aria-label={`${attachedFile.original_name} 미리보기`} onClick={() => openPreview(attachedFile)}><Eye/></button></div> : <div className="doc-preview"><FileText/><div><b>첨부 파일 없음</b><span>허가서 파일이 연결되지 않았습니다.</span></div></div>}
           <div className="permit-assigned-summary"><span>배정 작업자</span>{detail.assignedWorkers?.length ? <div>{detail.assignedWorkers.map(worker => <b key={worker.id}>{worker.name}<small>{worker.employee_no}</small></b>)}</div> : <em>배정된 작업자가 없습니다.</em>}</div>
+          <div className="permit-assigned-summary"><span>보충작업</span>{parseJsonValue(detail.supplementary_work, []).length ? <div>{parseJsonValue(detail.supplementary_work, []).map(item => <b key={item}>{item}</b>)}</div> : <em>해당 없음</em>}</div>
           {analysisRun.status === "failed" ? <div className="analysis-failed"><AlertTriangle/><div><b>작업허가서 분석에 실패했습니다</b><p>{analysisRun.error_message || "분석 서비스 상태를 확인한 뒤 다시 시도해 주세요."}</p><button className="outline-btn" type="button" onClick={requestAnalysis}>다시 분석</button></div></div> : <>
             <h4>SIMOPS 충돌 분석</h4>
             {analysisFinished ? <div className="analysis-result-list">
@@ -492,7 +500,25 @@ function Permits({ notify, session }) {
             <label><span>허가서 번호</span><input value={form.permitNo} onChange={e => setForm({ ...form, permitNo: e.target.value })}/></label>
             <label><span>사업장</span><select value={form.siteId} onChange={e => setForm({ ...form, siteId: e.target.value })}><option value="">사업장 선택</option>{sites.map(site => <option value={site.id} key={site.id}>{site.name}</option>)}</select></label>
             <label className="wide-field"><span>작업명</span><input value={form.workTitle} onChange={e => setForm({ ...form, workTitle: e.target.value })} placeholder="예: C-03 블록 배관 화기 작업"/></label>
-            <label><span>작업 유형</span><select value={form.workType} onChange={e => setForm({ ...form, workType: e.target.value })}><option>화기 작업</option><option>고소 작업</option><option>밀폐 공간 작업</option><option>중량물 작업</option><option>일반 작업</option></select></label>
+            <label><span>작업 유형</span><select value={form.workType} onChange={e => setForm({ ...form, workType: e.target.value })}><option>화기 작업</option><option>일반위험 작업</option></select></label>
+            <fieldset className="permit-worker-field wide-field">
+              <legend>보충작업 <small>{form.supplementaryWork.length ? `${form.supplementaryWork.length}건 선택` : "없음"}</small></legend>
+              <div className="permit-worker-options compact-options">
+                {SUPPLEMENTARY_OPTIONS.map(option => <label className={form.supplementaryWork.includes(option) ? "selected" : ""} key={option}>
+                  <input
+                    type="checkbox"
+                    checked={form.supplementaryWork.includes(option)}
+                    onChange={() => setForm(current => ({
+                      ...current,
+                      supplementaryWork: current.supplementaryWork.includes(option)
+                        ? current.supplementaryWork.filter(item => item !== option)
+                        : [...current.supplementaryWork, option],
+                    }))}
+                  />
+                  <span><b>{option}</b></span>
+                </label>)}
+              </div>
+            </fieldset>
             <label className="wide-field"><span>작업 내용</span><textarea value={form.workContent} onChange={e => setForm({ ...form, workContent: e.target.value })} placeholder="작업 범위와 특이사항을 입력해 주세요."/></label>
             <fieldset className="permit-worker-field wide-field">
               <legend>작업자 배정 <small>{form.workerIds.length}명 선택</small></legend>

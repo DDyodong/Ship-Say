@@ -14,6 +14,7 @@ import com.example.safetyai.common.exception.ApiException;
 import com.example.safetyai.permit.dto.WorkPermitDecisionRequest;
 import com.example.safetyai.permit.dto.WorkPermitRequest;
 import com.example.safetyai.permit.dto.WorkPermitSupplementRequest;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +44,9 @@ class WorkPermitServiceTest {
 
     @Mock
     private ApplicationEventPublisher eventPublisher;
+
+    @Mock
+    private ObjectMapper objectMapper;
 
     @InjectMocks
     private WorkPermitService workPermitService;
@@ -218,13 +222,16 @@ class WorkPermitServiceTest {
 
     @Test
     void requestDefaultsRemainStable() {
+        // permitNo, siteId, blockId, workType, supplementaryWork, workTitle, workContent, workerCount,
+        // equipment, startTime, endTime, gpsLat, gpsLng, isHighRisk, status, fileIds, workerIds
         WorkPermitRequest request = new WorkPermitRequest(
             null, 1L, null, null, null, null, null, null,
-            null, null, null, null, null, " ", null, null
+            null, null, null, null, null, null, " ", null, null
         );
 
         assertThat(request.isHighRisk()).isFalse();
         assertThat(request.status()).isEqualTo("draft");
+        assertThat(request.supplementaryWork()).isEmpty();
     }
 
     private AuthService.AuthenticatedUser user(long id, String role) {
@@ -232,9 +239,11 @@ class WorkPermitServiceTest {
     }
 
     private WorkPermitRequest requestWithoutRelations() {
+        // permitNo, siteId, blockId, workType, supplementaryWork, workTitle, workContent, workerCount,
+        // equipment, startTime, endTime, gpsLat, gpsLng, isHighRisk, status, fileIds, workerIds
         return new WorkPermitRequest(
-            "P-10", 1L, null, "welding", "Title", "Content", 2, null,
-            null, null, null, null, false, "draft", null, null
+            "P-10", 1L, null, "welding", null, "Title", "Content", 2,
+            null, null, null, null, null, false, "draft", null, null
         );
     }
 }
