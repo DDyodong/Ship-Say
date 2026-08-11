@@ -103,12 +103,9 @@ jobs:
             --arg image "$ANALYSIS_IMAGE_URI" \
             --arg ppeImageUrl "http://172.31.43.100:8000" \
             --arg ppeImageApiKey "$PPE_IMAGE_API_KEY" \
-<<<<<<< HEAD
-=======
             --arg fileStorageType "s3" \
             --arg s3Bucket "yardops-ppe-demo-013459780957-20260729" \
             --arg s3Region "ap-northeast-2" \
->>>>>>> 457f71d (이미지 S3에 업로드 하도록 수정)
             --arg health "python -c 'import urllib.request; urllib.request.urlopen(\"http://127.0.0.1:8001/health\", timeout=2)'" \
             '
               (.containerDefinitions[] | select(.name == $backend) | .logConfiguration // null) as $backendLogs
@@ -123,26 +120,19 @@ jobs:
                               and .name != "PPE_IMAGE_AI_ENABLED"
                               and .name != "PPE_IMAGE_AI_URL"
                               and .name != "PPE_IMAGE_API_KEY"
-<<<<<<< HEAD
-=======
                               and .name != "FILE_STORAGE_TYPE"
                               and .name != "S3_BUCKET"
                               and .name != "S3_REGION"
->>>>>>> 457f71d (이미지 S3에 업로드 하도록 수정)
                             )))
                         + [
                             {"name": "PERMIT_ANALYSIS_AI_ENABLED", "value": "true"},
                             {"name": "PERMIT_ANALYSIS_AI_URL", "value": "http://127.0.0.1:8001"},
                             {"name": "PPE_IMAGE_AI_ENABLED", "value": "true"},
                             {"name": "PPE_IMAGE_AI_URL", "value": $ppeImageUrl},
-<<<<<<< HEAD
-                            {"name": "PPE_IMAGE_API_KEY", "value": $ppeImageApiKey}
-=======
                             {"name": "PPE_IMAGE_API_KEY", "value": $ppeImageApiKey},
                             {"name": "FILE_STORAGE_TYPE", "value": $fileStorageType},
                             {"name": "S3_BUCKET", "value": $s3Bucket},
                             {"name": "S3_REGION", "value": $s3Region}
->>>>>>> 457f71d (이미지 S3에 업로드 하도록 수정)
                           ]
                       )
                       | .dependsOn = (
