@@ -105,7 +105,7 @@ jobs:
             --arg ppeImageApiKey "$PPE_IMAGE_API_KEY" \
             --arg fileStorageType "s3" \
             --arg s3Bucket "yardops-ppe-demo-013459780957-20260729" \
-            --arg s3Region "ap-northeast-2" \
+            --arg s3Region "us-east-1" \
             --arg health "python -c 'import urllib.request; urllib.request.urlopen(\"http://127.0.0.1:8001/health\", timeout=2)'" \
             '
               (.containerDefinitions[] | select(.name == $backend) | .logConfiguration // null) as $backendLogs
