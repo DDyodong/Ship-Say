@@ -1253,6 +1253,32 @@ button {
   width: 16px;
 }
 
+.section-head-row .outline-btn {
+  color: var(--cyan);
+  border-color: #30c6f24d;
+  background: #30c6f215;
+  border-radius: 20px;
+  padding: 7px 14px;
+  font-weight: 700;
+  transition: background .15s ease, border-color .15s ease;
+}
+
+.section-head-row .outline-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.1;
+}
+
+.section-head-row .outline-btn:hover:not(:disabled) {
+  background: #30c6f226;
+  border-color: #30c6f280;
+}
+
+.section-head-row .outline-btn:disabled {
+  opacity: .6;
+  cursor: wait;
+}
+
 .danger-btn {
   height: 42px;
   border: 1px solid #ff526366;
@@ -2761,6 +2787,7 @@ button {
 .analysis-head {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
 }
 
 .analysis-head span {
