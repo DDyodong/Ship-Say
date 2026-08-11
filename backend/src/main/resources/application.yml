@@ -65,6 +65,8 @@ app:
       api-key: ${PPE_IMAGE_API_KEY:}
       connect-timeout-ms: ${PPE_IMAGE_AI_CONNECT_TIMEOUT_MS:3000}
       request-timeout-ms: ${PPE_IMAGE_AI_REQUEST_TIMEOUT_MS:180000}
+    safety-report:
+      enabled: ${SAFETY_REPORT_AI_ENABLED:true}
   firebase:
     enabled: ${FIREBASE_ENABLED:false}
     project-id: ${FIREBASE_PROJECT_ID:aivle25}

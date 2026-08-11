@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.springframework.context.ApplicationEventPublisher;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -31,12 +32,21 @@ class SafetyEventNotificationTest {
     private PermitRiskScoringService riskScoringService;
     @Mock
     private JdbcTemplate jdbcTemplate;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     private SafetyEventService service;
 
     @BeforeEach
     void setUp() {
-        service = new SafetyEventService(repository, authService, notificationService, riskScoringService, jdbcTemplate);
+        service = new SafetyEventService(
+            repository,
+            authService,
+            notificationService,
+            riskScoringService,
+            jdbcTemplate,
+            eventPublisher
+        );
         when(authService.requireUserId("Bearer admin")).thenReturn(7L);
         when(repository.updateReportStatus(125L, 7L, "resolved", "난간 보강 완료"))
             .thenReturn(true);

@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -31,12 +32,21 @@ class SafetyEventDeletionTest {
     private PermitRiskScoringService riskScoringService;
     @Mock
     private JdbcTemplate jdbcTemplate;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     private SafetyEventService service;
 
     @BeforeEach
     void setUp() {
-        service = new SafetyEventService(repository, authService, notificationService, riskScoringService, jdbcTemplate);
+        service = new SafetyEventService(
+            repository,
+            authService,
+            notificationService,
+            riskScoringService,
+            jdbcTemplate,
+            eventPublisher
+        );
     }
 
     @Test

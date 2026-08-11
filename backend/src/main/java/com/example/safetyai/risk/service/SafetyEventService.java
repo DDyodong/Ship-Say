@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,19 +30,22 @@ public class SafetyEventService {
     private final NotificationService notificationService;
     private final PermitRiskScoringService riskScoringService;
     private final JdbcTemplate jdbcTemplate;
+    private final ApplicationEventPublisher eventPublisher;
 
     public SafetyEventService(
         SafetyEventRepository safetyEventRepository,
         AuthService authService,
         NotificationService notificationService,
         PermitRiskScoringService riskScoringService,
-        JdbcTemplate jdbcTemplate
+        JdbcTemplate jdbcTemplate,
+        ApplicationEventPublisher eventPublisher
     ) {
         this.safetyEventRepository = safetyEventRepository;
         this.authService = authService;
         this.notificationService = notificationService;
         this.riskScoringService = riskScoringService;
         this.jdbcTemplate = jdbcTemplate;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -63,6 +67,7 @@ public class SafetyEventService {
             eventName + " 신고",
             request.description().trim()
         );
+        eventPublisher.publishEvent(new SafetyReportAnalysisRequested(id));
         String reportNo = "SR-" + Year.now().getValue() + "-" + String.format("%06d", id);
         return Map.of(
             "id", id,
@@ -83,6 +88,12 @@ public class SafetyEventService {
 
     public List<Map<String, Object>> getWorkerReports(String status, String sourceType) {
         return safetyEventRepository.findWorkerReports(status, sourceType);
+    }
+
+    public Map<String, Object> requestAnalysis(long eventId) {
+        safetyEventRepository.resetAnalysis(eventId);
+        eventPublisher.publishEvent(new SafetyReportAnalysisRequested(eventId));
+        return Map.of("id", eventId, "analysisStatus", "pending");
     }
 
     @Transactional
