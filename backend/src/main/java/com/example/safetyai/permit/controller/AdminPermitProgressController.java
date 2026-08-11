@@ -202,17 +202,31 @@ public class AdminPermitProgressController {
     private List<Map<String, Object>> ppeChecks(long permitId) {
         return jdbcTemplate.query(
             """
-                SELECT p.id, u.name AS worker_name, COALESCE(u.employee_no, u.username) AS employee_no,
+                SELECT p.id, wpw.user_id, u.name AS worker_name,
+                       COALESCE(u.employee_no, u.username) AS employee_no,
                        p.status, p.helmet_on, p.harness_on, p.welding_mask_on,
                        p.safety_shoes_confirmed, p.workwear_confirmed, p.checked_at
-                  FROM personal_ppe_checks p
-                  JOIN users u ON u.id = p.user_id
-                 WHERE p.permit_id = ?
-                 ORDER BY p.checked_at DESC
+                  FROM work_permit_workers wpw
+                  JOIN users u ON u.id = wpw.user_id
+             LEFT JOIN personal_ppe_checks p
+                    ON p.id = (
+                       SELECT latest.id
+                         FROM personal_ppe_checks latest
+                        WHERE latest.permit_id = wpw.permit_id
+                          AND latest.user_id = wpw.user_id
+                        ORDER BY latest.checked_at DESC
+                        LIMIT 1
+                    )
+                 WHERE wpw.permit_id = ?
+                 ORDER BY CASE WHEN p.id IS NULL THEN 0 ELSE 1 END,
+                          p.checked_at DESC,
+                          u.name
                 """,
             (resultSet, rowNumber) -> {
                 Map<String, Object> row = new LinkedHashMap<>();
-                row.put("id", resultSet.getLong("id"));
+                row.put("id", nullableLong(resultSet, "id"));
+                row.put("userId", resultSet.getLong("user_id"));
+                row.put("submitted", resultSet.getObject("id") != null);
                 row.put("workerName", resultSet.getString("worker_name"));
                 row.put("employeeNo", resultSet.getString("employee_no"));
                 row.put("status", resultSet.getString("status"));
@@ -275,6 +289,11 @@ public class AdminPermitProgressController {
 
     private Boolean nullableBoolean(ResultSet row, String column) throws SQLException {
         boolean value = row.getBoolean(column);
+        return row.wasNull() ? null : value;
+    }
+
+    private Long nullableLong(ResultSet row, String column) throws SQLException {
+        long value = row.getLong(column);
         return row.wasNull() ? null : value;
     }
 }

@@ -3,7 +3,7 @@ import { Layers3, Minus, Plus, RotateCcw } from "lucide-react";
 import realFacilityTags from "./geojeShipyardTags.json";
 
 const KAKAO_JS_KEY = import.meta.env.VITE_KAKAO_JS_KEY;
-const YARD_ADDRESS = "경상남도 거제시 거제대로 3370";
+const YARD_CENTER = { lat: 34.87078258, lng: 128.70518285 };
 
 function classifyType(name) {
   if (name.includes("도크") || name.includes("골리앗")) return "DOCK";
@@ -46,7 +46,7 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
   const [selected, setSelected] = useState(null);
   const [sdkReady, setSdkReady] = useState(false);
   const [sdkError, setSdkError] = useState("");
-  const [center, setCenter] = useState(null);
+  const [center] = useState(YARD_CENTER);
 
   const containerRef = useRef(null);
   const mapDivRef = useRef(null);
@@ -85,24 +85,11 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
     if (existing) { existing.addEventListener("load", () => window.kakao.maps.load(() => setSdkReady(true))); return; }
     const script = document.createElement("script");
     script.setAttribute("data-kakao-maps-sdk", "true");
-    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&autoload=false&libraries=services`;
+    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&autoload=false`;
     script.onload = () => window.kakao.maps.load(() => setSdkReady(true));
     script.onerror = () => setSdkError("카카오맵 SDK 로드에 실패했습니다.");
     document.head.appendChild(script);
   }, []);
-
-  useEffect(() => {
-    if (!sdkReady) return;
-    const kakao = window.kakao;
-    const geocoder = new kakao.maps.services.Geocoder();
-    geocoder.addressSearch(YARD_ADDRESS, (result, status) => {
-      if (status === kakao.maps.services.Status.OK && result[0]) {
-        setCenter({ lat: parseFloat(result[0].y), lng: parseFloat(result[0].x) });
-      } else {
-        setSdkError(`"${YARD_ADDRESS}" 주소를 좌표로 변환하지 못했습니다.`);
-      }
-    });
-  }, [sdkReady]);
 
   useEffect(() => {
     if (!sdkReady || !center || !mapDivRef.current || mapRef.current) return;
