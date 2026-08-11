@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { Settings, Siren } from "lucide-react";
+import { Siren, Video } from "lucide-react";
 import { SectionHead } from "../../components/common";
 import LiveHlsPlayer from "../../components/monitoring/LiveHlsPlayer";
 
@@ -16,6 +16,7 @@ const LIVE_STREAMS = {
 function Monitoring({ notify }) {
   const cameras = ["B-07 상부 작업장", "C-03 배관 구역", "A-12 도장 구역", "D-02 자재 적치장"];
   const [liveFailed, setLiveFailed] = useState({});
+  const [liveReady, setLiveReady] = useState({});
 
   const handleLiveError = useCallback((index) => {
     setLiveFailed((prev) => (prev[index] ? prev : { ...prev, [index]: true }));
@@ -27,28 +28,36 @@ function Monitoring({ notify }) {
         eyebrow="AI VISION CONTROL"
         title="CCTV 실시간 감시"
         desc="CCTV 영상에서 PPE 미착용과 위험구역 침입을 감지합니다."
-        action={<button className="outline-btn"><Settings />관제 설정</button>}
       />
       <div className="monitor-grid">
         {cameras.map((name, index) => {
           const liveSrc = LIVE_STREAMS[index];
           const showLive = Boolean(liveSrc) && !liveFailed[index];
+          const isReady = Boolean(liveReady[index]) && showLive;
           return (
             <div className="camera-card" key={name}>
               <div className={`camera-feed cam${index + 1}`}>
+                {!isReady && (
+                  <div className="camera-preparing" role="status">
+                    <span><Video /></span>
+                    <b>영상을 준비 중입니다</b>
+                    <small>카메라 연결을 확인하고 있습니다.</small>
+                  </div>
+                )}
                 {showLive && (
                   <LiveHlsPlayer
                     src={liveSrc}
-                    className="camera-feed-video"
+                    className={`camera-feed-video${isReady ? " is-ready" : ""}`}
                     onError={() => handleLiveError(index)}
+                    onReady={() => setLiveReady((prev) => (prev[index] ? prev : { ...prev, [index]: true }))}
                   />
                 )}
                 <div className="camera-head">
-                  <span><i />LIVE · CAM-{String(index + 1).padStart(2, "0")}</span>
+                  <span className={isReady ? "" : "is-preparing"}><i />{isReady ? "LIVE" : "STANDBY"} · CAM-{String(index + 1).padStart(2, "0")}</span>
                 </div>
                 <div className="camera-name">
                   <b>{name}</b>
-                  <span>정상 모니터링</span>
+                  <span>{isReady ? "정상 모니터링" : "영상 연결 준비 중"}</span>
                 </div>
               </div>
               <button
