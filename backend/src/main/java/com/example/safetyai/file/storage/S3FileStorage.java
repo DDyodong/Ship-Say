@@ -2,6 +2,7 @@ package com.example.safetyai.file.storage;
 
 import com.example.safetyai.common.exception.ApiException;
 import java.io.IOException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.ByteArrayResource;
@@ -26,6 +27,7 @@ public class S3FileStorage implements FileStorage {
     private final String bucket;
     private final S3Client s3Client;
 
+    @Autowired
     public S3FileStorage(
         @Value("${app.file-storage.s3.bucket}") String bucket,
         @Value("${app.file-storage.s3.region}") String region

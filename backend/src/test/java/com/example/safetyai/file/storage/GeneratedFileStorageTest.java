@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
@@ -18,6 +19,18 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 class GeneratedFileStorageTest {
     @TempDir
     Path tempDir;
+
+    @Test
+    void springContextCreatesS3StorageWithProductionConstructor() {
+        new ApplicationContextRunner()
+            .withPropertyValues(
+                "app.file-storage.type=s3",
+                "app.file-storage.s3.bucket=tbm-bucket",
+                "app.file-storage.s3.region=us-east-1"
+            )
+            .withUserConfiguration(S3FileStorage.class)
+            .run(context -> assertThat(context).hasSingleBean(S3FileStorage.class));
+    }
 
     @Test
     void localStorageWritesGeneratedTbmUnderGeneratedPrefix() throws Exception {

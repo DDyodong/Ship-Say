@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle, BellRing, BrainCircuit, CheckCircle2, Clock3, FileImage, MapPin,
-  Maximize2, Search, Send, ShieldCheck, Siren, UserRound, Wrench, X,
+  Maximize2, Search, Send, ShieldCheck, Siren, Trash2, UserRound, Wrench, X,
 } from "lucide-react";
 import { apiBlob, apiRequest } from "../../api/client";
 import { SectionHead } from "../../components/common";
@@ -48,6 +48,7 @@ function WorkerReports({ session, notify }) {
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [notifyReporter, setNotifyReporter] = useState(true);
   const [alertDraft, setAlertDraft] = useState(null);
   const [sendingAlert, setSendingAlert] = useState(false);
@@ -119,6 +120,26 @@ function WorkerReports({ session, notify }) {
       await loadReports();
       window.dispatchEvent(new Event("safety-events-updated"));
     } catch (error) { notify(error.message); } finally { setSaving(false); }
+  };
+
+  const deleteResolvedEvent = async () => {
+    if (!selected || selected.status !== "resolved") return;
+    if (!window.confirm(`${selected.reportNo} 안전 이벤트를 삭제하시겠습니까?\n삭제 후에는 목록에서 복구할 수 없습니다.`)) return;
+    setDeleting(true);
+    try {
+      await apiRequest(`/api/safety-events/${selected.id}`, {
+        method:"DELETE",
+        headers,
+      });
+      setPhotoExpanded(false);
+      notify("처리 완료된 안전 이벤트를 삭제했습니다.");
+      await loadReports();
+      window.dispatchEvent(new Event("safety-events-updated"));
+    } catch (error) {
+      notify(error.message);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const openAlertComposer = () => {
@@ -207,7 +228,7 @@ function WorkerReports({ session, notify }) {
           </article>}
           <div className="report-progress"><b>처리 상태</b><div>{statusSteps.map((status,index)=><span key={status} className={index<=currentStep?"active":""}><i>{index<currentStep?<CheckCircle2/>:index+1}</i>{statusLabels[status]}</span>)}</div></div>
           <label className="report-action-comment"><span>관리자 조치 내용</span><textarea value={comment} onChange={e=>setComment(e.target.value)} maxLength={2000} placeholder="현장 확인 결과와 조치 내용을 입력하세요."/></label>
-          <div className="report-detail-actions">{nextStatus?<button disabled={saving} className="primary-small" onClick={()=>updateStatus(nextStatus)}><Wrench/>{saving?"저장 중...":`${statusLabels[nextStatus]} 처리`}</button>:<button disabled className="resolved-button"><CheckCircle2/>처리 완료됨</button>}</div>
+          <div className="report-detail-actions">{nextStatus?<button disabled={saving} className="primary-small" onClick={()=>updateStatus(nextStatus)}><Wrench/>{saving?"저장 중...":`${statusLabels[nextStatus]} 처리`}</button>:<><button disabled className="resolved-button"><CheckCircle2/>처리 완료됨</button><button type="button" className="delete-event-button" disabled={deleting} onClick={deleteResolvedEvent}><Trash2/>{deleting?"삭제 중...":"이벤트 삭제"}</button></>}</div>
         </>}
       </section>
     </div>

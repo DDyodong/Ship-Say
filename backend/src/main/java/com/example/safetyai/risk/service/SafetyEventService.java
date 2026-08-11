@@ -140,6 +140,22 @@ public class SafetyEventService {
         );
     }
 
+    @Transactional
+    public Map<String, Object> deleteResolved(long eventId) {
+        SafetyEventRepository.DeletionTarget target = safetyEventRepository.findDeletionTargetForUpdate(eventId);
+        if (target == null) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "안전 이벤트를 찾을 수 없습니다.");
+        }
+        if (!"resolved".equals(target.status())) {
+            throw new ApiException(HttpStatus.CONFLICT, "처리 완료된 안전 이벤트만 삭제할 수 있습니다.");
+        }
+        if (!safetyEventRepository.deleteResolved(eventId)) {
+            throw new ApiException(HttpStatus.CONFLICT, "안전 이벤트 상태가 변경되어 삭제할 수 없습니다.");
+        }
+        recomputePermitRiskSafely(target.permitId(), eventId);
+        return Map.of("id", eventId, "deleted", true);
+    }
+
     // 이벤트에 연결된 허가서가 있을 때만 재계산한다(permit_id가 없는 이벤트도 있음).
     // 재계산 실패로 이벤트 처리 자체가 실패해서는 안 되므로 예외를 삼킨다.
     private void recomputeRiskScoreSafely(long eventId) {
@@ -156,6 +172,17 @@ public class SafetyEventService {
             // 조회 시점에 이미 삭제된 경우 — 무시
         } catch (Exception exception) {
             log.warn("Risk score recompute failed after safety event {}: {}", eventId, exception.getMessage());
+        }
+    }
+
+    private void recomputePermitRiskSafely(Long permitId, long eventId) {
+        if (permitId == null) {
+            return;
+        }
+        try {
+            riskScoringService.recompute(permitId);
+        } catch (Exception exception) {
+            log.warn("Risk score recompute failed after deleting safety event {}: {}", eventId, exception.getMessage());
         }
     }
 

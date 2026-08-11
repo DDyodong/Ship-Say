@@ -78,6 +78,7 @@ GET  /api/safety-events/reports?status=&sourceType=          ADMIN
 GET  /api/safety-events/my                                   WORKER | ADMIN
 POST /api/safety-events                                      WORKER | ADMIN
 POST /api/safety-events/{id}/actions                         ADMIN
+DELETE /api/safety-events/{id}                               ADMIN (처리 완료 상태만)
 
 GET  /api/ai/model-runs                                      ADMIN
 POST /api/ai/model-runs                                      ADMIN | AI_SERVICE

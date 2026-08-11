@@ -5660,6 +5660,8 @@ button {
 
 .report-detail-actions {
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   justify-content: flex-end;
   margin-top: 10px;
 }
@@ -5691,6 +5693,39 @@ button {
   line-height: 1;
   letter-spacing: -.01em;
   opacity: 1;
+}
+
+.delete-event-button {
+  min-width: 132px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid #ff657055;
+  border-radius: 8px;
+  background: #ff657010;
+  color: #ff8b94;
+  padding: 0 16px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.delete-event-button:hover:not(:disabled) {
+  border-color: #ff657099;
+  background: #ff657020;
+}
+
+.delete-event-button:disabled {
+  cursor: wait;
+  opacity: .6;
+}
+
+.delete-event-button svg {
+  width: 14px;
+  height: 14px;
 }
 
 .report-admin-empty {

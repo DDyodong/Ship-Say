@@ -9,6 +9,8 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class SafetyEventRepository {
+    public record DeletionTarget(String status, Long permitId) {}
+
     private final JdbcTemplate jdbcTemplate;
 
     public SafetyEventRepository(JdbcTemplate jdbcTemplate) {
@@ -238,5 +240,27 @@ public class SafetyEventRepository {
             comment
         );
         return true;
+    }
+
+    public DeletionTarget findDeletionTargetForUpdate(long eventId) {
+        List<DeletionTarget> targets = jdbcTemplate.query(
+            "SELECT status, permit_id FROM safety_events WHERE id = ? FOR UPDATE",
+            (resultSet, rowNum) -> new DeletionTarget(
+                resultSet.getString("status"),
+                resultSet.getObject("permit_id", Long.class)
+            ),
+            eventId
+        );
+        return targets.isEmpty() ? null : targets.get(0);
+    }
+
+    public boolean deleteResolved(long eventId) {
+        // 알림과 산출된 위험점수는 감사 이력으로 남기되 삭제된 이벤트와의 연결만 해제한다.
+        jdbcTemplate.update("UPDATE notifications SET event_id = NULL WHERE event_id = ?", eventId);
+        jdbcTemplate.update("UPDATE risk_scores SET event_id = NULL WHERE event_id = ?", eventId);
+        return jdbcTemplate.update(
+            "DELETE FROM safety_events WHERE id = ? AND status = 'resolved'",
+            eventId
+        ) > 0;
     }
 }

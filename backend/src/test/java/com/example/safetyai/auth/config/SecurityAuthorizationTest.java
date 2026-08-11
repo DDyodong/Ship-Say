@@ -164,6 +164,10 @@ class SecurityAuthorizationTest {
             .andExpect(status().isForbidden());
         mockMvc.perform(post("/api/safety-events/1/actions").with(user("admin").roles("ADMIN")))
             .andExpect(status().isOk());
+        mockMvc.perform(delete("/api/safety-events/1").with(user("worker").roles("WORKER")))
+            .andExpect(status().isForbidden());
+        mockMvc.perform(delete("/api/safety-events/1").with(user("admin").roles("ADMIN")))
+            .andExpect(status().isOk());
     }
 
     @Test
