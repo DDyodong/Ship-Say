@@ -23,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -39,6 +40,9 @@ class WorkPermitServiceTest {
 
     @Mock
     private PermitAnalysisService permitAnalysisService;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private WorkPermitService workPermitService;
@@ -179,6 +183,7 @@ class WorkPermitServiceTest {
 
         assertThat(response).containsEntry("id", 10L).containsEntry("status", "conditional_approved");
         verify(jdbcTemplate).update(anyString(), eq("conditional_approved"), eq("환기 확인 필요"), eq(1L), eq(10L));
+        verify(eventPublisher).publishEvent(new FieldGuidanceRequested(10L));
     }
 
     @Test

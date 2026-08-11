@@ -167,9 +167,9 @@ Authorization: Bearer {accessToken}
 
 ## 테스트와 빌드
 
-## OpenAI 현장 적용 안내 생성
+## OpenAI TBM 안전용어 표준화·다국어 번역
 
-팀 규칙 모델의 허가서 판정 결과를 한국어 TBM과 작업자별 PPE 안내로 변환하려면 백엔드 또는 AWS ECS 태스크에 다음 환경변수를 설정합니다. API 키는 저장소나 프론트엔드 환경변수에 넣지 않습니다.
+팀 규칙 모델의 허가서 판정 결과를 표준 한국어 TBM으로 교정하고 배정 작업자의 언어로 번역하려면 백엔드 또는 AWS ECS 태스크에 다음 환경변수를 설정합니다. API 키는 저장소나 프론트엔드 환경변수에 넣지 않습니다.
 
 ```dotenv
 OPENAI_API_KEY=your_openai_api_key
@@ -178,7 +178,17 @@ OPENAI_REASONING_EFFORT=none
 OPENAI_MAX_OUTPUT_TOKENS=16000
 ```
 
-`POST /api/ai/work-permits/{permitId}/field-guidance`를 호출하면 가장 최근의 `permit_analysis_results`를 변경하지 않고 현장 안내를 생성합니다. 출력 형식은 백엔드의 구조화 출력 스키마로 고정되며 실행 결과는 `model_runs`에 저장됩니다. 시스템 프롬프트는 `backend/src/main/resources/prompts/work-permit-field-guidance.txt`에서 수정합니다.
+허가서가 승인 또는 조건부 승인되면 백그라운드에서 자동 생성됩니다. 관리자는 `POST /api/admin/work-permits/{permitId}/tbm/generate`로 즉시 다시 생성할 수 있습니다. 출력 형식은 구조화 출력 스키마로 고정되며 한국어 표준화본, 실제 안전용어 교정 내역, 대상 언어별 TBM, 작업자 언어별 PPE·확인사항이 `model_runs`에 기록됩니다. 시스템 프롬프트는 `backend/src/main/resources/prompts/work-permit-field-guidance.txt`에서 수정합니다.
+
+언어별 본문은 `tbm_materials`에 저장되고 UTF-8 JSON 파일은 파일 저장소의 `generated/tbm/{permitId}/{sessionId}/{language}.json` 경로에 저장됩니다. AWS S3를 사용하려면 다음 환경변수와 ECS 태스크 역할의 `s3:PutObject`, `s3:GetObject` 권한을 설정합니다.
+
+```dotenv
+FILE_STORAGE_TYPE=s3
+S3_BUCKET=your-private-tbm-bucket
+S3_REGION=ap-northeast-2
+```
+
+S3를 설정하지 않은 로컬 개발 환경에서는 동일한 JSON이 `uploads/generated/tbm/...`에 저장됩니다. 파일 메타데이터는 `files`, 연결 ID는 `tbm_materials.file_id`에 기록되며 관리자와 해당 허가서에 배정된 작업자만 다운로드할 수 있습니다.
 
 백엔드 테스트:
 
@@ -202,6 +212,6 @@ npm run build
 
 ## 현재 구현 참고사항
 
-- 업로드 파일은 기본적으로 백엔드 실행 위치의 `uploads/` 디렉터리에 저장됩니다.
+- 파일은 기본적으로 백엔드 실행 위치의 `uploads/` 디렉터리에 저장되며, `FILE_STORAGE_TYPE=s3`이면 S3에 저장됩니다.
 - 프런트엔드 화면은 역할별 페이지 구조로 분리되어 있으며, 일부 화면은 후속 API 연동과 기능 구현이 필요합니다.
-- 운영 배포 전에는 비밀번호·DB 접속 정보의 외부 비밀 저장소 관리, 로그인 제한, 감사 로그, 객체 스토리지 적용을 권장합니다.
+- 운영 배포 전에는 비밀번호·DB 접속 정보의 외부 비밀 저장소 관리, 로그인 제한, 감사 로그 적용을 권장합니다.

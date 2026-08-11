@@ -367,6 +367,7 @@ CREATE TABLE tbm_materials (
   file_id BIGINT,
   model_name VARCHAR(80),
   created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  CONSTRAINT ux_tbm_materials_session_type_language UNIQUE (tbm_session_id, material_type, language),
   CONSTRAINT fk_tbm_materials_tbm_session_id FOREIGN KEY (tbm_session_id) REFERENCES tbm_sessions(id) ON DELETE CASCADE,
   CONSTRAINT fk_tbm_materials_file_id FOREIGN KEY (file_id) REFERENCES files(id)
 );

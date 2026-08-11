@@ -30,8 +30,10 @@ services:
       DB_URL: jdbc:mysql://mysql:3306/safety_smartyard_control?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
       DB_USERNAME: admin123
       DB_PASSWORD: admin123
-      FILE_STORAGE_TYPE: local
+      FILE_STORAGE_TYPE: ${FILE_STORAGE_TYPE:-local}
       UPLOAD_DIR: /app/uploads
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_REGION: ${S3_REGION:-ap-northeast-2}
       BOOTSTRAP_ADMIN_USERNAME: ${BOOTSTRAP_ADMIN_USERNAME:-}
       BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
       BOOTSTRAP_ADMIN_NAME: ${BOOTSTRAP_ADMIN_NAME:-관리자}

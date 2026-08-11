@@ -158,17 +158,37 @@ public class FileController {
             throw new ApiException(HttpStatus.NOT_FOUND, "파일을 찾을 수 없습니다.");
         }
         Map<String, Object> file = files.get(0);
-        long ownerId = ((Number) file.get("uploaded_by")).longValue();
-        if (ownerId == user.id() || user.roles().contains("ADMIN")) {
+        Object ownerValue = file.get("uploaded_by");
+        if (user.roles().contains("ADMIN")
+            || ownerValue instanceof Number ownerId && ownerId.longValue() == user.id()) {
             return;
         }
-        if ("permit".equals(String.valueOf(file.get("file_type")))) {
+        String fileType = String.valueOf(file.get("file_type"));
+        if ("permit".equals(fileType)) {
             Integer assigned = jdbcTemplate.queryForObject(
                 """
                     SELECT COUNT(*)
                       FROM work_permit_files wpf
                       JOIN work_permit_workers wpw ON wpw.permit_id = wpf.permit_id
                      WHERE wpf.file_id = ?
+                       AND wpw.user_id = ?
+                    """,
+                Integer.class,
+                fileId,
+                user.id()
+            );
+            if (assigned != null && assigned > 0) {
+                return;
+            }
+        }
+        if ("tbm_translation".equals(fileType)) {
+            Integer assigned = jdbcTemplate.queryForObject(
+                """
+                    SELECT COUNT(*)
+                      FROM tbm_materials tm
+                      JOIN tbm_sessions ts ON ts.id = tm.tbm_session_id
+                      JOIN work_permit_workers wpw ON wpw.permit_id = ts.permit_id
+                     WHERE tm.file_id = ?
                        AND wpw.user_id = ?
                     """,
                 Integer.class,

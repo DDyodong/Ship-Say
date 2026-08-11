@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,11 +39,14 @@ import org.springframework.web.client.RestClientResponseException;
 
 @Service
 public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceService {
-    private static final String GUIDANCE_VERSION_PREFIX = "field-guidance-v2";
+    private static final String GUIDANCE_VERSION_PREFIX = "field-guidance-v3";
+    private static final int MAX_TRANSLATION_LANGUAGES = 12;
+    private static final Pattern LANGUAGE_CODE = Pattern.compile("[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*");
     private static final Logger log = LoggerFactory.getLogger(OpenAiPermitFieldGuidanceService.class);
 
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
+    private final TbmMaterialService tbmMaterialService;
     private final RestClient restClient;
     private final String apiKey;
     private final String model;
@@ -54,6 +58,7 @@ public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceServ
     public OpenAiPermitFieldGuidanceService(
         JdbcTemplate jdbcTemplate,
         ObjectMapper objectMapper,
+        TbmMaterialService tbmMaterialService,
         RestClient.Builder restClientBuilder,
         @Value("${app.ai.openai.api-key:}") String apiKey,
         @Value("${app.ai.openai.base-url:https://api.openai.com/v1}") String baseUrl,
@@ -66,6 +71,7 @@ public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceServ
     ) throws IOException {
         this.jdbcTemplate = jdbcTemplate;
         this.objectMapper = objectMapper;
+        this.tbmMaterialService = tbmMaterialService;
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Duration.ofMillis(connectTimeoutMs));
         requestFactory.setReadTimeout(Duration.ofMillis(readTimeoutMs));
@@ -126,7 +132,8 @@ public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceServ
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onFieldGuidanceRequested(FieldGuidanceRequested event) {
         try {
-            generate(event.permitId());
+            Map<String, Object> guidance = generate(event.permitId());
+            tbmMaterialService.save(event.permitId(), guidance);
         } catch (Exception exception) {
             log.info(
                 "Field guidance pre-generation skipped for permit {}: {}",
@@ -275,6 +282,22 @@ public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceServ
                 "requiresTaskConfirmation", "requiredPpe", "checks", "warnings"
             )
         );
+        Map<String, Object> localizedTbm = objectSchema(
+            Map.of(
+                "language", Map.of("type", "string"),
+                "title", Map.of("type", "string"),
+                "content", Map.of("type", "string")
+            ),
+            List.of("language", "title", "content")
+        );
+        Map<String, Object> terminologyCorrection = objectSchema(
+            Map.of(
+                "original", Map.of("type", "string"),
+                "standardized", Map.of("type", "string"),
+                "reason", Map.of("type", "string")
+            ),
+            List.of("original", "standardized", "reason")
+        );
         return objectSchema(
             Map.of(
                 "tbmTitle", Map.of("type", "string"),
@@ -282,12 +305,15 @@ public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceServ
                 "tbmItems", boundedArraySchema(tbmItem, 8),
                 "commonPpe", boundedArraySchema(ppeItem, 6),
                 "workerGuidance", Map.of("type", "array", "items", workerItem),
-                "translationTargets", Map.of("type", "array", "items", Map.of("type", "string")),
+                "translationTargets", boundedArraySchema(Map.of("type", "string"), MAX_TRANSLATION_LANGUAGES),
+                "localizedTbm", boundedArraySchema(localizedTbm, MAX_TRANSLATION_LANGUAGES),
+                "terminologyCorrections", boundedArraySchema(terminologyCorrection, 12),
                 "operatorWarnings", Map.of("type", "array", "items", Map.of("type", "string"))
             ),
             List.of(
                 "tbmTitle", "tbmSummary", "tbmItems", "commonPpe",
-                "workerGuidance", "translationTargets", "operatorWarnings"
+                "workerGuidance", "translationTargets", "localizedTbm",
+                "terminologyCorrections", "operatorWarnings"
             )
         );
     }
@@ -338,6 +364,7 @@ public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceServ
 
         validateMaxItems(guidance, "tbmItems", 8);
         validateMaxItems(guidance, "commonPpe", 6);
+        validateMaxItems(guidance, "terminologyCorrections", 12);
 
         Map<Long, Map<String, Object>> expectedById = new LinkedHashMap<>();
         Set<String> expectedLanguages = new LinkedHashSet<>();
@@ -391,9 +418,10 @@ public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceServ
         }
 
         JsonNode translationTargets = requireArray(guidance, "translationTargets");
+        validateMaxItems(guidance, "translationTargets", MAX_TRANSLATION_LANGUAGES);
         Set<String> actualLanguages = new LinkedHashSet<>();
         for (JsonNode language : translationTargets) {
-            if (!language.isTextual() || language.asText().isBlank()) {
+            if (!language.isTextual() || !LANGUAGE_CODE.matcher(language.asText()).matches()) {
                 throw new IllegalStateException("번역 대상 언어 코드가 유효하지 않습니다.");
             }
             if (!actualLanguages.add(language.asText())) {
@@ -402,6 +430,22 @@ public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceServ
         }
         if (!actualLanguages.equals(expectedLanguages)) {
             throw new IllegalStateException("번역 대상 언어가 배정 작업자의 언어와 일치하지 않습니다.");
+        }
+
+        JsonNode localizedTbm = requireArray(guidance, "localizedTbm");
+        validateMaxItems(guidance, "localizedTbm", MAX_TRANSLATION_LANGUAGES);
+        Set<String> localizedLanguages = new LinkedHashSet<>();
+        for (JsonNode localized : localizedTbm) {
+            String language = localized.path("language").asText();
+            if (!LANGUAGE_CODE.matcher(language).matches() || !localizedLanguages.add(language)) {
+                throw new IllegalStateException("다국어 TBM 언어 코드가 유효하지 않거나 중복되었습니다.");
+            }
+            if (localized.path("title").asText().isBlank() || localized.path("content").asText().isBlank()) {
+                throw new IllegalStateException("다국어 TBM 제목과 내용은 비어 있을 수 없습니다.");
+            }
+        }
+        if (!localizedLanguages.equals(expectedLanguages)) {
+            throw new IllegalStateException("생성된 다국어 TBM이 번역 대상 언어와 일치하지 않습니다.");
         }
     }
 
