@@ -13,6 +13,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class TbmMaterialService {
+    private static final Logger log = LoggerFactory.getLogger(TbmMaterialService.class);
     static final String MATERIAL_TYPE = "script";
     static final String MODEL_NAME = "openai-tbm-localization";
     private static final String JSON_CONTENT_TYPE = "application/json; charset=utf-8";
@@ -112,6 +115,14 @@ public class TbmMaterialService {
         try {
             storageKey = fileStorage.store(asset, JSON_CONTENT_TYPE, storageName);
         } catch (IOException exception) {
+            log.error(
+                "TBM material storage failed: permitId={}, sessionId={}, language={}, storageName={}",
+                permitId,
+                sessionId,
+                material.language(),
+                storageName,
+                exception
+            );
             throw new ApiException(HttpStatus.BAD_GATEWAY, "다국어 TBM 파일 저장에 실패했습니다.");
         }
 

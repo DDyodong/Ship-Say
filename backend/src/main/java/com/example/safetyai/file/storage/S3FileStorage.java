@@ -62,7 +62,9 @@ public class S3FileStorage implements FileStorage {
 
     @Override
     public String store(byte[] content, String contentType, String storageName) throws IOException {
-        String storageKey = "generated/" + storageName;
+        // 운영 태스크 역할과 버킷 정책은 기존 업로드 경로인 uploads/*에 맞춰져 있다.
+        // 생성 파일도 같은 허용 prefix 아래에 두어 별도의 S3 정책 확장이 필요 없게 한다.
+        String storageKey = "uploads/generated/" + storageName;
         PutObjectRequest request = PutObjectRequest.builder()
             .bucket(bucket)
             .key(storageKey)

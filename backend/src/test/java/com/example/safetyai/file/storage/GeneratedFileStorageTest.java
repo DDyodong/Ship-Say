@@ -53,7 +53,7 @@ class GeneratedFileStorageTest {
 
         ArgumentCaptor<PutObjectRequest> request = ArgumentCaptor.forClass(PutObjectRequest.class);
         verify(s3Client).putObject(request.capture(), any(RequestBody.class));
-        assertThat(key).isEqualTo("generated/tbm/7/11/uz.json");
+        assertThat(key).isEqualTo("uploads/generated/tbm/7/11/uz.json");
         assertThat(request.getValue().bucket()).isEqualTo("tbm-bucket");
         assertThat(request.getValue().key()).isEqualTo(key);
         assertThat(request.getValue().contentType()).isEqualTo("application/json; charset=utf-8");

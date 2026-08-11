@@ -180,7 +180,7 @@ OPENAI_MAX_OUTPUT_TOKENS=16000
 
 허가서가 승인 또는 조건부 승인되면 백그라운드에서 자동 생성됩니다. 관리자는 `POST /api/admin/work-permits/{permitId}/tbm/generate`로 즉시 다시 생성할 수 있습니다. 출력 형식은 구조화 출력 스키마로 고정되며 한국어 표준화본, 실제 안전용어 교정 내역, 대상 언어별 TBM, 작업자 언어별 PPE·확인사항이 `model_runs`에 기록됩니다. 시스템 프롬프트는 `backend/src/main/resources/prompts/work-permit-field-guidance.txt`에서 수정합니다.
 
-언어별 본문은 `tbm_materials`에 저장되고 UTF-8 JSON 파일은 파일 저장소의 `generated/tbm/{permitId}/{sessionId}/{language}.json` 경로에 저장됩니다. AWS S3를 사용하려면 다음 환경변수와 ECS 태스크 역할의 `s3:PutObject`, `s3:GetObject` 권한을 설정합니다.
+언어별 본문은 `tbm_materials`에 저장되고 UTF-8 JSON 파일은 S3의 `uploads/generated/tbm/{permitId}/{sessionId}/{language}.json` 경로에 저장됩니다. 기존 업로드와 동일한 `uploads/*` 권한 범위를 사용합니다. AWS S3를 사용하려면 다음 환경변수와 ECS 태스크 역할의 `s3:PutObject`, `s3:GetObject` 권한을 설정합니다.
 
 ```dotenv
 FILE_STORAGE_TYPE=s3
