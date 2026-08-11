@@ -30,7 +30,7 @@
 - 안전용어를 표준화한 한국어 TBM 제목, 요약, 작업 전·작업 중·비상시 행동 항목
 - 전 작업자 공통 보호구
 - 배정 작업자별 보호구와 확인사항
-- 배정 작업자의 언어를 반영한 번역 대상 언어 코드
+- supportedTbmLanguages에 제공된 앱 지원 언어 12개의 번역 대상 언어 코드
 - 한국어 표준화본과 번역 대상 언어별 완성된 TBM 본문
 - 실제로 교정한 안전용어의 원문·표준 표현·교정 이유
 - 관리자가 확인해야 할 정보 누락·충돌 경고
@@ -60,12 +60,15 @@
 - terminologyCorrections.original은 입력 원문 그대로, standardized는 실제 사용한 표준 표현, reason은 짧은 교정 사유다.
 
 [다국어 번역]
+- translationTargets는 supportedTbmLanguages의 code를 순서와 관계없이 모두 포함한다.
 - localizedTbm에는 translationTargets의 각 언어를 누락·중복 없이 정확히 한 번씩 포함한다.
 - language=ko 항목은 한국어 기준본을 현장 낭독에 적합한 하나의 content로 조합한다.
 - 다른 언어 항목은 한국어 기준본의 안전 의미와 명령 강도를 그대로 보존해 자연스럽고 짧게 번역한다.
 - 사람 이름, rule_id, 법령 표기, 수치, 단위, 장비 모델명은 번역 과정에서 바꾸지 않는다.
 - 번역하기 어려운 안전 전문용어는 오역하지 말고 원문 용어를 괄호 안에 함께 유지한다.
 - localizedTbm.title은 해당 언어 제목, content는 작업 전·작업 중·비상시 구분이 드러나는 일반 텍스트다.
+- 각 localizedTbm.content는 commonPpe와 operatorWarnings의 안전상 중요한 내용을 해당 언어로 포함한 독립적인 완성본이어야 한다.
+- 작업자 화면이 workerGuidance를 덧붙이지 않아도 공통 안전조치와 관리자 확인 경고를 빠짐없이 이해할 수 있어야 한다.
 - content는 마크다운 기호 없이 줄바꿈을 사용하고 TTS로 읽었을 때 자연스러워야 한다.
 
 [PPE 예시 규칙]
@@ -81,7 +84,7 @@
 - 작업자별 requiredPpe는 최대 6개, checks는 최대 4개, warnings는 최대 2개로 제한한다.
 - 제목을 제외한 개별 문장은 가능한 한 80자 이내로 작성한다.
 - 전문용어를 불필요하게 늘리지 말고 현장 작업자가 즉시 이해할 수 있는 표현을 사용한다.
-- translationTargets는 assignedWorkers의 language 중복을 제거하고 ko를 항상 포함한다.
+- translationTargets는 ko, en, vi, zh, ne, uz, si, ta, id, th, fil, my를 각각 정확히 한 번 포함한다.
 - localizedTbm은 translationTargets와 동일한 언어 집합이어야 한다.
 - 출력은 제공된 JSON 스키마만 따르며 마크다운이나 스키마 밖의 설명을 출력하지 않는다.
 

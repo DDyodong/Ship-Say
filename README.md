@@ -169,7 +169,7 @@ Authorization: Bearer {accessToken}
 
 ## OpenAI TBM 안전용어 표준화·다국어 번역
 
-팀 규칙 모델의 허가서 판정 결과를 표준 한국어 TBM으로 교정하고 배정 작업자의 언어로 번역하려면 백엔드 또는 AWS ECS 태스크에 다음 환경변수를 설정합니다. API 키는 저장소나 프론트엔드 환경변수에 넣지 않습니다.
+팀 규칙 모델의 허가서 판정 결과를 표준 한국어 TBM으로 교정하고 앱 지원 언어 12개(`ko`, `en`, `vi`, `zh`, `ne`, `uz`, `si`, `ta`, `id`, `th`, `fil`, `my`)로 미리 번역하려면 백엔드 또는 AWS ECS 태스크에 다음 환경변수를 설정합니다. API 키는 저장소나 프론트엔드 환경변수에 넣지 않습니다.
 
 ```dotenv
 OPENAI_API_KEY=your_openai_api_key
@@ -178,7 +178,7 @@ OPENAI_REASONING_EFFORT=none
 OPENAI_MAX_OUTPUT_TOKENS=16000
 ```
 
-허가서가 승인 또는 조건부 승인되면 백그라운드에서 자동 생성됩니다. 관리자는 `POST /api/admin/work-permits/{permitId}/tbm/generate`로 즉시 다시 생성할 수 있습니다. 출력 형식은 구조화 출력 스키마로 고정되며 한국어 표준화본, 실제 안전용어 교정 내역, 대상 언어별 TBM, 작업자 언어별 PPE·확인사항이 `model_runs`에 기록됩니다. 시스템 프롬프트는 `backend/src/main/resources/prompts/work-permit-field-guidance.txt`에서 수정합니다.
+허가서가 승인 또는 조건부 승인되면 백그라운드에서 12개 언어가 자동 생성됩니다. 관리자는 `POST /api/admin/work-permits/{permitId}/tbm/generate`로 즉시 다시 생성할 수 있습니다. 작업자 앱은 설정 언어를 `GET /api/worker/tbm/today?language=vi`처럼 전달해 미리 저장된 번역본을 선택합니다. 출력 형식은 구조화 출력 스키마로 고정되며 한국어 표준화본, 실제 안전용어 교정 내역, 언어별 TBM, 작업자별 PPE·확인사항이 `model_runs`에 기록됩니다. 시스템 프롬프트는 `backend/src/main/resources/prompts/work-permit-field-guidance.txt`에서 수정합니다.
 
 언어별 본문은 `tbm_materials`에 저장되고 UTF-8 JSON 파일은 S3의 `uploads/generated/tbm/{permitId}/{sessionId}/{language}.json` 경로에 저장됩니다. 기존 업로드와 동일한 `uploads/*` 권한 범위를 사용합니다. AWS S3를 사용하려면 다음 환경변수와 ECS 태스크 역할의 `s3:PutObject`, `s3:GetObject` 권한을 설정합니다.
 

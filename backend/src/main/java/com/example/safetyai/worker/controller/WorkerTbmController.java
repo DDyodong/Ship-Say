@@ -270,6 +270,7 @@ public class WorkerTbmController {
             : List.of();
         workerGuidance.stream()
             .filter(worker -> worker.get("workerId") instanceof Number number && number.longValue() == userId)
+            .filter(worker -> language.equals(worker.get("language")))
             .findFirst()
             .ifPresent(mine -> appendWorkerGuidance(text, mine, language));
     }
