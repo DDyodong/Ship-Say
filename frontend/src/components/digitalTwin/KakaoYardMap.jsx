@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Layers3, Minus, Plus, RotateCcw } from "lucide-react";
-import realFacilityTags from "./geojeShipyardTags.json";
-
+import { ChevronDown, Layers3, Minus, Plus, RotateCcw } from "lucide-react";
+import realFacilityTags from "../../components/digitalTwin/geojeShipyardTags.json";
 const KAKAO_JS_KEY = import.meta.env.VITE_KAKAO_JS_KEY;
 const YARD_ADDRESS = "경상남도 거제시 거제대로 3370";
 
@@ -41,8 +40,10 @@ function offsetCoordinate(origin, eastMeters, northMeters) {
   };
 }
 
-function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers, cameraAlerts = [], cameraConnected = false, cameraStatusText, riskSimulation, overlayPanel, alertBanner, onOpenShop, onUnavailable }) {
+function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers, cameraAlerts = [], cameraConnected = false, cameraStatusText, riskSimulation, overlayPanel, overlayPanelWidth = 230, alertBanner, topOffset = 16, leftTopOffset, bottomOffset = 16, onOpenShop, onUnavailable }) {
+  const filterPanelTop = leftTopOffset ?? topOffset; // 지정 안 하면 기존처럼 topOffset과 같이 움직임
   const [filter, setFilter] = useState("ALL");
+  const [panelCollapsed, setPanelCollapsed] = useState(true);
   const [selected, setSelected] = useState(null);
   const [sdkReady, setSdkReady] = useState(false);
   const [sdkError, setSdkError] = useState("");
@@ -300,8 +301,8 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
     mapRef.current.setLevel(4);
   }, [activeAlertFacilityCode, center, facilities, sdkReady]);
 
-  const zoomIn = () => mapRef.current?.setLevel(mapRef.current.getLevel() - 1);
-  const zoomOut = () => mapRef.current?.setLevel(mapRef.current.getLevel() + 1);
+  const zoomIn = () => { if (!mapRef.current) return; mapRef.current.setLevel(mapRef.current.getLevel() - 1); };
+  const zoomOut = () => { if (!mapRef.current) return; mapRef.current.setLevel(mapRef.current.getLevel() + 1); };
   const resetView = () => {
     if (!mapRef.current || !center) return;
     mapRef.current.setCenter(new window.kakao.maps.LatLng(center.lat, center.lng));
@@ -315,21 +316,25 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
     </section>;
   }
 
-  return <section className="twin-preserve-dark bg-panel border-b border-edge overflow-hidden">
+  return <section className="twin-preserve-dark bg-panel border-b border-edge overflow-hidden" style={{ height: "100dvh" }}>
     <style>{`
       @keyframes toastIn { 0% { transform: translateY(24px) scale(.96); opacity: 0; } 60% { transform: translateY(-4px) scale(1.01); opacity: 1; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
       .animate-toast-in { animation: toastIn .35s cubic-bezier(.34,1.56,.64,1); }
     `}</style>
-    <div ref={containerRef} className="relative" style={{ height: "calc(100dvh - 46px)" }}>
+    <div ref={containerRef} className="relative" style={{ height: "100%" }}>
       <div ref={mapDivRef} className="absolute inset-0"/>
       {(!sdkReady || !center) && <div className="absolute inset-0 flex items-center justify-center bg-ink/70 text-slate-300 text-sm z-20">
         {!sdkReady ? "카카오맵 SDK 불러오는 중..." : "주소 좌표 확인 중..."}
       </div>}
 
-      <div className="absolute top-4 left-4 z-10 w-52 rounded-2xl border border-cyan/15 bg-ink/55 backdrop-blur-xl shadow-xl overflow-hidden">
-        <div className="p-3 flex flex-col gap-3">
+      <div className="absolute left-4 z-10 w-52 rounded-2xl border border-cyan/15 bg-ink/55 backdrop-blur-xl shadow-xl overflow-hidden" style={{ top: filterPanelTop }}>
+        <button onClick={() => setPanelCollapsed((v) => !v)}
+          className="w-full flex items-center justify-between gap-1.5 px-3 py-2.5 text-[10px] font-bold text-slate-200 hover:bg-white/5 transition-colors">
+          <span className="flex items-center gap-1.5"><Layers3 size={13} className="text-cyan"/> 구역 필터</span>
+          <ChevronDown size={13} className={`text-slate-400 transition-transform ${panelCollapsed ? "-rotate-90" : ""}`}/>
+        </button>
+        {!panelCollapsed && <div className="px-3 pb-3 flex flex-col gap-3">
           <div>
-            <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-200 mb-2"><Layers3 size={13} className="text-cyan"/> 구역 필터</div>
             <div className="flex flex-col gap-1">
               {typesPresent.map((value) => <button key={value}
                 onClick={() => setFilter(value)}
@@ -337,14 +342,6 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
                   ? "bg-cyan/15 text-cyan border border-cyan/30" : "text-slate-300/80 hover:text-white border border-transparent"}`}>
                 {value === "ALL" ? "전체 야드" : typeLabels[value] || value}
               </button>)}
-            </div>
-          </div>
-          <div>
-            <div className="text-[10px] font-bold text-slate-200 mb-1.5">지도 조작</div>
-            <div className="flex gap-1.5">
-              <button onClick={zoomOut} className="flex-1 h-7 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 flex items-center justify-center"><Minus size={11}/></button>
-              <button onClick={zoomIn} className="flex-1 h-7 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 flex items-center justify-center"><Plus size={11}/></button>
-              <button onClick={resetView} className="flex-1 h-7 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 flex items-center justify-center"><RotateCcw size={11}/></button>
             </div>
           </div>
           <div>
@@ -356,10 +353,10 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
               </div>)}
             </div>
           </div>
-        </div>
+        </div>}
       </div>
 
-      <div className="absolute top-4 z-10 flex flex-col gap-2" style={{ right: overlayPanel ? 340 : 16 }}>
+      <div className="absolute z-10 flex flex-col gap-2" style={{ right: overlayPanel ? 340 : 16, top: topOffset }}>
         <div className={`px-2.5 py-1.5 backdrop-blur-md rounded text-[11px] font-bold flex items-center gap-1.5 ${
           activeCameraAlerts.length
             ? "bg-danger/80 border border-danger text-white"
@@ -376,22 +373,22 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
 
       {alertBanner && <>
         <div className="absolute inset-0 border-4 border-danger/50 pointer-events-none z-30 blink"/>
-        <div className="absolute z-40 left-1/2 -translate-x-1/2 pointer-events-none" style={{ bottom: 24, width: "min(92%, 440px)" }}>
+        <div className="absolute z-40 left-1/2 -translate-x-1/2 pointer-events-none" style={{ bottom: bottomOffset + 8, width: "min(92%, 440px)" }}>
           <div className="pointer-events-auto animate-toast-in">
             {alertBanner}
           </div>
         </div>
       </>}
 
-      {overlayPanel && <div style={{ position: "absolute", right: 16, top: 16, width: 230, zIndex: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+      {overlayPanel && <div style={{ position: "absolute", right: 16, top: topOffset, width: overlayPanelWidth, zIndex: 20, display: "flex", flexDirection: "column", gap: 10 }}>
         {overlayPanel}
       </div>}
 
-      <div className="absolute bottom-4 left-4 z-10 px-3 py-1.5 rounded-lg bg-ink/55 backdrop-blur-md border border-white/10 text-[11px] text-slate-300">
+      <div className="absolute left-4 z-10 px-3 py-1.5 rounded-lg bg-ink/55 backdrop-blur-md border border-white/10 text-[11px] text-slate-300" style={{ bottom: bottomOffset }}>
         시설 {facilities.length}개 · 한화오션 거제사업장 (실측 좌표)
       </div>
 
-      {selected && <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 w-[min(90%,520px)] rounded-xl bg-ink/70 backdrop-blur-xl border border-white/10 px-4 py-3 flex items-center gap-4">
+      {selected && <div className="absolute left-1/2 -translate-x-1/2 z-10 w-[min(90%,520px)] rounded-xl bg-ink/70 backdrop-blur-xl border border-white/10 px-4 py-3 flex items-center gap-4" style={{ bottom: bottomOffset }}>
         <div className="w-3 h-3 rounded-full shrink-0" style={{ background: cameraAlertByFacility.has(selected.code) ? "#ff2448" : typeColors[selected.type] }}/>
         <div className="min-w-0">
           <p className="text-sm font-bold text-slate-100 truncate">{selected.name}</p>

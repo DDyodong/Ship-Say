@@ -3,7 +3,7 @@ import SafetyScenarioTwin from "./SafetyScenarioTwin";
 
 const FactoryDetailTwin = lazy(() => import("./FactoryDetailTwin"));
 
-function DigitalTwin({ notify }) {
+function DigitalTwin({ session, notify }) {
   const [selectedFacilityCode, setSelectedFacilityCode] = useState(null);
 
   if (selectedFacilityCode) {
@@ -16,7 +16,7 @@ function DigitalTwin({ notify }) {
     </Suspense>;
   }
 
-  return <SafetyScenarioTwin notify={notify} onOpenFactory={setSelectedFacilityCode}/>;
+  return <SafetyScenarioTwin session={session} notify={notify} onOpenFactory={setSelectedFacilityCode}/>;
 }
 
 export default DigitalTwin;
