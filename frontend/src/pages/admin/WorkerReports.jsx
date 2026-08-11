@@ -117,6 +117,7 @@ function WorkerReports({ session, notify }) {
       notify(`안전 이벤트가 '${statusLabels[nextStatus]}' 단계로 변경되었습니다.`);
       setComment("");
       await loadReports();
+      window.dispatchEvent(new Event("safety-events-updated"));
     } catch (error) { notify(error.message); } finally { setSaving(false); }
   };
 

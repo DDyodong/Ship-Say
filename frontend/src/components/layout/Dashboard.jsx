@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Bell, LogOut, Moon, Sun } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import { apiRequest } from "../../api/client";
 import { adminNav } from "../../data/navigation";
 import LegalFooter from "../common/LegalFooter";
 import Page from "./Page";
@@ -10,6 +11,30 @@ function Dashboard({ session, onLogout, notify, theme, onToggleTheme }) {
   const { page = "dashboard" } = useParams();
   const nav = adminNav;
   const isMapPage = page === "dashboard";
+  const [unconfirmedEventCount, setUnconfirmedEventCount] = useState(0);
+
+  const loadUnconfirmedEventCount = useCallback(async () => {
+    try {
+      const events = await apiRequest("/api/safety-events/reports?status=received", {
+        headers: { Authorization: `Bearer ${session.token}` },
+      });
+      // 시스템이 작업자에게 보낸 안내는 관리자의 확인 대상이 아니므로 제외한다.
+      setUnconfirmedEventCount(events.filter(event => event.sourceType !== "system_alert").length);
+    } catch {
+      // 배지 조회 실패가 관리자 화면 전체 사용을 막지 않도록 기존 값을 유지한다.
+    }
+  }, [session.token]);
+
+  useEffect(() => {
+    loadUnconfirmedEventCount();
+    const refresh = () => loadUnconfirmedEventCount();
+    const intervalId = window.setInterval(refresh, 30_000);
+    window.addEventListener("safety-events-updated", refresh);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("safety-events-updated", refresh);
+    };
+  }, [loadUnconfirmedEventCount]);
 
   return <div className={`app-shell ${theme}-theme`} style={{ gridTemplateColumns: "1fr" }}>
     <main className="workspace" style={{ gridColumn: "1 / -1" }}>
@@ -24,9 +49,15 @@ function Dashboard({ session, onLogout, notify, theme, onToggleTheme }) {
             onClick={() => navigate(`/admin/${id}`)}>
             <Icon size={16}/><small>{label}</small>
           </button>)}
-          <button type="button" title="알림" className="topnav-icon-btn">
+          <button
+            type="button"
+            title={`미확인 안전 이벤트 ${unconfirmedEventCount}건`}
+            aria-label={`미확인 안전 이벤트 ${unconfirmedEventCount}건`}
+            className="topnav-icon-btn"
+            onClick={() => navigate("/admin/reports")}
+          >
             <Bell size={16}/>
-            <i>3</i>
+            {unconfirmedEventCount > 0 && <i>{unconfirmedEventCount > 99 ? "99+" : unconfirmedEventCount}</i>}
           </button>
           <button type="button" onClick={onToggleTheme} className="topnav-icon-btn"
             title={theme === "dark" ? "밝은 모드로 전환" : "어두운 모드로 전환"}

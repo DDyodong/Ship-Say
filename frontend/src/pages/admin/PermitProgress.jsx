@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -65,10 +66,10 @@ function buildSteps(progress) {
   const tbmStarted = progress.tbmSessions.length > 0;
   const tbmDone = tbmStarted && assigned > 0 && tbmConfirmed >= assigned;
 
-  const ppeSubmitted = progress.ppeChecks.length;
-  const ppeCleared = progress.ppeChecks.filter(check => check.status !== "retry_required").length;
+  const ppeSubmitted = progress.ppeChecks.filter(check => check.submitted).length;
+  const ppeCleared = progress.ppeChecks.filter(check => check.status === "passed").length;
   const ppeStarted = ppeSubmitted > 0;
-  const ppeDone = ppeStarted && assigned > 0 && ppeCleared >= assigned;
+  const ppeDone = assigned > 0 && ppeCleared >= assigned;
 
   const openEvents = progress.safetyEvents.filter(event => !["resolved", "closed"].includes(event.status));
 
@@ -103,6 +104,8 @@ function buildSteps(progress) {
 }
 
 function PermitProgress({ session, notify }) {
+  const [searchParams] = useSearchParams();
+  const requestedPermitId = Number(searchParams.get("permitId"));
   const [permits, setPermits] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [progress, setProgress] = useState(null);
@@ -127,12 +130,15 @@ function PermitProgress({ session, notify }) {
     apiRequest("/api/work-permits", { headers: authorization })
       .then(rows => {
         setPermits(rows);
+        const requestedPermit = Number.isFinite(requestedPermitId)
+          ? rows.find(row => row.id === requestedPermitId)
+          : null;
         const firstApproved = rows.find(row => ["approved", "conditional_approved"].includes(row.status));
-        setSelectedId(firstApproved?.id || rows[0]?.id || null);
+        setSelectedId(requestedPermit?.id || firstApproved?.id || rows[0]?.id || null);
       })
       .catch(error => notify(error.message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [requestedPermitId]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -259,17 +265,17 @@ function PermitProgress({ session, notify }) {
               <h4>보호구(PPE) 점검</h4>
               {progress.ppeChecks.length ? (
                 progress.ppeChecks.map(check => (
-                  <div className="event-row" key={check.id}>
-                    <span className={check.status === "retry_required" ? "red" : "cyan"}>
+                  <div className="event-row" key={check.id || `worker-${check.userId}`}>
+                    <span className={!check.submitted || check.status === "retry_required" || check.status === "failed" ? "red" : "cyan"}>
                       <HardHat />
                     </span>
                     <div>
                       <b>{check.workerName}</b>
                       <small>
-                        {check.employeeNo} · {formatDateTime(check.checkedAt)}
+                        {check.employeeNo} · {check.submitted ? formatDateTime(check.checkedAt) : "제출 기록 없음"}
                       </small>
                     </div>
-                    <time>{check.status === "retry_required" ? "재촬영 필요" : "확인 완료"}</time>
+                    <time>{!check.submitted ? "미제출" : check.status === "passed" ? "점검 통과" : check.status === "retry_required" ? "재촬영 필요" : check.status === "failed" ? "분석 실패" : "분석 대기"}</time>
                   </div>
                 ))
               ) : (
