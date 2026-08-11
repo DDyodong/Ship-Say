@@ -93,11 +93,9 @@ jobs:
         env:
           ANALYSIS_IMAGE_URI: ${{ steps.build-image.outputs.analysis-image }}
           PPE_IMAGE_API_KEY: ${{ secrets.PPE_IMAGE_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           set -euo pipefail
           test -n "$PPE_IMAGE_API_KEY"
-          test -n "$OPENAI_API_KEY"
 
           jq \
             --arg backend "$CONTAINER_NAME" \
@@ -105,7 +103,6 @@ jobs:
             --arg image "$ANALYSIS_IMAGE_URI" \
             --arg ppeImageUrl "http://172.31.43.100:8000" \
             --arg ppeImageApiKey "$PPE_IMAGE_API_KEY" \
-            --arg openAiApiKey "$OPENAI_API_KEY" \
             --arg fileStorageType "s3" \
             --arg s3Bucket "yardops-ppe-demo-013459780957-20260729" \
             --arg s3Region "us-east-1" \
@@ -134,7 +131,6 @@ jobs:
                             {"name": "PPE_IMAGE_AI_ENABLED", "value": "true"},
                             {"name": "PPE_IMAGE_AI_URL", "value": $ppeImageUrl},
                             {"name": "PPE_IMAGE_API_KEY", "value": $ppeImageApiKey},
-                            {"name": "OPENAI_API_KEY", "value": $openAiApiKey},
                             {"name": "FILE_STORAGE_TYPE", "value": $fileStorageType},
                             {"name": "S3_BUCKET", "value": $s3Bucket},
                             {"name": "S3_REGION", "value": $s3Region}
