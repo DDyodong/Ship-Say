@@ -67,4 +67,9 @@ public class SafetyEventController {
         return safetyEventService.deleteResolved(id);
     }
 
+    @PostMapping("/{id}/analysis")
+    public Map<String, Object> requestAnalysis(@PathVariable long id) {
+        return safetyEventService.requestAnalysis(id);
+    }
+
 }
