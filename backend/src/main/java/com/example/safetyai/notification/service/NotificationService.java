@@ -244,7 +244,7 @@ public class NotificationService {
             "report-status:" + eventId + ":" + status,
             "안전 신고 처리 상태 안내",
             "신고하신 '" + reportTitle + "' 건이 '" + statusLabel(status) + "' 단계로 변경되었습니다." + detail,
-            "/worker/report"
+            "/worker/report?eventId=" + eventId
         );
     }
 
