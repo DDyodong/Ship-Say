@@ -3,7 +3,7 @@ import Hls from "hls.js";
 
 // 실제 카메라 서버(HLS)를 <video>에 재생합니다.
 // 스트림 로드에 실패하면 onError를 호출해 부모가 데모 화면 등으로 폴백할 수 있게 합니다.
-function LiveHlsPlayer({ src, className, onError }) {
+function LiveHlsPlayer({ src, className, onError, onReady }) {
   const videoRef = useRef(null);
 
   useEffect(() => {
@@ -39,6 +39,7 @@ function LiveHlsPlayer({ src, className, onError }) {
       autoPlay
       muted
       playsInline
+      onPlaying={onReady}
     />
   );
 }
