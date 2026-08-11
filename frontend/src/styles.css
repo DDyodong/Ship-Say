@@ -5669,19 +5669,28 @@ button {
 }
 
 .report-detail-actions .primary-small svg,.resolved-button svg {
-  width: 15px;
+  width: 14px;
+  height: 14px;
 }
 
 .resolved-button {
-  height: 40px;
+  min-width: 132px;
+  height: 38px;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
   border: 1px solid #36d39a55;
-  border-radius: 7px;
+  border-radius: 8px;
   background: #36d39a10;
   color: var(--green);
-  padding: 0 15px;
+  padding: 0 16px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1;
+  letter-spacing: -.01em;
+  opacity: 1;
 }
 
 .report-admin-empty {
