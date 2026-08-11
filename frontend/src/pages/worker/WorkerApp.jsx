@@ -123,6 +123,7 @@ function WorkerApp({ session, onLogout, notify }) {
   );
   const contentRef = useRef(null);
   const reportRefs = useRef(new Map());
+  const pendingReportIdRef = useRef(null);
 
   const openTab = nextTab => {
     setTab(nextTab);
@@ -215,7 +216,9 @@ function WorkerApp({ session, onLogout, notify }) {
 
   useEffect(() => {
     if (tab !== "report" || reports.length === 0) return undefined;
-    const eventId = new URLSearchParams(location.search).get("eventId");
+    const eventId = new URLSearchParams(location.search).get("eventId")
+      || location.state?.eventId
+      || pendingReportIdRef.current;
     if (!eventId) return undefined;
 
     const reportId = String(eventId);
@@ -223,15 +226,27 @@ function WorkerApp({ session, onLogout, notify }) {
     if (!reportElement) return undefined;
 
     const frameId = window.requestAnimationFrame(() => {
-      reportElement.scrollIntoView({ behavior: "smooth", block: "center" });
+      const scrollContainer = contentRef.current;
+      if (scrollContainer) {
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const reportRect = reportElement.getBoundingClientRect();
+        const targetTop = scrollContainer.scrollTop
+          + reportRect.top
+          - containerRect.top
+          - (scrollContainer.clientHeight - reportElement.offsetHeight) / 2;
+        scrollContainer.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
+      } else {
+        reportElement.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
       setHighlightedReportId(reportId);
+      pendingReportIdRef.current = null;
     });
     const timeoutId = window.setTimeout(() => setHighlightedReportId(null), 3500);
     return () => {
       window.cancelAnimationFrame(frameId);
       window.clearTimeout(timeoutId);
     };
-  }, [location.search, reports, tab]);
+  }, [location.search, location.state, reports, tab]);
 
   useEffect(() => {
     let unsubscribe;
@@ -481,8 +496,13 @@ function WorkerApp({ session, onLogout, notify }) {
       const targetUrl = notification.eventId && baseTargetUrl.startsWith("/worker/report")
         ? `/worker/report?eventId=${encodeURIComponent(notification.eventId)}`
         : baseTargetUrl;
+      pendingReportIdRef.current = notification.eventId
+        ? String(notification.eventId)
+        : null;
       setTab(workerTabFromPath(targetUrl.split("?")[0]));
-      navigate(targetUrl);
+      navigate(targetUrl, {
+        state: notification.eventId ? { eventId: String(notification.eventId) } : undefined,
+      });
     } catch (error) {
       notify(error.message);
     } finally {
@@ -773,6 +793,7 @@ function WorkerApp({ session, onLogout, notify }) {
           <section
             className={`worker-card worker-report-record${highlightedReportId === String(report.id) ? " highlighted" : ""}`}
             key={report.id}
+            data-report-id={report.id}
             ref={element => {
               const reportId = String(report.id);
               if (element) reportRefs.current.set(reportId, element);
