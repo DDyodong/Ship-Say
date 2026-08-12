@@ -200,7 +200,7 @@ function PermitProgress({ session, notify }) {
             </div>
           )}
         </div>
-        <div className="analysis-panel">
+        <div className="analysis-panel permit-progress-panel">
           {!progress ? (
             <div className="permit-welcome">
               <div className="permit-welcome-icon">
@@ -222,8 +222,8 @@ function PermitProgress({ session, notify }) {
 
               <ProcessStrip steps={steps} />
 
-              <div className="section-head-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <h4 style={{ margin: 0 }}>TBM 브리핑</h4>
+              <div className="section-head-row permit-progress-title-row">
+                <h4>TBM 브리핑</h4>
                 <button className="outline-btn" onClick={generateTbm} disabled={generatingTbm}>
                   <Sparkles />{generatingTbm ? "생성 중..." : "TBM 즉시 생성"}
                 </button>
@@ -262,7 +262,7 @@ function PermitProgress({ session, notify }) {
                 </div>
               )}
 
-              <h4>보호구(PPE) 점검</h4>
+              <h4 className="permit-progress-title">보호구(PPE) 점검</h4>
               {progress.ppeChecks.length ? (
                 progress.ppeChecks.map(check => (
                   <div className="event-row" key={check.id || `worker-${check.userId}`}>
@@ -288,7 +288,7 @@ function PermitProgress({ session, notify }) {
                 </div>
               )}
 
-              <h4>안전 이벤트</h4>
+              <h4 className="permit-progress-title">안전 이벤트</h4>
               {progress.safetyEvents.length ? (
                 progress.safetyEvents.map(event => (
                   <div className="event-row" key={event.id}>
@@ -314,7 +314,7 @@ function PermitProgress({ session, notify }) {
                 </div>
               )}
 
-              <h4>위험 점수</h4>
+              <h4 className="permit-progress-title">위험 점수</h4>
               {progress.riskScores.length ? (
                 <div className="analysis-condition-list">
                   {progress.riskScores.map(score => (
