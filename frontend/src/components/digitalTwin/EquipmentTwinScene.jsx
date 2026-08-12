@@ -40,16 +40,16 @@ const EQUIPMENT_LAYOUTS = {
     { position: [4.7, 0, 1], rotationY: Math.PI / 2 },
   ],
   CUTTING: [
-    { position: [-4.8, 0, -2.1], rotationY: 0 },
-    { position: [3.9, 0, 2.8], rotationY: Math.PI / 2 },
-    { position: [5.8, 0, -3.8], rotationY: 0 },
-    { position: [-5.8, 0, 3.5], rotationY: 0 },
+    { position: [-4.4, 0, .8], rotationY: Math.PI / 2 },
+    { position: [0, 0, .8], rotationY: 0 },
+    { position: [-4.9, 0, -3.45], rotationY: 0 },
+    { position: [4.9, 0, -3.45], rotationY: 0 },
   ],
   SMALLPART: [
-    { position: [-5.2, 0, -2.5], rotationY: 0 },
-    { position: [5.3, 0, -3.1], rotationY: -.35 },
-    { position: [3.2, 0, 3.5], rotationY: 0 },
-    { position: [-5.6, 0, 3.7], rotationY: 0 },
+    { position: [-4.4, 0, 1], rotationY: Math.PI / 2 },
+    { position: [0, 0, -1.1], rotationY: -Math.PI / 2 },
+    { position: [0, 0, 1], rotationY: 0 },
+    { position: [-5.2, 0, -3.45], rotationY: 0 },
   ],
   PAINT: [
     { position: [-6.1, 0, 3], rotationY: 0 },
@@ -609,6 +609,23 @@ function faultJitter(t, seed = 0) {
   return (Math.sin(t * 27 + seed) + Math.sin(t * 41 + seed * 1.7) + Math.sin(t * 63 + seed * 2.3)) / 3;
 }
 function speedMultiplier(alarm, warning) { return alarm ? 2.4 : warning ? 1.4 : 1; }
+const ASSEMBLY_TRAVEL_SPAN = 13.8;
+function assemblyBlockX(t) {
+  return ((t * .38) % ASSEMBLY_TRAVEL_SPAN) - ASSEMBLY_TRAVEL_SPAN / 2;
+}
+function assemblyStationActivity(t, stationX, radius = 1.6) {
+  return THREE.MathUtils.smoothstep(radius - Math.abs(assemblyBlockX(t) - stationX), 0, radius);
+}
+const SMALLPART_TRAVEL_SPAN = 12.8;
+function smallPartWorkpieceX(t, offset = 0) {
+  return ((t * .72 + offset) % SMALLPART_TRAVEL_SPAN) - SMALLPART_TRAVEL_SPAN / 2;
+}
+function smallPartStationActivity(t, stationX, radius = 1.45) {
+  return [0, SMALLPART_TRAVEL_SPAN / 2].reduce((activity, offset) => {
+    const proximity = THREE.MathUtils.smoothstep(radius - Math.abs(smallPartWorkpieceX(t, offset) - stationX), 0, radius);
+    return Math.max(activity, proximity);
+  }, 0);
+}
 
 function MachineUnit({ asset, position, rotationY = 0, selected, onSelect }) {
   const alarm = Boolean(asset.fault);
@@ -618,7 +635,19 @@ function MachineUnit({ asset, position, rotationY = 0, selected, onSelect }) {
   const accent = alarm ? "#ff3b4f" : selected ? "#ff9d38" : warning ? "#ffb23e" : "#23c8ee";
   const issuePositions = { ROBOT:[0,2.3,0], INSPECTOR:[0,2.45,0], POSITIONER:[0,1.1,.4], BENDER:[0,2.15,0], CONVEYOR:[2.5,.55,0], TRANSPORTER:[1.7,.5,1], CUTTER:[0,2.3,0], FAN:[0,1.65,.55], PUMP:[.7,.8,0], CRANE:[0,3.8,0], BLOCK_CRANE:[0,4.9,0], GOLIATH:[0,6.75,0] };
 
-  const motion = { accent, alarm, warning, running, seed, utilization: asset.utilization, conveyorLength: asset.conveyorLength };
+  const motion = {
+    accent,
+    alarm,
+    warning,
+    running,
+    seed,
+    utilization: asset.utilization,
+    conveyorLength: asset.conveyorLength,
+    workpieceStyle: asset.workpieceStyle,
+    lineSync: asset.lineSync,
+    lineStationX: asset.lineStationX,
+    toolType: asset.toolType,
+  };
   const cad = asset.cadModel
     ? { file: asset.cadModel, targetHeight: asset.cadTargetHeight || 2.2, modelScale: asset.cadScale || [1, 1, 1] }
     : KIND_TO_CAD[asset.kind];
@@ -667,7 +696,7 @@ function RobotCadHead() {
     : <mesh><cylinderGeometry args={[.12,.07,.55,14]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.6} roughness={.38}/></mesh>;
 }
 
-function RobotMachine({accent,alarm,warning,running,seed,utilization=0}) {
+function RobotMachine({accent,alarm,warning,running,seed,utilization=0,lineSync,lineStationX=0,toolType="WELDER"}) {
   const waist = useRef();
   const shoulder = useRef();
   const elbow = useRef();
@@ -679,15 +708,19 @@ function RobotMachine({accent,alarm,warning,running,seed,utilization=0}) {
     const speed = speedMultiplier(alarm, warning);
     const cycleSpeed = THREE.MathUtils.lerp(.48, .92, utilizationRate) * speed;
     const phase = t * cycleSpeed + seed;
-    const wave = running ? Math.sin(phase) : 0;
+    const stationActivity = lineSync === "SMALLPART"
+      ? smallPartStationActivity(t, lineStationX)
+      : lineSync === "ASSEMBLY" ? assemblyStationActivity(t, lineStationX) : 1;
+    const wave = running ? Math.sin(phase) * stationActivity : 0;
     const jitter = alarm ? faultJitter(t, seed) * .09 : 0;
-    if (waist.current) waist.current.rotation.y = (running ? Math.sin(phase * .55) * THREE.MathUtils.lerp(.08, .18, utilizationRate) : 0) + jitter * .22;
+    if (waist.current) waist.current.rotation.y = (running ? Math.sin(phase * .55) * THREE.MathUtils.lerp(.08, .18, utilizationRate) * stationActivity : 0) + jitter * .22;
     if (shoulder.current) shoulder.current.rotation.z = -.9 + wave * THREE.MathUtils.lerp(.05, .11, utilizationRate) + jitter;
-    if (elbow.current) elbow.current.rotation.z = -1.1 + (running ? Math.sin(phase + .85) * THREE.MathUtils.lerp(.08, .15, utilizationRate) : 0) + jitter * 1.4;
-    if (wrist.current) wrist.current.rotation.z = 1.08 + (running ? Math.sin(phase * 1.35 + 1.4) * .08 : 0) + jitter * .8;
+    if (elbow.current) elbow.current.rotation.z = -1.1 + (running ? Math.sin(phase + .85) * THREE.MathUtils.lerp(.08, .15, utilizationRate) * stationActivity : 0) + jitter * 1.4;
+    if (wrist.current) wrist.current.rotation.z = 1.08 + (running ? Math.sin(phase * 1.35 + 1.4) * .08 * stationActivity : 0) + jitter * .8;
     if (weldingArc.current) {
-      const welding = running && Math.sin(phase * 2.2) > -.35;
-      weldingArc.current.visible = welding;
+      const materialInRange = !lineSync || stationActivity > .18;
+      const toolActive = running && materialInRange && (toolType === "MARKER" || Math.sin(phase * 2.2) > -.35);
+      weldingArc.current.visible = toolActive;
       const pulse = .8 + Math.abs(Math.sin(t * 24 + seed)) * .45;
       weldingArc.current.scale.setScalar(pulse);
     }
@@ -707,15 +740,18 @@ function RobotMachine({accent,alarm,warning,running,seed,utilization=0}) {
             <group position={[0,.42,0]} rotation={[0,0,Math.PI]}><RobotCadHead/></group>
             <mesh castShadow position={[0,-.18,0]} rotation={[0,0,.18]}><cylinderGeometry args={[.08,.11,.42,14]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.68} roughness={.34}/></mesh>
             <mesh castShadow position={[-.04,-.47,0]} rotation={[0,0,.18]}><coneGeometry args={[.055,.24,14]}/><meshStandardMaterial color="#30383b" metalness={.72} roughness={.3}/></mesh>
-            <group ref={weldingArc} position={[-.08,-.62,0]}>
+            <group ref={weldingArc} visible={false} position={[-.08,-.62,0]}>
               <mesh><sphereGeometry args={[.11,12,12]}/><meshBasicMaterial color="#b9f4ff" toneMapped={false}/></mesh>
               <pointLight color="#65dcff" intensity={7} distance={2.6}/>
-              {[
+              {toolType !== "MARKER" && [
                 [-.22,-.14,.04], [.18,-.11,-.05], [-.13,-.25,-.12],
                 [.26,-.22,.1], [.06,-.3,.16], [-.28,-.31,.08],
               ].map((position,index) => <mesh key={index} position={position}>
                 <sphereGeometry args={[.025,8,8]}/><meshBasicMaterial color={index%2 ? "#ffb44d" : "#d8f8ff"} toneMapped={false}/>
               </mesh>)}
+              {toolType === "MARKER" && <mesh position={[0,-.16,0]}>
+                <cylinderGeometry args={[.012,.012,.32,8]}/><meshBasicMaterial color={accent} transparent opacity={.9} toneMapped={false}/>
+              </mesh>}
             </group>
           </group>
         </group>
@@ -786,11 +822,12 @@ function PipeBenderMachine({accent,alarm,warning,running,seed}) {
 const CONVEYOR_LENGTH = 5.3;
 const CONVEYOR_STRIP_COUNT = 4;
 
-function ConveyorMachine({accent,alarm,warning,running,seed,conveyorLength=CONVEYOR_LENGTH}) {
+function ConveyorMachine({accent,alarm,warning,running,seed,conveyorLength=CONVEYOR_LENGTH,lineSync,workpieceStyle="GENERIC"}) {
   const body = useRef();
   const strips = useRef([]);
-  const workpiece = useRef();
+  const workpieces = useRef([]);
   const rollerCount = Math.max(9, Math.round(conveyorLength / .58));
+  const workpieceCount = workpieceStyle === "ASSEMBLY_BLOCK" ? 1 : 2;
   useFrame(({clock}) => {
     const t = clock.elapsedTime;
     const speed = speedMultiplier(alarm, warning);
@@ -801,7 +838,22 @@ function ConveyorMachine({accent,alarm,warning,running,seed,conveyorLength=CONVE
       body.current.rotation.z = alarm ? jitter * .012 : 0;
     }
 
-    if (workpiece.current) workpiece.current.position.x = -1.1 + (running ? Math.sin(t * .22) * .55 : 0);
+    workpieces.current.forEach((workpiece, index) => {
+      if (!workpiece) return;
+      if (!running) return;
+      if (lineSync === "SMALLPART") {
+        workpiece.position.x = smallPartWorkpieceX(t, index * SMALLPART_TRAVEL_SPAN / 2);
+        return;
+      }
+      if (lineSync === "ASSEMBLY") {
+        workpiece.position.x = assemblyBlockX(t);
+        return;
+      }
+      const margin = workpieceStyle === "ASSEMBLY_BLOCK" ? 2.2 : 1.5;
+      const travelSpan = Math.max(2, conveyorLength - margin);
+      const travelSpeed = workpieceStyle === "ASSEMBLY_BLOCK" ? .38 : .58;
+      workpiece.position.x = ((t * travelSpeed + index * travelSpan / workpieceCount) % travelSpan) - travelSpan / 2;
+    });
 
     if (!running) return;
     const spacing = conveyorLength / CONVEYOR_STRIP_COUNT;
@@ -823,14 +875,42 @@ function ConveyorMachine({accent,alarm,warning,running,seed,conveyorLength=CONVE
       return <group key={`support-${index}`}>{[-.62,.62].map((z) => <mesh key={z} position={[x,.22,z]}><boxGeometry args={[.16,.48,.16]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.5} roughness={.48}/></mesh>)}</group>;
     })}
     {running && Array.from({length:CONVEYOR_STRIP_COUNT}).map((_,index)=><mesh key={index} ref={(node)=>{strips.current[index]=node;}} position={[-conveyorLength/2,.86,0]}><boxGeometry args={[.25,.04,1.3]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={2} transparent opacity={0} depthWrite={false}/></mesh>)}
-    {conveyorLength > CONVEYOR_LENGTH && <group ref={workpiece} position={[-1.1,1.03,0]}>
-      <RoundedBox castShadow args={[1.45,.2,1]} radius={.04} smoothness={2}><meshStandardMaterial color="#59646a" metalness={.72} roughness={.36}/></RoundedBox>
-      <mesh position={[0,.13,0]}><boxGeometry args={[1.12,.08,.68]}/><meshStandardMaterial color="#879196" metalness={.68} roughness={.34}/></mesh>
-      <mesh position={[.58,.2,.38]}><sphereGeometry args={[.055,10,10]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={1.6}/></mesh>
-    </group>}
+    {Array.from({length:workpieceCount}).map((_,index) =>
+      <group key={index} ref={(node)=>{workpieces.current[index]=node;}} position={[
+        lineSync === "SMALLPART"
+          ? smallPartWorkpieceX(0,index*SMALLPART_TRAVEL_SPAN/2)
+          : -conveyorLength/2 + 1.5 + index * Math.max(1,conveyorLength-3) / workpieceCount,
+        1.08,
+        0,
+      ]}>
+        <ConveyorWorkpiece accent={accent} style={workpieceStyle}/>
+      </group>
+    )}
     <mesh position={[conveyorLength/2-.2,.45,0]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.38,.38,.9,18]}/><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.3} roughness={.52}/></mesh>
     <mesh position={[conveyorLength/2-.18,.83,.48]}><sphereGeometry args={[.1,14,14]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={alarm||warning||running?2:.7}/></mesh>
   </group>; }
+
+function ConveyorWorkpiece({accent,style}) {
+  if (style === "ASSEMBLY_BLOCK") return <group>
+    <RoundedBox castShadow args={[2.25,.42,1.22]} radius={.06} smoothness={3}><meshStandardMaterial color="#607681" metalness={.7} roughness={.34}/></RoundedBox>
+    <mesh position={[0,.32,0]}><boxGeometry args={[1.88,.22,.94]}/><meshStandardMaterial color="#aebbc0" metalness={.62} roughness={.35}/></mesh>
+    {[-.72,0,.72].map((x)=><mesh key={x} position={[x,.6,0]}><boxGeometry args={[.1,.58,1.02]}/><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.4} roughness={.42}/></mesh>)}
+    <mesh position={[.92,.63,.48]}><sphereGeometry args={[.06,10,10]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={1.7}/></mesh>
+  </group>;
+  if (style === "STEEL_PLATE") return <group>
+    <RoundedBox castShadow args={[2.35,.14,1.26]} radius={.035} smoothness={2}><meshStandardMaterial color="#4f5b61" metalness={.82} roughness={.3}/></RoundedBox>
+    <mesh position={[0,.09,0]}><boxGeometry args={[2.12,.035,1.05]}/><meshStandardMaterial color="#829097" metalness={.74} roughness={.28}/></mesh>
+    {[-.7,0,.7].map((x)=><mesh key={x} position={[x,.12,0]}><boxGeometry args={[.025,.018,1]}/><meshBasicMaterial color="#d08b38" toneMapped={false}/></mesh>)}
+    <mesh position={[1.03,.17,.48]}><sphereGeometry args={[.05,10,10]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={1.6}/></mesh>
+  </group>;
+  if (style === "SMALL_PART") return <group>
+    <RoundedBox castShadow args={[1.25,.3,.92]} radius={.04} smoothness={2}><meshStandardMaterial color="#405e70" metalness={.72} roughness={.34}/></RoundedBox>
+    <mesh position={[0,.22,0]}><boxGeometry args={[.92,.12,.62]}/><meshStandardMaterial color="#b8c4c8" metalness={.68} roughness={.32}/></mesh>
+    {[-.36,.36].map((x)=><mesh key={x} position={[x,.32,0]}><boxGeometry args={[.08,.28,.68]}/><meshStandardMaterial color="#d6a52c" metalness={.42} roughness={.4}/></mesh>)}
+    <mesh position={[.5,.32,.34]}><sphereGeometry args={[.055,10,10]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={1.6}/></mesh>
+  </group>;
+  return <RoundedBox castShadow args={[1.25,.24,.9]} radius={.04} smoothness={2}><meshStandardMaterial color="#59646a" metalness={.72} roughness={.36}/></RoundedBox>;
+}
 
 const TRANSPORTER_WHEEL_X = [-1.75, -1.05, -.35, .35, 1.05, 1.75];
 
@@ -879,24 +959,34 @@ function TransporterMachine({accent,alarm,warning,running,seed}) {
   </group>;
 }
 
-function CutterMachine({accent,alarm,warning,running,seed}) {
+function CutterMachine({accent,alarm,warning,running,seed,lineSync,lineStationX=0}) {
   const torch = useRef(); const tip = useRef();
   useFrame(({clock}) => {
     const t = clock.elapsedTime;
     const speed = speedMultiplier(alarm, warning);
-    if (torch.current) torch.current.position.y = 2.05 + (running ? Math.sin(t * 2.2 * speed + seed) * .18 : 0);
-    if (tip.current) tip.current.emissiveIntensity = alarm ? 1.6 + Math.abs(faultJitter(t, seed)) * 1.8 : 1;
+    const stationActivity = lineSync === "SMALLPART" ? smallPartStationActivity(t, lineStationX, 1.2) : 1;
+    if (torch.current) {
+      torch.current.position.y = lineSync === "SMALLPART"
+        ? 2.22 - stationActivity * .58
+        : 2.05 + (running ? Math.sin(t * 2.2 * speed + seed) * .18 : 0);
+    }
+    if (tip.current) tip.current.emissiveIntensity = alarm
+      ? 1.6 + Math.abs(faultJitter(t, seed)) * 1.8
+      : running ? .25 + stationActivity * 2.2 : .12;
   });
   return <group><RoundedBox castShadow args={[4.8,.45,2.4]} position={[0,.38,0]} radius={.12}><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.3} roughness={.54}/></RoundedBox>{[-2,2].map(x=><mesh key={x} position={[x,1.55,0]}><boxGeometry args={[.18,2.5,.18]}/><meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.24} roughness={.5}/></mesh>)}<mesh position={[0,2.72,0]}><boxGeometry args={[4.3,.22,.22]}/><meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.24} roughness={.5}/></mesh><mesh ref={torch} position={[0,2.05,0]}><cylinderGeometry args={[.16,.1,1.2,18]}/><meshStandardMaterial ref={tip} color={EQUIPMENT_IVORY_LIGHT} emissive={accent} emissiveIntensity={alarm?1.6:.18}/></mesh></group>; }
 
-function FanMachine({accent,alarm,warning,running,seed}) {
+function FanMachine({accent,alarm,warning,running,seed,lineSync,lineStationX=0}) {
   const rotor = useRef();
   useFrame(({clock}) => {
     if (!rotor.current) return;
     const t = clock.elapsedTime;
     const speed = speedMultiplier(alarm, warning);
     const jitter = alarm ? faultJitter(t, seed) * .3 : 0;
-    rotor.current.rotation.z = (running ? t * 2.4 * speed : 0) + jitter;
+    const extractionBoost = lineSync === "SMALLPART"
+      ? 1 + smallPartStationActivity(t, lineStationX, 1.8) * .55
+      : 1;
+    rotor.current.rotation.z = (running ? t * 2.4 * speed * extractionBoost : 0) + jitter;
   });
 
   return <group>

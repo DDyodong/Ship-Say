@@ -76,7 +76,20 @@ const PROFILE_TEMPLATES = {
 // 설비 이름 → 실제 CAD(STEP) 오버라이드.
 // EquipmentTwinScene의 KIND_TO_CAD(ROBOT/CRANE 기본값)보다 우선 적용됨.
 const EQUIPMENT_CAD_OVERRIDES = {
-  "강재 이송 컨베이어": { conveyorLength: 16, selectionRingScale: [6.5, .85, 1] },
+  "자동 용접 로봇": { lineSync: "ASSEMBLY", lineStationX: -1.1 },
+  "강재 이송 컨베이어": {
+    lineSync: "ASSEMBLY",
+    conveyorLength: 16,
+    selectionRingScale: [6.5, .85, 1],
+    labelPosition: [2.9, 1.35, -1.2],
+    workpieceStyle: "ASSEMBLY_BLOCK",
+    operatingState: "RUNNING",
+  },
+  "강판 이송 테이블": { conveyorLength: 13, selectionRingScale: [5.3, .85, 1], workpieceStyle: "STEEL_PLATE", operatingState: "RUNNING" },
+  "소부재 정밀 절단기": { lineSync: "SMALLPART", lineStationX: -4.4 },
+  "소부재 마킹 로봇": { lineSync: "SMALLPART", lineStationX: 0, toolType: "MARKER", operatingState: "RUNNING" },
+  "소부재 이송 컨베이어": { lineSync: "SMALLPART", conveyorLength: 14, selectionRingScale: [5.7, .85, 1], workpieceStyle: "SMALL_PART", operatingState: "RUNNING" },
+  "소부재 집진 설비": { lineSync: "SMALLPART", lineStationX: -4.4, operatingState: "RUNNING" },
   "골리앗 크레인": {
     labelPosition: [0, 8.35, 0],
     selectionRingScale: [10.5, 1.5, 1],
@@ -143,7 +156,7 @@ const rawFactoryCatalog = facilityTags
         kind,
         ...(EQUIPMENT_CAD_OVERRIDES[name] || {}),
         status: alarm ? "ALARM" : index === (faultIndex + 1) % profile.equipment.length ? "WARNING" : "NORMAL",
-        operatingState: index % 2 ? "STANDBY" : "RUNNING",
+        operatingState: EQUIPMENT_CAD_OVERRIDES[name]?.operatingState || (index % 2 ? "STANDBY" : "RUNNING"),
         utilization: 62 + ((facility.id * 11 + index * 9) % 34),
         fault: alarm ? {
           part,
