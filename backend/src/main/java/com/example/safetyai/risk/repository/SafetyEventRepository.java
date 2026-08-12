@@ -353,6 +353,34 @@ public class SafetyEventRepository {
         return true;
     }
 
+    public List<Map<String, Object>> findActionHistory(long eventId) {
+        return jdbcTemplate.queryForList(
+            """
+                SELECT ea.id,
+                       ea.action_type AS actionType,
+                       ea.comment,
+                       ea.created_at AS createdAt,
+                       u.name AS actorName,
+                       u.employee_no AS employeeNo,
+                       CASE
+                         WHEN EXISTS (
+                           SELECT 1
+                             FROM user_roles ur
+                             JOIN roles r ON r.id = ur.role_id
+                            WHERE ur.user_id = ea.actor_id
+                              AND r.role_code = 'ADMIN'
+                         ) THEN 'ADMIN'
+                         ELSE 'WORKER'
+                       END AS actorRole
+                  FROM event_actions ea
+                  LEFT JOIN users u ON u.id = ea.actor_id
+                 WHERE ea.event_id = ?
+                 ORDER BY ea.created_at ASC, ea.id ASC
+                """,
+            eventId
+        );
+    }
+
     public WorkflowTarget findWorkflowTargetForUpdate(long eventId) {
         List<WorkflowTarget> targets = jdbcTemplate.query(
             "SELECT status, source_type FROM safety_events WHERE id = ? FOR UPDATE",

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  AlertTriangle, BellRing, BrainCircuit, CheckCircle2, Clock3, FileImage, MapPin,
+  AlertTriangle, BellRing, BrainCircuit, CheckCircle2, ChevronDown, Clock3, FileImage, MapPin,
   Maximize2, Search, Send, ShieldCheck, Siren, Trash2, UserRound, Wrench, X,
 } from "lucide-react";
 import { apiBlob, apiRequest } from "../../api/client";
@@ -55,6 +55,9 @@ function WorkerReports({ session, notify }) {
   const [alertDraft, setAlertDraft] = useState(null);
   const [sendingAlert, setSendingAlert] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [expandedHistoryId, setExpandedHistoryId] = useState(null);
+  const [actionHistory, setActionHistory] = useState({});
+  const [historyLoading, setHistoryLoading] = useState(false);
   const headers = { Authorization:`Bearer ${session.token}` };
 
   const loadReports = async () => {
@@ -91,7 +94,28 @@ function WorkerReports({ session, notify }) {
   useEffect(() => {
     setNotifyReporter(selected?.sourceType === "user_report");
     setAlertDraft(null);
+    setExpandedHistoryId(null);
   }, [selectedId, selected?.sourceType]);
+
+  const toggleActionHistory = async () => {
+    if (!selected) return;
+    if (expandedHistoryId === selected.id) {
+      setExpandedHistoryId(null);
+      return;
+    }
+    setExpandedHistoryId(selected.id);
+    if (actionHistory[selected.id]) return;
+    setHistoryLoading(true);
+    try {
+      const rows = await apiRequest(`/api/safety-events/${selected.id}/actions`, { headers });
+      setActionHistory(current => ({ ...current, [selected.id]: rows }));
+    } catch (error) {
+      setExpandedHistoryId(null);
+      notify(error.message);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -245,6 +269,18 @@ function WorkerReports({ session, notify }) {
             <div><dt>위험 유형</dt><dd>{riskLabels[selected.eventType] || selected.title}</dd></div><div><dt>{isAiPpe||isSystemAlert?"대상 작업자":"신고자"}</dt><dd>{maskName(selected.reporterName)}</dd></div><div><dt>사번</dt><dd>{selected.employeeNo || "-"}</dd></div><div><dt>{isAiPpe?"감지 시각":isSystemAlert?"알림 시각":"신고 시각"}</dt><dd>{formatDate(selected.eventTime)}</dd></div>
           </dl></div>
           <div className="report-description"><b>{isAiPpe?"AI 판정 내용":"작업자 상세 내용"}</b><p>{selected.description}</p></div>
+          {selected.sourceType === "user_report"&&<div className="report-action-history">
+            <button type="button" className={expandedHistoryId === selected.id ? "expanded" : ""} onClick={toggleActionHistory}>
+              <span><Clock3/><b>처리 이력 보기</b><small>관리자 요청과 Worker 완료 보고 내용을 확인합니다.</small></span>
+              <ChevronDown/>
+            </button>
+            {expandedHistoryId === selected.id&&<div className="report-action-history-list">
+              {historyLoading?<p className="report-action-history-empty">처리 이력을 불러오는 중입니다.</p>:(actionHistory[selected.id] || []).length === 0?<p className="report-action-history-empty">아직 등록된 처리 내용이 없습니다.</p>:(actionHistory[selected.id] || []).map(action=><article key={action.id}>
+                <i className={action.actorRole === "ADMIN" ? "admin" : "worker"}>{action.actorRole === "ADMIN" ? "관리자" : "Worker"}</i>
+                <div><b>{statusLabels[action.actionType] || action.actionType}</b><p>{action.comment || "입력된 내용 없음"}</p><small>{maskName(action.actorName)}{action.employeeNo ? ` · ${action.employeeNo}` : ""} · {formatDate(action.createdAt)}</small></div>
+              </article>)}
+            </div>}
+          </div>}
           {isAiPpe?<article className="ai-report-result completed ai-ppe-event-result">
             <div className="ai-result-title"><AlertTriangle/><div><b>보호구 착용 판정</b><span>분석 완료 · {selected.modelVersion || "모델 버전 미기재"}</span></div></div>
             <div className="ppe-detection-grid">{ppeItems.map(([key,field,label])=>{

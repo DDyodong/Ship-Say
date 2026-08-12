@@ -57,6 +57,7 @@ public class SecurityConfig {
                 // Site-wide operational data and event actions are administrator features.
                 .requestMatchers("/api/dashboard/**", "/api/digital-twin/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/safety-events", "/api/safety-events/reports").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/safety-events/*/actions").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/safety-events/*/actions").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/safety-events/*/completion-report").hasAnyRole(HUMAN_ROLES)
                 .requestMatchers(HttpMethod.DELETE, "/api/safety-events/*").hasRole("ADMIN")

@@ -63,6 +63,11 @@ public class SafetyEventController {
         return safetyEventService.updateReportStatus(authorization, id, request);
     }
 
+    @GetMapping("/{id}/actions")
+    public List<Map<String, Object>> actionHistory(@PathVariable long id) {
+        return safetyEventService.getActionHistory(id);
+    }
+
     @PostMapping("/{id}/completion-report")
     public Map<String, Object> reportCompletion(
         @RequestHeader(value = "Authorization", required = false) String authorization,

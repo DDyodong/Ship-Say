@@ -91,6 +91,10 @@ public class SafetyEventService {
         return safetyEventRepository.findWorkerReports(status, sourceType);
     }
 
+    public List<Map<String, Object>> getActionHistory(long eventId) {
+        return safetyEventRepository.findActionHistory(eventId);
+    }
+
     public Map<String, Object> requestAnalysis(long eventId) {
         safetyEventRepository.resetAnalysis(eventId);
         eventPublisher.publishEvent(new SafetyReportAnalysisRequested(eventId));
