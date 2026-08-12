@@ -706,7 +706,9 @@ function RobotMachine({accent,alarm,warning,running,seed,utilization=0,lineSync,
   useFrame(({clock}) => {
     const t = clock.elapsedTime;
     const utilizationRate = THREE.MathUtils.clamp(utilization / 100, 0, 1);
-    const speed = speedMultiplier(alarm, warning);
+    const speed = liveCondition
+      ? THREE.MathUtils.lerp(.82, 1.06, utilizationRate)
+      : speedMultiplier(alarm, warning);
     const cycleSpeed = THREE.MathUtils.lerp(.48, .92, utilizationRate) * speed;
     const phase = t * cycleSpeed + seed;
     const stationActivity = liveCondition
@@ -716,7 +718,10 @@ function RobotMachine({accent,alarm,warning,running,seed,utilization=0,lineSync,
         : lineSync === "ASSEMBLY" ? assemblyStationActivity(t, lineStationX) : 1;
     const wave = running ? Math.sin(phase) * stationActivity : 0;
     const instability = liveCondition?.movementInstability || 0;
-    const jitter = faultJitter(t, seed) * (alarm ? .09 : instability * .075);
+    const jitterAmplitude = liveCondition
+      ? (running ? instability * .025 : 0)
+      : alarm ? .09 : 0;
+    const jitter = faultJitter(t, seed) * jitterAmplitude;
     if (waist.current) waist.current.rotation.y = (running ? Math.sin(phase * .55) * THREE.MathUtils.lerp(.08, .18, utilizationRate) * stationActivity : 0) + jitter * .22;
     if (shoulder.current) shoulder.current.rotation.z = -.9 + wave * THREE.MathUtils.lerp(.05, .11, utilizationRate) + jitter;
     if (elbow.current) elbow.current.rotation.z = -1.1 + (running ? Math.sin(phase + .85) * THREE.MathUtils.lerp(.08, .15, utilizationRate) * stationActivity : 0) + jitter * 1.4;
@@ -836,6 +841,7 @@ function ConveyorMachine({accent,alarm,warning,running,seed,conveyorLength=CONVE
   const body = useRef();
   const strips = useRef([]);
   const workpieces = useRef([]);
+  const lastWorkpieceId = useRef(liveCondition?.workpieceId);
   const rollerCount = Math.max(9, Math.round(conveyorLength / .58));
   const workpieceCount = workpieceStyle === "ASSEMBLY_BLOCK" ? 1 : 2;
   useFrame(({clock}) => {
@@ -851,6 +857,10 @@ function ConveyorMachine({accent,alarm,warning,running,seed,conveyorLength=CONVE
     workpieces.current.forEach((workpiece, index) => {
       if (!workpiece) return;
       if (lineSync === "ASSEMBLY" && liveCondition) {
+        if (lastWorkpieceId.current !== liveCondition.workpieceId) {
+          workpiece.position.x = -conveyorLength / 2 + 1.2;
+          lastWorkpieceId.current = liveCondition.workpieceId;
+        }
         workpiece.position.x = THREE.MathUtils.lerp(workpiece.position.x, liveCondition.workpieceX, .055);
         return;
       }
@@ -897,7 +907,7 @@ function ConveyorMachine({accent,alarm,warning,running,seed,conveyorLength=CONVE
         1.08,
         0,
       ]}>
-        <ConveyorWorkpiece accent={accent} style={workpieceStyle}/>
+        <ConveyorWorkpiece accent={liveCondition?.qualityFinalized ? (liveCondition.result === "PASS" ? "#34d399" : liveCondition.result === "RECHECK" ? "#fbbf24" : liveCondition.result === "REWORK" ? "#fb4b5f" : "#94a3b8") : accent} style={workpieceStyle}/>
       </group>
     )}
     <mesh position={[conveyorLength/2-.2,.45,0]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.38,.38,.9,18]}/><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.3} roughness={.52}/></mesh>

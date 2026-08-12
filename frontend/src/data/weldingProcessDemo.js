@@ -87,11 +87,11 @@ function selectQualitySeam(scenario, blockIndex) {
   return rows[index];
 }
 
-export function buildWeldingDemoFrame(index, productionIndex = Math.floor(index / 6)) {
+export function buildWeldingDemoFrame(index, productionIndex = Math.floor(index / 6), lifecycleStep = index % 6) {
   const frameIndex = ((index % robotTimeline.length) + robotTimeline.length) % robotTimeline.length;
   const telemetry = robotTimeline[frameIndex];
   const blockIndex = productionIndex;
-  const stepInBlock = frameIndex % 6;
+  const stepInBlock = lifecycleStep;
   const scenario = telemetry.injected_scenario;
   const meta = scenarioMeta[scenario] || scenarioMeta.NORMAL;
   const quality = selectQualitySeam(scenario, blockIndex);
@@ -124,11 +124,46 @@ export function buildWeldingDemoFrame(index, productionIndex = Math.floor(index 
   const reworkScore = .30 * processInstabilityScore + .70 * qualityRiskScore;
   const isOffline = telemetry.operating_state === "OFFLINE";
   const confirmedAnomaly = Boolean(telemetry.confirmed) && scenario !== "NORMAL";
-  const processStage = stepInBlock <= 3 ? "WELDING" : stepInBlock === 4 ? "TRANSFER" : "INSPECTION";
-  const workpieceX = processStage === "WELDING" ? -1.1 : processStage === "TRANSFER" ? 1.8 : 4.7;
   const result = isOffline ? "HOLD" : reworkScore >= 60
     ? "REWORK" : reworkScore >= 30 ? "RECHECK" : "PASS";
+  const processStage = stepInBlock <= 3
+    ? "WELDING"
+    : stepInBlock === 4
+      ? "TRANSFER"
+      : stepInBlock === 5
+        ? "INSPECTION"
+        : result === "PASS"
+          ? "RELEASE"
+          : result === "RECHECK"
+            ? "RECHECK"
+            : result === "REWORK"
+              ? "REWORK_RETURN"
+              : "HOLD";
+  const workpieceX = processStage === "WELDING"
+    ? -1.1
+    : processStage === "TRANSFER"
+      ? 1.8
+      : processStage === "RELEASE"
+        ? 7
+        : processStage === "REWORK_RETURN"
+          ? -1.1
+          : processStage === "HOLD"
+            ? 0
+            : 4.7;
   const status = isOffline ? "ALARM" : confirmedAnomaly ? "WARNING" : "NORMAL";
+  const qualityAgreement = Boolean(quality.agree);
+  const validationResult = qualityAgreement
+    ? "판정 적합"
+    : quality.trueLabel === "PASS"
+      ? "과검출 · FALSE POSITIVE"
+      : "미검출 · FALSE NEGATIVE";
+  const routingLabel = result === "PASS"
+    ? "다음 공정으로 반출"
+    : result === "RECHECK"
+      ? "검사기에서 재검사"
+      : result === "REWORK"
+        ? "동일 블록 재작업 복귀"
+        : "통신 복구까지 공정 보류";
 
   return {
     frameIndex,
@@ -143,7 +178,11 @@ export function buildWeldingDemoFrame(index, productionIndex = Math.floor(index 
     processStage,
     workpieceX,
     workpieceAtRobot: processStage === "WELDING" && !isOffline,
-    workpieceAtInspection: processStage === "INSPECTION",
+    workpieceAtInspection: processStage === "INSPECTION" || processStage === "RECHECK",
+    qualityFinalized: !["WELDING", "TRANSFER"].includes(processStage),
+    qualityAgreement,
+    validationResult,
+    routingLabel,
     operatingLoadScore: Math.round(operatingLoadScore * 10) / 10,
     processInstabilityScore: Math.round(processInstabilityScore * 10) / 10,
     qualityRiskScore: Math.round(qualityRiskScore * 10) / 10,
@@ -154,7 +193,8 @@ export function buildWeldingDemoFrame(index, productionIndex = Math.floor(index 
       current: Math.round(currentRisk * 100),
       duty: Math.round(dutyRisk * 100),
     },
-    movementInstability: Math.max(torqueRisk, currentRisk, voltageRisk),
+    // 축 과부하는 관절 움직임, 전류·전압 이상은 주로 아크에 반영한다.
+    movementInstability: clamp01(.75 * torqueRisk + .15 * currentRisk + .10 * voltageRisk),
     arcInstability: Math.max(currentRisk, voltageRisk, gasRisk),
     status,
     result,

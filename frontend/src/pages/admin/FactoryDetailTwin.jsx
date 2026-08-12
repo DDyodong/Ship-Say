@@ -23,11 +23,11 @@ function FactoryDetailTwin({ facilityCode, onBack, notify }) {
   const [demoPlaying, setDemoPlaying] = useState(true);
 
   const demoFrameIndex = demoPlayback.mode === "AUTO"
-    ? weldingAutoplayScenarioStarts[demoPlayback.block] + demoPlayback.step
-    : demoPlayback.scenarioStart + demoPlayback.step;
+    ? weldingAutoplayScenarioStarts[demoPlayback.block] + Math.min(demoPlayback.step, 5)
+    : demoPlayback.scenarioStart + Math.min(demoPlayback.step, 5);
   const weldingDemo = useMemo(
-    () => isWeldingDemo ? buildWeldingDemoFrame(demoFrameIndex, demoPlayback.produced) : null,
-    [demoFrameIndex, demoPlayback.produced, isWeldingDemo],
+    () => isWeldingDemo ? buildWeldingDemoFrame(demoFrameIndex, demoPlayback.produced, demoPlayback.step) : null,
+    [demoFrameIndex, demoPlayback.produced, demoPlayback.step, isWeldingDemo],
   );
   const liveFactory = useMemo(() => {
     if (!weldingDemo) return factory;
@@ -53,7 +53,7 @@ function FactoryDetailTwin({ facilityCode, onBack, notify }) {
       };
       if (asset.kind === "CONVEYOR") return {
         ...base,
-        operatingState: weldingDemo.processStage === "TRANSFER" ? "RUNNING" : "STANDBY",
+        operatingState: ["TRANSFER", "RELEASE", "REWORK_RETURN"].includes(weldingDemo.processStage) ? "RUNNING" : "STANDBY",
         liveCondition: weldingDemo,
       };
       if (asset.kind === "INSPECTOR") return {
@@ -84,7 +84,7 @@ function FactoryDetailTwin({ facilityCode, onBack, notify }) {
     if (!isWeldingDemo || !demoPlaying) return undefined;
     const timer = window.setInterval(() => {
       setDemoPlayback((current) => {
-        if (current.step < 5) return { ...current, step: current.step + 1 };
+        if (current.step < 6) return { ...current, step: current.step + 1 };
         if (current.mode !== "AUTO") return current;
         return {
           ...current,
@@ -98,7 +98,7 @@ function FactoryDetailTwin({ facilityCode, onBack, notify }) {
   }, [demoPlaying, isWeldingDemo]);
 
   useEffect(() => {
-    if (demoPlayback.mode !== "AUTO" && demoPlayback.step === 5) setDemoPlaying(false);
+    if (demoPlayback.mode !== "AUTO" && demoPlayback.step === 6) setDemoPlaying(false);
   }, [demoPlayback.mode, demoPlayback.step]);
 
   const startAutoplay = () => {
@@ -117,7 +117,7 @@ function FactoryDetailTwin({ facilityCode, onBack, notify }) {
   };
   const toggleDemo = () => {
     if (demoPlaying) setDemoPlaying(false);
-    else if (demoPlayback.mode !== "AUTO" && demoPlayback.step === 5) startAutoplay();
+    else if (demoPlayback.mode !== "AUTO" && demoPlayback.step === 6) startAutoplay();
     else setDemoPlaying(true);
   };
 
@@ -189,10 +189,18 @@ function FactoryDetailTwin({ facilityCode, onBack, notify }) {
 function WeldingProcessDemoPanel({ demo, playing, autoMode, onToggle, onRestart, onAuto, onJump }) {
   const telemetry = demo.telemetry;
   const quality = demo.quality;
-  const stageLabel = { WELDING: "로봇 용접", TRANSFER: "검사기로 이송", INSPECTION: "용접 품질 검사" }[demo.processStage];
+  const stageLabel = {
+    WELDING: "로봇 용접",
+    TRANSFER: "검사기로 이송",
+    INSPECTION: "용접 품질 검사",
+    RELEASE: "PASS · 다음 공정 반출",
+    RECHECK: "RECHECK · 재검사 유지",
+    REWORK_RETURN: "REWORK · 로봇 복귀",
+    HOLD: "HOLD · 안전 정지",
+  }[demo.processStage];
   const resultTone = demo.result === "PASS" ? "text-emerald-300" : demo.result === "HOLD" ? "text-slate-300" : demo.result === "RECHECK" ? "text-amber-300" : "text-red-300";
   const statusTone = demo.status === "NORMAL" ? "border-emerald-400/20 bg-emerald-400/[.06] text-emerald-300" : demo.status === "WARNING" ? "border-amber-400/25 bg-amber-400/[.07] text-amber-300" : "border-red-400/25 bg-red-500/[.08] text-red-300";
-  const timelineProgress = demo.processStep / 5 * 100;
+  const timelineProgress = demo.processStep / 6 * 100;
   return <section className="mt-4 space-y-4">
     <article className="rounded-2xl border border-cyan-400/15 bg-[#08131d] p-5 shadow-xl">
       <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-center">
@@ -223,7 +231,7 @@ function WeldingProcessDemoPanel({ demo, playing, autoMode, onToggle, onRestart,
         <ProcessStage index="01" label="현재 블록" value={demo.workpieceId} active/>
         <ProcessStage index="02" label="공정 상태" value={stageLabel} active={demo.processStage === "WELDING"}/>
         <ProcessStage index="03" label="CSV 이상 시나리오" value={demo.scenarioLabel} active={demo.confirmedAnomaly || demo.isOffline} danger={demo.status === "ALARM"}/>
-        <ProcessStage index="04" label="최종 판정" value={demo.processStage === "INSPECTION" ? demo.result : "검사 대기"} active={demo.processStage === "INSPECTION"} danger={demo.result === "REWORK"}/>
+        <ProcessStage index="04" label="최종 판정" value={demo.qualityFinalized ? `${demo.result} · ${demo.routingLabel}` : "검사 대기"} active={demo.qualityFinalized} danger={demo.result === "REWORK"}/>
       </div>
     </article>
 
@@ -251,7 +259,7 @@ function WeldingProcessDemoPanel({ demo, playing, autoMode, onToggle, onRestart,
       </article>
 
       <article className="rounded-2xl border border-cyan-400/15 bg-[#08131d] p-5">
-        <div className="flex items-start justify-between gap-3"><div><p className="text-[9px] font-black tracking-[.16em] text-cyan-300">WELD QUALITY · SEAM {quality.seam_id}</p><h3 className="mt-2 text-sm font-black text-white">동일 블록 품질 예측 및 판정</h3></div><b className={`text-lg font-black ${resultTone}`}>{demo.processStage === "INSPECTION" ? demo.result : "PREDICTING"}</b></div>
+        <div className="flex items-start justify-between gap-3"><div><p className="text-[9px] font-black tracking-[.16em] text-cyan-300">WELD QUALITY · SEAM {quality.seam_id}</p><h3 className="mt-2 text-sm font-black text-white">동일 블록 품질 예측 및 판정</h3></div><b className={`text-lg font-black ${resultTone}`}>{demo.qualityFinalized ? demo.result : "PREDICTING"}</b></div>
         <div className="mt-4 grid grid-cols-2 gap-2">
           <TelemetryValue label="전류 평균" value={quality.current_amp_mean.toFixed(1)} unit="A"/>
           <TelemetryValue label="전류 표준편차" value={quality.current_amp_std.toFixed(1)} unit="A" danger={quality.current_amp_std > 20}/>
@@ -268,7 +276,12 @@ function WeldingProcessDemoPanel({ demo, playing, autoMode, onToggle, onRestart,
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[.06]"><div className={`h-full rounded-full transition-[width] duration-500 ${demo.reworkScore >= 60 ? "bg-red-400" : demo.reworkScore >= 30 ? "bg-amber-400" : "bg-emerald-400"}`} style={{ width: `${demo.reworkScore}%` }}/></div>
           <div className="mt-2 flex justify-between text-[7px] text-slate-600"><span>PASS 0–29</span><span>RECHECK 30–59</span><span>REWORK 60–100</span></div>
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-2 text-[8px]"><div className="rounded-lg border border-white/[.07] bg-white/[.025] p-3"><span className="text-slate-600">CSV 정답 라벨</span><b className="mt-1 block text-slate-200">{quality.trueLabel}</b></div><div className="rounded-lg border border-white/[.07] bg-white/[.025] p-3"><span className="text-slate-600">학습 모델 예측</span><b className={`mt-1 block ${quality.modelPrediction === "PASS" ? "text-emerald-300" : "text-red-300"}`}>{quality.modelPrediction} · {(quality.defectRiskProbability * 100).toFixed(1)}%</b></div></div>
+        <div className="mt-3 grid grid-cols-3 gap-2 text-[8px]">
+          <QualityValidationCard label="CSV 정답 라벨" value={quality.trueLabel} tone={quality.trueLabel === "PASS" ? "good" : "danger"}/>
+          <QualityValidationCard label="학습 모델 예측" value={`${quality.modelPrediction} · ${(quality.defectRiskProbability * 100).toFixed(1)}%`} tone={quality.modelPrediction === "PASS" ? "good" : "danger"}/>
+          <QualityValidationCard label="모델 판정 검증" value={demo.validationResult} tone={demo.qualityAgreement ? "good" : "warning"}/>
+        </div>
+        {demo.qualityFinalized && <div className={`mt-3 rounded-xl border p-3 ${demo.qualityAgreement ? "border-emerald-400/20 bg-emerald-400/[.05]" : "border-amber-400/20 bg-amber-400/[.05]"}`}><div className="flex items-center justify-between gap-3"><div><span className="text-[8px] font-black text-slate-500">QUALITY DECISION TRACE</span><p className="mt-1 text-[9px] text-slate-300">정답과 예측 {demo.qualityAgreement ? "일치" : "불일치"} · 운영 조치: {demo.routingLabel}</p></div><b className={demo.qualityAgreement ? "text-[11px] text-emerald-300" : "text-[11px] text-amber-300"}>{demo.qualityAgreement ? "검증 통과" : "오판 확인 필요"}</b></div></div>}
         <p className="mt-3 text-[8px] leading-4 text-slate-600">이 화면의 숫자는 UI용 고정값이 아니라 두 CSV의 현재 행과 모델 출력값을 재생합니다. 실제 센서 연동 전 합성 데이터 PoC입니다.</p>
       </article>
     </div>
@@ -279,6 +292,7 @@ function ProcessStage({ index, label, value, active, danger }) { return <div cla
 function TelemetryValue({ label, value, unit, danger }) { return <div className={`rounded-xl border p-3 ${danger ? "border-red-400/20 bg-red-500/[.055]" : "border-white/[.07] bg-white/[.025]"}`}><span className="block text-[8px] text-slate-500">{label}</span><b className={`mt-1 block text-sm ${danger ? "text-red-200" : "text-slate-100"}`}>{value}<small className="ml-1 text-[8px] text-slate-600">{unit}</small></b></div>; }
 function FormulaBar({ label, value }) { return <div className="grid grid-cols-[120px_minmax(0,1fr)_30px] items-center gap-2"><span className="text-[8px] text-slate-500">{label}</span><div className="h-1.5 overflow-hidden rounded-full bg-white/[.06]"><div className={`h-full rounded-full transition-[width] duration-500 ${value >= 60 ? "bg-red-400" : value >= 30 ? "bg-amber-400" : "bg-cyan-400"}`} style={{ width: `${value}%` }}/></div><b className="text-right text-[8px] text-slate-300">{value}</b></div>; }
 function DemoScoreCard({ label, value, suffix, danger }) { return <div className={`rounded-xl border p-3 text-center ${danger ? "border-red-400/20 bg-red-500/[.055]" : "border-white/[.07] bg-white/[.025]"}`}><span className="block text-[7px] text-slate-600">{label}</span><b className={`mt-1 block text-lg ${danger ? "text-red-300" : "text-cyan-200"}`}>{value}<small className="ml-0.5 text-[8px]">{suffix}</small></b></div>; }
+function QualityValidationCard({ label, value, tone }) { const style = tone === "good" ? "border-emerald-400/20 bg-emerald-400/[.05] text-emerald-300" : tone === "danger" ? "border-red-400/20 bg-red-500/[.055] text-red-300" : "border-amber-400/20 bg-amber-400/[.055] text-amber-300"; return <div className={`rounded-lg border p-3 ${style}`}><span className="block text-[7px] text-slate-500">{label}</span><b className="mt-1 block text-[9px]">{value}</b></div>; }
 
 function WorkerSafetyPanel({ worker, factory, responseState, notify }) {
   const assignedAsset = factory.equipment.find((asset) => asset.assetCode === worker.assignedAssetCode);
