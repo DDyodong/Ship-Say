@@ -4872,6 +4872,64 @@ button {
   color: #526879;
 }
 
+.light-theme .report-action-history {
+  border-color: #cbdbe3;
+  background: #f8fbfc;
+  box-shadow: 0 4px 14px rgba(38, 55, 70, .05);
+}
+
+.light-theme .report-action-history > button {
+  color: #263746;
+  background: #f4f9fb;
+}
+
+.light-theme .report-action-history > button:hover {
+  background: #eaf5f8;
+}
+
+.light-theme .report-action-history > button small {
+  color: #718593;
+}
+
+.light-theme .report-action-history > button > svg {
+  color: #5b7180;
+}
+
+.light-theme .report-action-history-list {
+  background: #fff;
+}
+
+.light-theme .report-action-history-list article {
+  border-top-color: #dce6eb;
+}
+
+.light-theme .report-action-history-list article > i {
+  color: #087fa3;
+  background: #dff3f8;
+}
+
+.light-theme .report-action-history-list article > i.worker {
+  color: #b85b12;
+  background: #fff0e2;
+}
+
+.light-theme .report-action-history-list article b {
+  color: #263746;
+}
+
+.light-theme .report-action-history-list article p {
+  color: #526879;
+}
+
+.light-theme .report-action-history-list article small,
+.light-theme .report-action-history-empty {
+  color: #718593;
+}
+
+.light-theme .report-action-history-empty {
+  border-top-color: #dce6eb;
+}
+
 .light-theme .ai-report-result {
   background: linear-gradient(135deg,#eef8fa,#f8fbfc);
   border-color: #add6e1;
