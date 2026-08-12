@@ -3,6 +3,7 @@ import { Bell, ChevronDown, LogOut, Moon, Sun, UserRound } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiRequest } from "../../api/client";
 import { adminNav } from "../../data/navigation";
+import LegalFooter from "../common/LegalFooter";
 import Page from "./Page";
 
 function Dashboard({ session, onLogout, notify, theme, onToggleTheme }) {
@@ -53,8 +54,8 @@ function Dashboard({ session, onLogout, notify, theme, onToggleTheme }) {
   }, []);
 
   return <div className={`app-shell ${theme}-theme`} style={{ gridTemplateColumns: "1fr" }}>
-    <main className="workspace" style={{ gridColumn: "1 / -1", display: "flex", flexDirection: "column", height: "100dvh" }}>
-      <header className="topnav-header" style={{ flexShrink: 0 }}>
+    <main className="workspace dashboard-workspace" style={{ gridColumn: "1 / -1" }}>
+      <header className="topnav-header">
         <div className="topnav-brand">
           <b>SHIP-SAY</b>
           <span>스마트 조선소 통합 안전 모니터링</span>
@@ -110,6 +111,7 @@ function Dashboard({ session, onLogout, notify, theme, onToggleTheme }) {
       <section className="content" style={isMapPage ? { padding: 0, maxWidth: "none", margin: 0, flex: 1, minHeight: 0 } : undefined}>
         <Page page={page} session={session} notify={notify}/>
       </section>
+      <LegalFooter compact/>
     </main>
   </div>;
 }
