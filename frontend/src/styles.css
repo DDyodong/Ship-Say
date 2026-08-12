@@ -4420,6 +4420,24 @@ button {
   grid-column: 2;
 }
 
+.dashboard-workspace {
+  min-width: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-workspace > .content {
+  width: 100%;
+  flex: 1 0 auto;
+}
+
+.dashboard-workspace > .legal-footer {
+  display: block;
+  flex: 0 0 auto;
+  margin-top: auto;
+}
+
 @media (max-width:1100px) {
   .app-shell {
     --sidebar-width: 210px;

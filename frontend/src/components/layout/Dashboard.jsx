@@ -54,7 +54,7 @@ function Dashboard({ session, onLogout, notify, theme, onToggleTheme }) {
   }, []);
 
   return <div className={`app-shell ${theme}-theme`} style={{ gridTemplateColumns: "1fr" }}>
-    <main className="workspace" style={{ gridColumn: "1 / -1" }}>
+    <main className="workspace dashboard-workspace" style={{ gridColumn: "1 / -1" }}>
       <header className="topnav-header">
         <div className="topnav-brand">
           <b>SHIP-SAY</b>
