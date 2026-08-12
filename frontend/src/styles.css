@@ -1279,6 +1279,82 @@ button {
   cursor: wait;
 }
 
+/* 허가서 진행 현황의 단계별 콘텐츠 제목 */
+.permit-progress-title-row,
+.permit-progress-panel .permit-progress-title {
+  margin: 24px 0 10px;
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 1px solid rgba(48,198,242,.16);
+  border-left: 3px solid var(--cyan);
+  border-radius: 9px;
+  background: linear-gradient(90deg,rgba(48,198,242,.10),rgba(48,198,242,.025));
+}
+
+.permit-progress-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.permit-progress-title-row h4,
+.permit-progress-panel .permit-progress-title {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: -.01em;
+}
+
+.permit-progress-title-row h4 {
+  margin: 0;
+}
+
+.permit-progress-panel .permit-progress-title {
+  display: flex;
+  align-items: center;
+}
+
+.permit-progress-title-row .outline-btn {
+  min-height: 32px;
+  margin-left: auto;
+  padding: 6px 12px;
+  flex: 0 0 auto;
+  font-size: 9px;
+}
+
+.light-theme .permit-progress-title-row,
+.light-theme .permit-progress-panel .permit-progress-title {
+  border-color: #cce5ed;
+  border-left-color: #149cc4;
+  background: linear-gradient(90deg,#eaf7fb,#f8fbfc);
+  color: #1c3545;
+}
+
+.light-theme .permit-progress-title-row h4,
+.light-theme .permit-progress-panel .permit-progress-title {
+  color: #1c3545;
+}
+
+.light-theme .permit-progress-title-row .outline-btn {
+  border-color: #9ed5e4;
+  background: #fff;
+  color: #167f9f;
+}
+
+@media (max-width: 520px) {
+  .permit-progress-title-row,
+  .permit-progress-panel .permit-progress-title {
+    margin-top: 18px;
+  }
+
+  .permit-progress-title-row .outline-btn {
+    width: auto;
+  }
+}
+
 .danger-btn {
   height: 42px;
   border: 1px solid #ff526366;
