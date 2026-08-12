@@ -48,6 +48,8 @@ class SafetyEventNotificationTest {
             eventPublisher
         );
         when(authService.requireUserId("Bearer admin")).thenReturn(7L);
+        when(repository.findWorkflowTargetForUpdate(125L))
+            .thenReturn(new SafetyEventRepository.WorkflowTarget("completion_reported", "user_report"));
         when(repository.updateReportStatus(125L, 7L, "resolved", "난간 보강 완료"))
             .thenReturn(true);
     }

@@ -353,6 +353,43 @@ public class SafetyEventRepository {
         return true;
     }
 
+    public WorkflowTarget findWorkflowTargetForUpdate(long eventId) {
+        List<WorkflowTarget> targets = jdbcTemplate.query(
+            "SELECT status, source_type FROM safety_events WHERE id = ? FOR UPDATE",
+            (resultSet, rowNum) -> new WorkflowTarget(
+                resultSet.getString("status"),
+                resultSet.getString("source_type")
+            ),
+            eventId
+        );
+        return targets.isEmpty() ? null : targets.get(0);
+    }
+
+    public boolean reportWorkerCompletion(long eventId, long reporterId, String comment) {
+        int updated = jdbcTemplate.update(
+            """
+                UPDATE safety_events
+                   SET status = 'completion_reported'
+                 WHERE id = ?
+                   AND reporter_id = ?
+                   AND source_type = 'user_report'
+                   AND status = 'action_requested'
+                """,
+            eventId,
+            reporterId
+        );
+        if (updated == 0) {
+            return false;
+        }
+        jdbcTemplate.update(
+            "INSERT INTO event_actions (event_id, actor_id, action_type, comment) VALUES (?, ?, 'completion_reported', ?)",
+            eventId,
+            reporterId,
+            comment
+        );
+        return true;
+    }
+
     public DeletionTarget findDeletionTargetForUpdate(long eventId) {
         List<DeletionTarget> targets = jdbcTemplate.query(
             "SELECT status, permit_id FROM safety_events WHERE id = ? FOR UPDATE",
@@ -373,5 +410,8 @@ public class SafetyEventRepository {
             "DELETE FROM safety_events WHERE id = ? AND status = 'resolved'",
             eventId
         ) > 0;
+    }
+
+    public record WorkflowTarget(String status, String sourceType) {
     }
 }

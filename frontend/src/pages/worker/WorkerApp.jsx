@@ -117,6 +117,7 @@ function WorkerApp({ session, onLogout, notify }) {
   const [reportPreview, setReportPreview] = useState("");
   const [eventType, setEventType] = useState("FALL_HEIGHT");
   const [description, setDescription] = useState("");
+  const [completionComments, setCompletionComments] = useState({});
   const [highlightedReportId, setHighlightedReportId] = useState(null);
   const [pushState, setPushState] = useState(
     () => localStorage.getItem("fcm-installation-id") ? "ready" : "idle",
@@ -146,6 +147,8 @@ function WorkerApp({ session, onLogout, notify }) {
   ];
   const reportStatus = {
     received: text.received,
+    action_requested: "조치 요청",
+    completion_reported: "완료 확인 대기",
     reviewing: extraText.reviewing,
     action_required: extraText.actionRequired,
     resolved: extraText.resolved,
@@ -510,6 +513,29 @@ function WorkerApp({ session, onLogout, notify }) {
     }
   };
 
+  const submitCompletionReport = async report => {
+    const comment = String(completionComments[report.id] || "").trim();
+    if (!comment) {
+      notify("수행한 안전 조치 내용을 입력해 주세요.");
+      return;
+    }
+    setBusy(`completion-${report.id}`);
+    try {
+      await apiRequest(`/api/safety-events/${report.id}/completion-report`, {
+        method: "POST",
+        headers: authorization,
+        body: JSON.stringify({ comment }),
+      });
+      setCompletionComments(current => ({ ...current, [report.id]: "" }));
+      await loadReports();
+      notify("조치 완료 보고가 제출되었습니다. 관리자의 최종 확인을 기다려 주세요.");
+    } catch (error) {
+      notify(error.message);
+    } finally {
+      setBusy("");
+    }
+  };
+
   const renderTodayNotifications = () => (
     <section className="worker-card worker-today-notifications">
       <div className="worker-notification-heading">
@@ -810,6 +836,29 @@ function WorkerApp({ session, onLogout, notify }) {
               {formatTime(report.eventTime, locale)}
               {report.latestActionComment ? ` · ${report.latestActionComment}` : ""}
             </small>
+            {report.status === "action_requested"&&<div className="worker-completion-report">
+              <b>조치 완료 보고</b>
+              <p>관리자가 요청한 조치를 수행한 뒤 결과를 작성해 주세요.</p>
+              <textarea
+                className="worker-field worker-textarea"
+                value={completionComments[report.id] || ""}
+                maxLength={2000}
+                placeholder="예: 작업을 중단하고 가연물을 제거한 후 소화기를 배치했습니다."
+                onChange={event => setCompletionComments(current => ({
+                  ...current,
+                  [report.id]: event.target.value,
+                }))}
+              />
+              <button
+                type="button"
+                className="worker-completion-button"
+                disabled={busy === `completion-${report.id}` || !String(completionComments[report.id] || "").trim()}
+                onClick={() => submitCompletionReport(report)}
+              >
+                {busy === `completion-${report.id}` ? <LoaderCircle className="spin"/> : <Check/>}
+                {busy === `completion-${report.id}` ? "제출 중..." : "조치 완료 보고"}
+              </button>
+            </div>}
           </section>
         ))
       ) : (

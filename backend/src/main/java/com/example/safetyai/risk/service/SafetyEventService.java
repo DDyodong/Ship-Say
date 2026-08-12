@@ -6,6 +6,7 @@ import com.example.safetyai.notification.service.NotificationService;
 import com.example.safetyai.risk.dto.CreateSafetyEventRequest;
 import com.example.safetyai.risk.dto.SafetyEventActionRequest;
 import com.example.safetyai.risk.dto.SafetyEventAnalysisRequest;
+import com.example.safetyai.risk.dto.WorkerCompletionReportRequest;
 import com.example.safetyai.risk.repository.SafetyEventRepository;
 import java.time.Year;
 import java.util.LinkedHashMap;
@@ -122,6 +123,19 @@ public class SafetyEventService {
         SafetyEventActionRequest request
     ) {
         long actorId = authService.requireUserId(authorization);
+        SafetyEventRepository.WorkflowTarget target = safetyEventRepository.findWorkflowTargetForUpdate(eventId);
+        if (target == null) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "안전 이벤트를 찾을 수 없습니다.");
+        }
+        boolean userReport = "user_report".equals(target.sourceType());
+        boolean validTransition = userReport
+            ? ("action_requested".equals(request.status())
+                ? List.of("received", "confirmed", "in_progress").contains(target.status())
+                : "resolved".equals(request.status()) && "completion_reported".equals(target.status()))
+            : isLegacyAdminTransition(target.status(), request.status());
+        if (!validTransition) {
+            throw new ApiException(HttpStatus.CONFLICT, "현재 처리 단계에서는 해당 상태로 변경할 수 없습니다.");
+        }
         boolean updated = safetyEventRepository.updateReportStatus(
             eventId,
             actorId,
@@ -149,6 +163,39 @@ public class SafetyEventService {
             "status", request.status(),
             "notificationScheduled", notificationScheduled
         );
+    }
+
+    @Transactional
+    public Map<String, Object> reportWorkerCompletion(
+        String authorization,
+        long eventId,
+        WorkerCompletionReportRequest request
+    ) {
+        long reporterId = authService.requireUserId(authorization);
+        boolean updated = safetyEventRepository.reportWorkerCompletion(
+            eventId,
+            reporterId,
+            request.comment().trim()
+        );
+        if (!updated) {
+            throw new ApiException(
+                HttpStatus.CONFLICT,
+                "본인에게 조치 요청된 신고만 완료 보고할 수 있습니다."
+            );
+        }
+        recomputeRiskScoreSafely(eventId);
+        return Map.of(
+            "id", eventId,
+            "status", "completion_reported"
+        );
+    }
+
+    private boolean isLegacyAdminTransition(String currentStatus, String requestedStatus) {
+        List<String> steps = List.of("received", "confirmed", "in_progress", "resolved");
+        int currentIndex = steps.indexOf(currentStatus);
+        return currentIndex >= 0
+            && currentIndex < steps.size() - 1
+            && steps.get(currentIndex + 1).equals(requestedStatus);
     }
 
     @Transactional

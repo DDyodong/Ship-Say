@@ -2,6 +2,7 @@ package com.example.safetyai.risk.controller;
 
 import com.example.safetyai.risk.dto.CreateSafetyEventRequest;
 import com.example.safetyai.risk.dto.SafetyEventActionRequest;
+import com.example.safetyai.risk.dto.WorkerCompletionReportRequest;
 import com.example.safetyai.risk.service.SafetyEventService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -60,6 +61,15 @@ public class SafetyEventController {
         @Valid @RequestBody SafetyEventActionRequest request
     ) {
         return safetyEventService.updateReportStatus(authorization, id, request);
+    }
+
+    @PostMapping("/{id}/completion-report")
+    public Map<String, Object> reportCompletion(
+        @RequestHeader(value = "Authorization", required = false) String authorization,
+        @PathVariable long id,
+        @Valid @RequestBody WorkerCompletionReportRequest request
+    ) {
+        return safetyEventService.reportWorkerCompletion(authorization, id, request);
     }
 
     @DeleteMapping("/{id}")

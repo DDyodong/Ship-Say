@@ -7,9 +7,11 @@ import { apiBlob, apiRequest } from "../../api/client";
 import { SectionHead } from "../../components/common";
 import { maskName } from "../../utils/privacy";
 
-const statusOptions = [["", "전체"], ["received", "접수"], ["confirmed", "확인"], ["in_progress", "조치 중"], ["resolved", "처리 완료"]];
+const statusOptions = [["", "전체"], ["received", "접수"], ["action_requested", "조치 요청"], ["completion_reported", "완료 확인 대기"], ["resolved", "처리 완료"]];
 const statusLabels = Object.fromEntries(statusOptions.filter(([value]) => value));
-const statusSteps = ["received", "confirmed", "in_progress", "resolved"];
+Object.assign(statusLabels, { confirmed:"기존 확인", in_progress:"기존 조치 중" });
+const userReportSteps = ["received", "action_requested", "completion_reported", "resolved"];
+const legacySteps = ["received", "confirmed", "in_progress", "resolved"];
 const sourceOptions = [["", "전체 이벤트"], ["user_report", "작업자 위험 신고"], ["ai_ppe", "AI 보호구 감지"], ["system_alert", "시스템 안전 알림"]];
 const sourceLabels = {
   user_report: { label:"작업자 신고", badge:"cyan", detail:"현장 작업자 신고 상세" },
@@ -189,8 +191,13 @@ function WorkerReports({ session, notify }) {
     }
   };
 
+  const statusSteps = selected?.sourceType === "user_report" ? userReportSteps : legacySteps;
   const currentStep = selected ? Math.max(0, statusSteps.indexOf(selected.status)) : 0;
-  const nextStatus = selected && currentStep < statusSteps.length - 1 ? statusSteps[currentStep + 1] : null;
+  const nextStatus = selected?.sourceType === "user_report"
+    ? (selected.status === "received" || ["confirmed", "in_progress"].includes(selected.status)
+        ? "action_requested"
+        : selected.status === "completion_reported" ? "resolved" : null)
+    : selected && currentStep < statusSteps.length - 1 ? statusSteps[currentStep + 1] : null;
   const analysisDone = selected?.analysisStatus === "completed";
   const analysisFailed = selected?.analysisStatus === "failed";
 
@@ -251,8 +258,8 @@ function WorkerReports({ session, notify }) {
             {analysisDone?<><div className="ai-result-metrics"><div><MapPin/><span>추정 위치<b>{selected.estimatedLocation || "추정 불가"}</b></span></div><div><AlertTriangle/><span>위험 중요도<b className={`severity-${selected.severity}`}>{severityLabels[selected.severity] || selected.severity}</b></span></div><div><ShieldCheck/><span>위험 점수<b>{selected.riskScore ?? "-"}<small>/100</small></b></span></div></div><div className="ai-result-text"><div><b>분석 요약</b><p>{selected.analysisSummary}</p></div><div><b>권고 조치</b><p>{selected.recommendedAction}</p></div></div><small className="ai-confidence">우선순위 {selected.priority || "-"} · 정책 {selected.policyVersion || "-"} · 모델 신뢰도 {selected.confidence == null ? "-" : `${Math.round(Number(selected.confidence) * 100)}%`}</small></>:<div className="ai-pending-message"><Clock3/><b>{analysisFailed ? selected.analysisError || "AI 분석에 실패했습니다." : "AI 모델 분석 중..."}</b><button type="button" className="outline-btn" disabled={analyzing} onClick={requestAnalysis}>{analyzing?"요청 중...":"다시 분석"}</button></div>}
           </article>}
           <div className="report-progress"><b>처리 상태</b><div>{statusSteps.map((status,index)=><span key={status} className={index<=currentStep?"active":""}><i>{index<currentStep?<CheckCircle2/>:index+1}</i>{statusLabels[status]}</span>)}</div></div>
-          <label className="report-action-comment"><span>관리자 조치 내용</span><textarea value={comment} onChange={e=>setComment(e.target.value)} maxLength={2000} placeholder="현장 확인 결과와 조치 내용을 입력하세요."/></label>
-          <div className="report-detail-actions">{nextStatus?<button disabled={saving} className="primary-small" onClick={()=>updateStatus(nextStatus)}><Wrench/>{saving?"저장 중...":`${statusLabels[nextStatus]} 처리`}</button>:<><button disabled className="resolved-button"><CheckCircle2/>처리 완료됨</button><button type="button" className="delete-event-button" disabled={deleting} onClick={deleteResolvedEvent}><Trash2/>{deleting?"삭제 중...":"이벤트 삭제"}</button></>}</div>
+          {nextStatus&&<label className="report-action-comment"><span>{nextStatus === "resolved" ? "Worker 완료 보고 검토 및 최종 확인" : "관리자 조치 요청 내용"}</span><textarea value={comment} onChange={e=>setComment(e.target.value)} maxLength={2000} placeholder={nextStatus === "resolved" ? "Worker의 완료 보고를 검토한 결과를 입력하세요." : "Worker가 수행해야 할 안전 조치 내용을 입력하세요."}/></label>}
+          <div className="report-detail-actions">{nextStatus?<button disabled={saving || !comment.trim()} className="primary-small" onClick={()=>updateStatus(nextStatus)}><Wrench/>{saving?"저장 중...":nextStatus === "action_requested" ? "Worker에게 조치 요청" : nextStatus === "resolved" ? "최종 확인 및 처리 완료" : `${statusLabels[nextStatus]} 처리`}</button>:<><button disabled className="resolved-button"><CheckCircle2/>{selected.status === "action_requested" ? "Worker 완료 보고 대기 중" : "처리 완료됨"}</button>{selected.status === "resolved"&&<button type="button" className="delete-event-button" disabled={deleting} onClick={deleteResolvedEvent}><Trash2/>{deleting?"삭제 중...":"이벤트 삭제"}</button>}</>}</div>
         </>}
       </section>
     </div>
