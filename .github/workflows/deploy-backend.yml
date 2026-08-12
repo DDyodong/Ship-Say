@@ -92,11 +92,23 @@ jobs:
       - name: Add permit analysis sidecar
         env:
           ANALYSIS_IMAGE_URI: ${{ steps.build-image.outputs.analysis-image }}
+          PPE_IMAGE_API_KEY: ${{ secrets.PPE_IMAGE_API_KEY }}
         run: |
+          set -euo pipefail
+          test -n "$PPE_IMAGE_API_KEY"
+
           jq \
             --arg backend "$CONTAINER_NAME" \
             --arg analysis "$ANALYSIS_CONTAINER_NAME" \
             --arg image "$ANALYSIS_IMAGE_URI" \
+            --arg ppeImageUrl "http://172.31.43.100:8000" \
+            --arg ppeImageApiKey "$PPE_IMAGE_API_KEY" \
+<<<<<<< HEAD
+=======
+            --arg fileStorageType "s3" \
+            --arg s3Bucket "yardops-ppe-demo-013459780957-20260729" \
+            --arg s3Region "ap-northeast-2" \
+>>>>>>> 457f71d (이미지 S3에 업로드 하도록 수정)
             --arg health "python -c 'import urllib.request; urllib.request.urlopen(\"http://127.0.0.1:8001/health\", timeout=2)'" \
             '
               (.containerDefinitions[] | select(.name == $backend) | .logConfiguration // null) as $backendLogs
@@ -108,19 +120,38 @@ jobs:
                           | map(select(
                               .name != "PERMIT_ANALYSIS_AI_URL"
                               and .name != "PERMIT_ANALYSIS_AI_ENABLED"
+                              and .name != "PPE_IMAGE_AI_ENABLED"
+                              and .name != "PPE_IMAGE_AI_URL"
+                              and .name != "PPE_IMAGE_API_KEY"
+<<<<<<< HEAD
+=======
+                              and .name != "FILE_STORAGE_TYPE"
+                              and .name != "S3_BUCKET"
+                              and .name != "S3_REGION"
+>>>>>>> 457f71d (이미지 S3에 업로드 하도록 수정)
                             )))
                         + [
                             {"name": "PERMIT_ANALYSIS_AI_ENABLED", "value": "true"},
-                            {"name": "PERMIT_ANALYSIS_AI_URL", "value": "http://127.0.0.1:8001"}
+                            {"name": "PERMIT_ANALYSIS_AI_URL", "value": "http://127.0.0.1:8001"},
+                            {"name": "PPE_IMAGE_AI_ENABLED", "value": "true"},
+                            {"name": "PPE_IMAGE_AI_URL", "value": $ppeImageUrl},
+<<<<<<< HEAD
+                            {"name": "PPE_IMAGE_API_KEY", "value": $ppeImageApiKey}
+=======
+                            {"name": "PPE_IMAGE_API_KEY", "value": $ppeImageApiKey},
+                            {"name": "FILE_STORAGE_TYPE", "value": $fileStorageType},
+                            {"name": "S3_BUCKET", "value": $s3Bucket},
+                            {"name": "S3_REGION", "value": $s3Region}
+>>>>>>> 457f71d (이미지 S3에 업로드 하도록 수정)
                           ]
                       )
                       | .dependsOn = (
                           ((.dependsOn // []) | map(select(.containerName != $analysis)))
-                          + [{"containerName": $analysis, "condition": "HEALTHY"}]
+                          + [{"containerName": $analysis, "condition": "START"}]
                         )
                     elif .name == $analysis then
                       .image = $image
-                      | .essential = true
+                      | .essential = false
                       | .healthCheck = {
                           "command": ["CMD-SHELL", $health],
                           "interval": 10,
@@ -135,7 +166,7 @@ jobs:
                         {
                           "name": $analysis,
                           "image": $image,
-                          "essential": true,
+                          "essential": false,
                           "healthCheck": {
                             "command": ["CMD-SHELL", $health],
                             "interval": 10,

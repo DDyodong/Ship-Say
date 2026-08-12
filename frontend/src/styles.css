@@ -719,6 +719,137 @@ button {
   display: none;
 }
 
+/* 모든 관리자 페이지 공통 상단 네비게이션. 예전엔 디지털 트윈(지도) 페이지만
+   이 스타일을 쓰고 나머지는 좌측 사이드바를 썼는데, 페이지마다 골격이 달라
+   일관성이 없다는 피드백에 따라 사이드바를 없애고 전 페이지에 통일했다. */
+.topnav-header {
+  height: 55px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 0 22px;
+  background: var(--navy);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.topnav-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.topnav-avatar {
+  width: 31px;
+  height: 31px;
+  border-radius: 50%;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cyan);
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.topnav-brand b {
+  font-size: 17px;
+  white-space: nowrap;
+}
+
+.topnav-brand span {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topnav-menu {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.topnav-menu::-webkit-scrollbar {
+  display: none;
+}
+
+.topnav-menu>button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+  padding: 2px 0;
+}
+
+.topnav-menu>button.active {
+  color: var(--cyan);
+}
+
+.topnav-icon-btn {
+  position: relative;
+  background: none;
+  border: none;
+  color: var(--cyan);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+}
+
+.topnav-icon-btn.muted {
+  color: var(--muted);
+}
+
+.topnav-icon-btn i {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  min-width: 12px;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--red);
+  color: #fff;
+  font-size: 7px;
+  font-weight: 700;
+  font-style: normal;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 760px) {
+  .topnav-brand span {
+    display: none;
+  }
+  .topnav-menu {
+    gap: 12px;
+  }
+  .topnav-menu>button small {
+    display: none;
+  }
+}
+
+.light-theme .topnav-header {
+  background: #fff;
+  border-color: #d9e2e8;
+}
+
 .content {
   padding: 28px 30px 50px;
   max-width: 1600px;
@@ -1120,6 +1251,32 @@ button {
 
 .outline-btn svg {
   width: 16px;
+}
+
+.section-head-row .outline-btn {
+  color: var(--cyan);
+  border-color: #30c6f24d;
+  background: #30c6f215;
+  border-radius: 20px;
+  padding: 7px 14px;
+  font-weight: 700;
+  transition: background .15s ease, border-color .15s ease;
+}
+
+.section-head-row .outline-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.1;
+}
+
+.section-head-row .outline-btn:hover:not(:disabled) {
+  background: #30c6f226;
+  border-color: #30c6f280;
+}
+
+.section-head-row .outline-btn:disabled {
+  opacity: .6;
+  cursor: wait;
 }
 
 .danger-btn {
@@ -1763,12 +1920,18 @@ button {
   filter: saturate(.75);
 }
 
+.camera-card .camera-feed {
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+
 .camera-feed-video {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  background: #000;
 }
 
 .cam1,.cam3 {
@@ -2142,6 +2305,403 @@ button {
   }
 }
 
+.ppe-flow-banner {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(110px, 1fr) auto) minmax(110px, 1fr);
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border: 1px solid #30c6f23d;
+  border-radius: 12px;
+  background: linear-gradient(110deg, #30c6f20f, #091925 48%, #36d39a0b);
+}
+
+.ppe-flow-banner > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ppe-flow-banner b {
+  color: var(--text);
+  font-size: 10px;
+}
+
+.ppe-flow-banner span {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.ppe-flow-banner > svg {
+  width: 13px;
+  height: 13px;
+  color: var(--cyan);
+}
+
+.ppe-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.ppe-summary-grid article {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: #091925;
+}
+
+.ppe-summary-grid article.attention {
+  border-color: #ff52634d;
+  background: #ff52630b;
+}
+
+.ppe-summary-grid article > svg {
+  width: 20px;
+  color: var(--cyan);
+}
+
+.ppe-summary-grid article.attention > svg {
+  color: #ff8190;
+}
+
+.ppe-summary-grid article div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ppe-summary-grid span,
+.ppe-summary-grid em {
+  color: var(--muted);
+  font-size: 8px;
+  font-style: normal;
+}
+
+.ppe-summary-grid b {
+  font-size: 18px;
+}
+
+.ppe-summary-grid b small {
+  margin-left: 2px;
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.ppe-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.ppe-toolbar > label {
+  display: flex;
+  width: min(330px, 100%);
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: #07131d;
+}
+
+.ppe-toolbar label svg {
+  width: 14px;
+  color: var(--muted);
+}
+
+.ppe-toolbar input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 9px;
+}
+
+.ppe-filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.ppe-filter-tabs button {
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.ppe-filter-tabs button.active {
+  border-color: #30c6f266;
+  background: #30c6f218;
+  color: var(--cyan);
+}
+
+.ppe-work-groups {
+  display: grid;
+  gap: 16px;
+}
+
+.ppe-work-group {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: #07131d;
+}
+
+.ppe-work-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 15px 16px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(105deg, #30c6f20d, transparent 55%);
+}
+
+.ppe-work-identity,
+.ppe-work-progress,
+.ppe-work-progress > div,
+.ppe-evidence-row > div,
+.ppe-not-submitted {
+  display: flex;
+  align-items: center;
+}
+
+.ppe-work-identity {
+  min-width: 0;
+  gap: 11px;
+}
+
+.ppe-work-identity > span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 10px;
+  background: #30c6f218;
+  color: var(--cyan);
+}
+
+.ppe-work-identity svg {
+  width: 19px;
+}
+
+.ppe-work-identity div {
+  min-width: 0;
+}
+
+.ppe-work-identity small,
+.ppe-work-identity p {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.ppe-work-identity h3 {
+  margin: 3px 0;
+  font-size: 13px;
+}
+
+.ppe-work-identity p {
+  margin: 0;
+}
+
+.ppe-work-progress {
+  flex: 0 0 auto;
+  gap: 14px;
+}
+
+.ppe-work-progress > div {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
+
+.ppe-work-progress span {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.ppe-work-progress b {
+  font-size: 12px;
+}
+
+.ppe-work-progress button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid #30c6f24d;
+  border-radius: 8px;
+  background: #30c6f210;
+  color: var(--cyan);
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.ppe-work-progress button svg {
+  width: 12px;
+}
+
+.ppe-work-group .ppe-monitor-list {
+  padding: 12px;
+}
+
+.ppe-work-group .ppe-monitor-card {
+  background: #091925;
+}
+
+.ppe-analysis-state.not-submitted {
+  background: #ffb14a18;
+  color: #ffbd67;
+}
+
+.ppe-evidence-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ppe-evidence-row > div {
+  min-width: 0;
+  gap: 8px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #06131e;
+}
+
+.ppe-evidence-row svg {
+  width: 15px;
+  flex: 0 0 auto;
+  color: var(--cyan);
+}
+
+.ppe-evidence-row span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ppe-evidence-row b,
+.ppe-evidence-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ppe-evidence-row b {
+  font-size: 8px;
+}
+
+.ppe-evidence-row small {
+  color: var(--muted);
+  font-size: 7px;
+}
+
+.ppe-not-submitted {
+  gap: 10px;
+  margin-top: 11px;
+  padding: 12px;
+  border: 1px dashed #ffb14a52;
+  border-radius: 9px;
+  background: #ffb14a0b;
+}
+
+.ppe-not-submitted > svg {
+  width: 19px;
+  color: #ffbd67;
+}
+
+.ppe-not-submitted div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ppe-not-submitted b {
+  font-size: 9px;
+}
+
+.ppe-not-submitted span {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.light-theme .ppe-flow-banner,
+.light-theme .ppe-summary-grid article,
+.light-theme .ppe-work-group,
+.light-theme .ppe-work-group .ppe-monitor-card,
+.light-theme .ppe-toolbar > label,
+.light-theme .ppe-evidence-row > div {
+  background-color: #fff;
+}
+
+@media (max-width: 1000px) {
+  .ppe-flow-banner {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .ppe-flow-banner > svg {
+    display: none;
+  }
+
+  .ppe-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .ppe-flow-banner {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ppe-flow-banner > div:last-of-type {
+    grid-column: 1 / -1;
+  }
+
+  .ppe-toolbar,
+  .ppe-work-group-head,
+  .ppe-work-progress {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ppe-filter-tabs {
+    justify-content: flex-start;
+  }
+
+  .ppe-work-progress {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ppe-work-progress button {
+    grid-column: 1 / -1;
+    justify-content: center;
+  }
+
+  .ppe-evidence-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .permit-layout {
   display: grid;
   grid-template-columns: 340px 1fr;
@@ -2227,6 +2787,7 @@ button {
 .analysis-head {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
 }
 
 .analysis-head span {
@@ -7717,6 +8278,33 @@ button {
   font-size: 6px;
   color: #6f8998;
   margin-top: 2px;
+}
+
+/* 실제 센서/카메라 연동 없이 코드로 생성·재현되는 화면(디지털 트윈 텔레메트리,
+   작업자 이동경로 예측, 시나리오 스토리 데모)에 공통으로 붙이는 표시.
+   "실시간"이라는 인상을 주지 않도록 항상 눈에 띄는 자리에 붙일 것. */
+.sim-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,179,0,.45);
+  background: rgba(255,179,0,.12);
+  color: #ffb300;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  white-space: nowrap;
+}
+
+.sim-badge::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #ffb300;
+  box-shadow: 0 0 6px #ffb300;
 }
 
 .shop-scene-help {

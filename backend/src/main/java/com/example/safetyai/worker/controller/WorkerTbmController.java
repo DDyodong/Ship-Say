@@ -3,12 +3,14 @@ package com.example.safetyai.worker.controller;
 import com.example.safetyai.auth.service.AuthService;
 import com.example.safetyai.common.exception.ApiException;
 import com.example.safetyai.common.util.JdbcInsert;
+import com.example.safetyai.permit.service.PermitFieldGuidanceService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -24,9 +26,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/worker/tbm")
 public class WorkerTbmController {
     private final JdbcTemplate jdbcTemplate;
+    private final PermitFieldGuidanceService fieldGuidanceService;
 
-    public WorkerTbmController(JdbcTemplate jdbcTemplate) {
+    public WorkerTbmController(JdbcTemplate jdbcTemplate, PermitFieldGuidanceService fieldGuidanceService) {
         this.jdbcTemplate = jdbcTemplate;
+        this.fieldGuidanceService = fieldGuidanceService;
     }
 
     @GetMapping("/today")
@@ -97,7 +101,7 @@ public class WorkerTbmController {
             user.id()
         );
         if (!sessions.isEmpty()) {
-            return response(sessions.get(0));
+            return response(sessions.get(0), user);
         }
 
         List<Map<String, Object>> permits = jdbcTemplate.queryForList(
@@ -140,7 +144,7 @@ public class WorkerTbmController {
             admin,
             user.id()
         );
-        return permits.isEmpty() ? Map.of() : response(permits.get(0));
+        return permits.isEmpty() ? Map.of() : response(permits.get(0), user);
     }
 
     @PostMapping("/confirm")
@@ -184,14 +188,104 @@ public class WorkerTbmController {
         return sessionIds.isEmpty() ? createSession(permitId) : sessionIds.get(0);
     }
 
-    private Map<String, Object> response(Map<String, Object> row) {
+    private Map<String, Object> response(Map<String, Object> row, AuthService.AuthenticatedUser user) {
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("permitId", row.get("permit_id"));
         response.put("title", row.get("title"));
-        response.put("content", row.get("content"));
+        response.put("content", enrichedContent(row, user));
         response.put("confirmed", Boolean.TRUE.equals(row.get("confirmed"))
             || row.get("confirmed") instanceof Number number && number.intValue() != 0);
         return response;
+    }
+
+    // 승인 시점에 미리 생성해 둔 OpenAI 현장 안내(TBM 요약·단계별 행동요령·개인 보호구·확인사항)가
+    // 캐시돼 있으면 그걸로 대체하고, 없으면(아직 생성 전, 실패, API 키 미설정 등) 기존 방식으로
+    // 채워진 row.content(작업 내용 요약)를 그대로 쓴다. 여기서는 새로 생성을 트리거하지 않는다 —
+    // 그러면 작업자의 "오늘 작업" 로딩이 OpenAI 응답 시간만큼 느려지기 때문이다.
+    private String enrichedContent(Map<String, Object> row, AuthService.AuthenticatedUser user) {
+        Object permitIdValue = row.get("permit_id");
+        if (!(permitIdValue instanceof Number permitIdNumber)) {
+            return String.valueOf(row.get("content"));
+        }
+        try {
+            Optional<Map<String, Object>> guidance = fieldGuidanceService.peekCached(permitIdNumber.longValue());
+            if (guidance.isPresent()) {
+                String formatted = formatGuidance(guidance.get(), user.id());
+                if (!formatted.isBlank()) {
+                    return formatted;
+                }
+            }
+        } catch (Exception ignored) {
+            // 캐시 조회 자체가 실패해도 워커 화면은 기존 요약으로 정상 동작해야 한다.
+        }
+        return String.valueOf(row.get("content"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private String formatGuidance(Map<String, Object> guidance, long userId) {
+        StringBuilder text = new StringBuilder();
+        String summary = trimToNull(guidance.get("tbmSummary"));
+        if (summary != null) {
+            text.append(summary).append("\n");
+        }
+
+        List<Map<String, Object>> items = guidance.get("tbmItems") instanceof List<?> list
+            ? (List<Map<String, Object>>) list
+            : List.of();
+        appendPhase(text, items, "before", "\n[작업 전]");
+        appendPhase(text, items, "during", "\n[작업 중]");
+        appendPhase(text, items, "emergency", "\n[비상시]");
+
+        List<Map<String, Object>> workerGuidance = guidance.get("workerGuidance") instanceof List<?> list
+            ? (List<Map<String, Object>>) list
+            : List.of();
+        workerGuidance.stream()
+            .filter(worker -> worker.get("workerId") instanceof Number number && number.longValue() == userId)
+            .findFirst()
+            .ifPresent(mine -> appendWorkerGuidance(text, mine));
+
+        return text.toString().trim();
+    }
+
+    private void appendPhase(StringBuilder text, List<Map<String, Object>> items, String phase, String label) {
+        List<String> lines = items.stream()
+            .filter(item -> phase.equals(item.get("phase")))
+            .map(item -> ("critical".equals(item.get("priority")) ? "⚠ " : "· ") + item.get("text"))
+            .toList();
+        if (lines.isEmpty()) {
+            return;
+        }
+        text.append(label).append("\n");
+        lines.forEach(line -> text.append(line).append("\n"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void appendWorkerGuidance(StringBuilder text, Map<String, Object> mine) {
+        List<Map<String, Object>> ppe = mine.get("requiredPpe") instanceof List<?> list
+            ? (List<Map<String, Object>>) list
+            : List.of();
+        if (!ppe.isEmpty()) {
+            text.append("\n[개인 보호구]\n");
+            ppe.forEach(item -> text.append("· ").append(item.get("name")).append("\n"));
+        }
+        List<?> checks = mine.get("checks") instanceof List<?> list ? list : List.of();
+        if (!checks.isEmpty()) {
+            text.append("\n[확인 사항]\n");
+            checks.forEach(check -> text.append("· ").append(check).append("\n"));
+        }
+        List<?> warnings = mine.get("warnings") instanceof List<?> list ? list : List.of();
+        if (!warnings.isEmpty()) {
+            text.append("\n[주의]\n");
+            warnings.forEach(warning -> text.append("⚠ ").append(warning).append("\n"));
+        }
+    }
+
+    private String trimToNull(Object value) {
+        if (value == null) {
+            return null;
+        }
+        String text = String.valueOf(value).trim();
+        return text.isEmpty() ? null : text;
     }
 
     private long createSession(long permitId) {

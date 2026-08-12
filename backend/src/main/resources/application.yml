@@ -59,6 +59,12 @@ app:
       base-url: ${PERMIT_ANALYSIS_AI_URL:http://127.0.0.1:8001}
       connect-timeout-ms: ${PERMIT_ANALYSIS_AI_CONNECT_TIMEOUT_MS:3000}
       request-timeout-ms: ${PERMIT_ANALYSIS_AI_REQUEST_TIMEOUT_MS:120000}
+    ppe-image:
+      enabled: ${PPE_IMAGE_AI_ENABLED:false}
+      base-url: ${PPE_IMAGE_AI_URL:http://127.0.0.1:8000}
+      api-key: ${PPE_IMAGE_API_KEY:}
+      connect-timeout-ms: ${PPE_IMAGE_AI_CONNECT_TIMEOUT_MS:3000}
+      request-timeout-ms: ${PPE_IMAGE_AI_REQUEST_TIMEOUT_MS:180000}
   firebase:
     enabled: ${FIREBASE_ENABLED:false}
     project-id: ${FIREBASE_PROJECT_ID:aivle25}

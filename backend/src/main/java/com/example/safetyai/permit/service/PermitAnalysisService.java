@@ -3,6 +3,7 @@ package com.example.safetyai.permit.service;
 import com.example.safetyai.common.exception.ApiException;
 import com.example.safetyai.common.util.JdbcInsert;
 import com.example.safetyai.file.storage.FileStorage;
+import com.example.safetyai.risk.service.PermitRiskScoringService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,6 +39,7 @@ public class PermitAnalysisService {
     private final FileStorage fileStorage;
     private final PermitAnalysisClient client;
     private final ApplicationEventPublisher eventPublisher;
+    private final PermitRiskScoringService riskScoringService;
     private final boolean enabled;
 
     public PermitAnalysisService(
@@ -46,6 +48,7 @@ public class PermitAnalysisService {
         FileStorage fileStorage,
         PermitAnalysisClient client,
         ApplicationEventPublisher eventPublisher,
+        PermitRiskScoringService riskScoringService,
         @Value("${app.ai.permit-analysis.enabled:true}") boolean enabled
     ) {
         this.jdbcTemplate = jdbcTemplate;
@@ -53,6 +56,7 @@ public class PermitAnalysisService {
         this.fileStorage = fileStorage;
         this.client = client;
         this.eventPublisher = eventPublisher;
+        this.riskScoringService = riskScoringService;
         this.enabled = enabled;
     }
 
@@ -167,6 +171,7 @@ public class PermitAnalysisService {
             );
             saveResult(event.permitId(), response);
             finishRun(event.runId(), response);
+            recomputeRiskScoreSafely(event.permitId());
         } catch (Exception exception) {
             String message = safeMessage(exception);
             log.warn("Work permit analysis failed for permit {}: {}", event.permitId(), message);
@@ -365,6 +370,16 @@ public class PermitAnalysisService {
             objectMapper.writeValueAsString(response),
             runId
         );
+    }
+
+    // 허가서 분석 자체는 이미 성공했으므로, 종합 위험 점수 재계산이 실패해도 이 model_run을
+    // 실패로 되돌리지 않는다 — 다음 트리거(PPE 점검·안전 이벤트) 때 다시 계산될 기회가 있다.
+    private void recomputeRiskScoreSafely(long permitId) {
+        try {
+            riskScoringService.recompute(permitId);
+        } catch (Exception exception) {
+            log.warn("Risk score recompute failed for permit {}: {}", permitId, exception.getMessage());
+        }
     }
 
     private void failRun(long runId, String message) {

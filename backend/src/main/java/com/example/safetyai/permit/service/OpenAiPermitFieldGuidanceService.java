@@ -19,20 +19,27 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
 @Service
 public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceService {
     private static final String GUIDANCE_VERSION_PREFIX = "field-guidance-v2";
+    private static final Logger log = LoggerFactory.getLogger(OpenAiPermitFieldGuidanceService.class);
 
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
@@ -104,6 +111,28 @@ public class OpenAiPermitFieldGuidanceService implements PermitFieldGuidanceServ
             failRun(runId, message);
             if (exception instanceof ApiException apiException) throw apiException;
             throw new ApiException(HttpStatus.BAD_GATEWAY, message);
+        }
+    }
+
+    @Override
+    public Optional<Map<String, Object>> peekCached(long permitId) {
+        return Optional.ofNullable(loadCachedGuidance(permitId, loadWorkers(permitId)));
+    }
+
+    // 허가서가 승인/조건부승인될 때 WorkPermitService가 발행하는 이벤트를 받아 백그라운드에서
+    // 미리 생성해 둔다. 실패해도(키 미설정, 판정 결과 없음 등) 조용히 로그만 남기고 넘어간다 —
+    // 워커 앱은 이 결과가 없으면 기존 방식(work_content 등)으로 자연히 대체되기 때문이다.
+    @Async("permitAnalysisExecutor")
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    public void onFieldGuidanceRequested(FieldGuidanceRequested event) {
+        try {
+            generate(event.permitId());
+        } catch (Exception exception) {
+            log.info(
+                "Field guidance pre-generation skipped for permit {}: {}",
+                event.permitId(),
+                safeMessage(exception)
+            );
         }
     }
 

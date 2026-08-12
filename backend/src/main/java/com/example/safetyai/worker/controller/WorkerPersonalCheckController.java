@@ -3,6 +3,7 @@ package com.example.safetyai.worker.controller;
 import com.example.safetyai.auth.service.AuthService;
 import com.example.safetyai.common.exception.ApiException;
 import com.example.safetyai.common.util.JdbcInsert;
+import com.example.safetyai.worker.service.PpeImageAnalysisRequested;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.Arrays;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,9 +26,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/worker/personal-checks")
 public class WorkerPersonalCheckController {
     private final JdbcTemplate jdbcTemplate;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public WorkerPersonalCheckController(JdbcTemplate jdbcTemplate) {
+    public WorkerPersonalCheckController(
+        JdbcTemplate jdbcTemplate,
+        ApplicationEventPublisher eventPublisher
+    ) {
         this.jdbcTemplate = jdbcTemplate;
+        this.eventPublisher = eventPublisher;
     }
 
     @GetMapping("/today")
@@ -78,6 +85,7 @@ public class WorkerPersonalCheckController {
                 request.workwearConfirmed()
             )
         );
+        eventPublisher.publishEvent(new PpeImageAnalysisRequested(id));
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(findById(id));
     }
 

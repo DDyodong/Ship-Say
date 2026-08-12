@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Layers3, Minus, Plus, RotateCcw } from "lucide-react";
 import realFacilityTags from "../../components/digitalTwin/geojeShipyardTags.json";
 const KAKAO_JS_KEY = import.meta.env.VITE_KAKAO_JS_KEY;
-const YARD_ADDRESS = "경상남도 거제시 거제대로 3370";
+const YARD_CENTER = { lat: 34.87078258, lng: 128.70518285 };
 
 function classifyType(name) {
   if (name.includes("도크") || name.includes("골리앗")) return "DOCK";
@@ -40,14 +40,14 @@ function offsetCoordinate(origin, eastMeters, northMeters) {
   };
 }
 
-function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers, cameraAlerts = [], cameraConnected = false, cameraStatusText, riskSimulation, overlayPanel, overlayPanelWidth = 230, alertBanner, topOffset = 16, leftTopOffset, bottomOffset = 16, onOpenShop, onUnavailable }) {
+function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers, cameraAlerts = [], cameraConnected = false, cameraStatusText, riskSimulation, overlayPanel, overlayPanelWidth = 230, alertBanner, topOffset = 16, leftTopOffset, bottomOffset = 16, onOpenShop, onUnavailable, fillViewport = true }) {
   const filterPanelTop = leftTopOffset ?? topOffset; // 지정 안 하면 기존처럼 topOffset과 같이 움직임
   const [filter, setFilter] = useState("ALL");
   const [panelCollapsed, setPanelCollapsed] = useState(true);
   const [selected, setSelected] = useState(null);
   const [sdkReady, setSdkReady] = useState(false);
   const [sdkError, setSdkError] = useState("");
-  const [center, setCenter] = useState(null);
+  const [center] = useState(YARD_CENTER);
 
   const containerRef = useRef(null);
   const mapDivRef = useRef(null);
@@ -86,24 +86,11 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
     if (existing) { existing.addEventListener("load", () => window.kakao.maps.load(() => setSdkReady(true))); return; }
     const script = document.createElement("script");
     script.setAttribute("data-kakao-maps-sdk", "true");
-    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&autoload=false&libraries=services`;
+    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&autoload=false`;
     script.onload = () => window.kakao.maps.load(() => setSdkReady(true));
     script.onerror = () => setSdkError("카카오맵 SDK 로드에 실패했습니다.");
     document.head.appendChild(script);
   }, []);
-
-  useEffect(() => {
-    if (!sdkReady) return;
-    const kakao = window.kakao;
-    const geocoder = new kakao.maps.services.Geocoder();
-    geocoder.addressSearch(YARD_ADDRESS, (result, status) => {
-      if (status === kakao.maps.services.Status.OK && result[0]) {
-        setCenter({ lat: parseFloat(result[0].y), lng: parseFloat(result[0].x) });
-      } else {
-        setSdkError(`"${YARD_ADDRESS}" 주소를 좌표로 변환하지 못했습니다.`);
-      }
-    });
-  }, [sdkReady]);
 
   useEffect(() => {
     if (!sdkReady || !center || !mapDivRef.current || mapRef.current) return;
@@ -113,7 +100,7 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
       level: 4,
     });
     map.setMapTypeId(kakao.maps.MapTypeId.SKYVIEW);
-    map.setZoomable(false);
+    map.setZoomable(true); // 휠로 확대/축소 가능
     mapRef.current = map;
 
     const relayout = () => {
@@ -316,12 +303,12 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
     </section>;
   }
 
-  return <section className="twin-preserve-dark bg-panel border-b border-edge overflow-hidden" style={{ height: "100dvh" }}>
+  return <section className={`twin-preserve-dark bg-panel border-b border-edge overflow-hidden ${fillViewport ? "" : "h-full"}`} style={fillViewport ? { height: "100dvh", overflow: "hidden" } : undefined}>
     <style>{`
       @keyframes toastIn { 0% { transform: translateY(24px) scale(.96); opacity: 0; } 60% { transform: translateY(-4px) scale(1.01); opacity: 1; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
       .animate-toast-in { animation: toastIn .35s cubic-bezier(.34,1.56,.64,1); }
     `}</style>
-    <div ref={containerRef} className="relative" style={{ height: "100%" }}>
+    <div ref={containerRef} className="relative h-full">
       <div ref={mapDivRef} className="absolute inset-0"/>
       {(!sdkReady || !center) && <div className="absolute inset-0 flex items-center justify-center bg-ink/70 text-slate-300 text-sm z-20">
         {!sdkReady ? "카카오맵 SDK 불러오는 중..." : "주소 좌표 확인 중..."}
@@ -342,6 +329,14 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
                   ? "bg-cyan/15 text-cyan border border-cyan/30" : "text-slate-300/80 hover:text-white border border-transparent"}`}>
                 {value === "ALL" ? "전체 야드" : typeLabels[value] || value}
               </button>)}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] font-bold text-slate-200 mb-1.5">지도 조작</div>
+            <div className="flex gap-1.5">
+              <button onClick={zoomOut} className="flex-1 h-7 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 flex items-center justify-center"><Minus size={11}/></button>
+              <button onClick={zoomIn} className="flex-1 h-7 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 flex items-center justify-center"><Plus size={11}/></button>
+              <button onClick={resetView} className="flex-1 h-7 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 flex items-center justify-center"><RotateCcw size={11}/></button>
             </div>
           </div>
           <div>
@@ -388,7 +383,7 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
         시설 {facilities.length}개 · 한화오션 거제사업장 (실측 좌표)
       </div>
 
-      {selected && <div className="absolute left-1/2 -translate-x-1/2 z-10 w-[min(90%,520px)] rounded-xl bg-ink/70 backdrop-blur-xl border border-white/10 px-4 py-3 flex items-center gap-4" style={{ bottom: bottomOffset }}>
+      {selected && <div className="absolute left-1/2 -translate-x-1/2 z-10 w-[min(90%,520px)] rounded-xl bg-ink/70 backdrop-blur-xl border border-white/10 px-4 py-3 flex items-center gap-4" style={{ bottom: bottomOffset + 40 }}>
         <div className="w-3 h-3 rounded-full shrink-0" style={{ background: cameraAlertByFacility.has(selected.code) ? "#ff2448" : typeColors[selected.type] }}/>
         <div className="min-w-0">
           <p className="text-sm font-bold text-slate-100 truncate">{selected.name}</p>

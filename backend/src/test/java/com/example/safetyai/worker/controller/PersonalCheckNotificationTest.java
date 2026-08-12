@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.example.safetyai.notification.service.NotificationService;
 import com.example.safetyai.risk.repository.SafetyEventRepository;
+import com.example.safetyai.risk.service.PermitRiskScoringService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -30,6 +31,8 @@ class PersonalCheckNotificationTest {
     private SafetyEventRepository safetyEventRepository;
     @Mock
     private NotificationService notificationService;
+    @Mock
+    private PermitRiskScoringService riskScoringService;
 
     private PersonalCheckAiController controller;
 
@@ -39,6 +42,7 @@ class PersonalCheckNotificationTest {
             jdbcTemplate,
             safetyEventRepository,
             notificationService,
+            riskScoringService,
             new ObjectMapper()
         );
         when(jdbcTemplate.update(anyString(), any(Object[].class))).thenReturn(1);

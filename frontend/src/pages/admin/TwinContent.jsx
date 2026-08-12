@@ -122,7 +122,9 @@ function TwinContent({ snapshot, onOpenShop, onUnavailable }) {
                     {alert.level === "critical" ? "긴급" : "주의"}
                   </span>
                   <span className="font-bold text-sm text-white truncate">작업자 ID:088 위험구역 접근</span>
+                  <span className="sim-badge">SIMULATION</span>
                 </div>
+                <p className="text-white/50 text-[9px] mt-0.5">카메라 좌표 매핑 전 임시 이동경로로 예측한 시뮬레이션입니다</p>
                 <p className="text-white/75 text-xs leading-tight">
                   {alert.prediction?.zoneName}에 {alert.etaSec}초 후 진입 예상 · {Math.round(alert.sinceMs / 1000)}초째 지속 중
                 </p>

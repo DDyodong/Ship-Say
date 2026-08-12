@@ -1,6 +1,13 @@
 import facilityTags from "../components/digitalTwin/geojeShipyardTags.json";
 import { evaluateFactoryWorkers } from "../utils/workerRiskEngine";
 
+// -----------------------------------------------------------------------------
+// 설비 프로필 템플릿
+// 사진 상의 실제 공장 라벨(1도크·2도크, 조립 1~3공장, 선행의장공장,
+// 전처리 및 도장공장, LNGC 도장 및 전처리 공장, 소부재공장,
+// 해양제작 1~3공장, 해양 의장공장, 해양플랜트 도장 및 전처리 공장)에
+// 대응하도록 총 7개 카테고리로 구성.
+// -----------------------------------------------------------------------------
 const PROFILE_TEMPLATES = {
   ASSEMBLY: {
     label: "조립·용접 생산설비",
@@ -20,8 +27,17 @@ const PROFILE_TEMPLATES = {
       ["PUMP", "절삭 냉각수 펌프", "메커니컬 씰", "압력 누설", "씰 마모로 토출 압력이 기준 이하로 저하되었습니다."],
     ],
   },
+  SMALLPART: {
+    label: "소부재 가공설비",
+    equipment: [
+      ["CUTTER", "소부재 정밀 절단기", "절단 노즐", "절단폭 편차", "노즐 마모로 소부재 절단 치수 편차가 발생했습니다."],
+      ["ROBOT", "소부재 마킹 로봇", "마킹 헤드", "위치 인식 오류", "카메라 렌즈 오염으로 마킹 좌표 인식률이 저하되었습니다."],
+      ["CONVEYOR", "소부재 이송 컨베이어", "구동 모터", "속도 편차", "체인 장력 저하로 이송 속도가 불안정합니다."],
+      ["FAN", "소부재 집진 설비", "임펠러 베어링", "진동 상승", "분진 축적으로 회전체 밸런스가 저하되었습니다."],
+    ],
+  },
   PAINT: {
-    label: "도장·환경 안전설비",
+    label: "도장·전처리 생산설비",
     equipment: [
       ["PUMP", "고압 도료 공급 펌프", "메커니컬 씰", "토출 압력 저하", "씰 마모로 도료 공급 압력이 불안정합니다."],
       ["FAN", "VOC 배기 팬", "구동 베어링", "진동 위험", "베어링 윤활 부족으로 진동값이 상승했습니다."],
@@ -47,17 +63,46 @@ const PROFILE_TEMPLATES = {
       ["FAN", "국소 배기 장치", "필터 모듈", "차압 상승", "필터 포화로 배기 성능이 저하되었습니다."],
     ],
   },
+  OFFSHORE: {
+    label: "해양구조물 제작·의장설비",
+    equipment: [
+      ["CRANE", "대형 블록 탑재 크레인", "권상 와이어로프", "와이어 소선 손상", "반복 하중으로 와이어로프 소선 파단이 감지되었습니다."],
+      ["ROBOT", "대형 정반 자동 용접기", "용접 토치", "아크 불안정", "토치 팁 마모로 용접 아크가 불규칙해졌습니다."],
+      ["POSITIONER", "해양구조물 회전 포지셔너", "회전축 베어링", "회전 저항 증가", "베어링 윤활 부족으로 회전 구동 부하가 증가했습니다."],
+      ["CUTTER", "후육 강재 절단기", "플라즈마 토치", "절단면 품질 저하", "노즐 마모로 후육 강재 절단면이 거칠어졌습니다."],
+    ],
+  },
+};
+
+// 설비 이름 → 실제 CAD(STEP) 오버라이드.
+// EquipmentTwinScene의 KIND_TO_CAD(ROBOT/CRANE 기본값)보다 우선 적용됨.
+const EQUIPMENT_CAD_OVERRIDES = {
+  "자동 용접 로봇": { cadModel: "welding-station.step", cadTargetHeight: 2.3 },
+  "배관 자동 용접기": { cadModel: "welding-station.step", cadTargetHeight: 2.1 },
+  "대형 정반 자동 용접기": { cadModel: "welding-station.step", cadTargetHeight: 2.6 },
+  "골리앗 크레인": { cadModel: "gantry-crane.step", cadTargetHeight: 4.6 },
+  "트래블링 크레인": { cadModel: "jib-crane.step", cadTargetHeight: 3.8 },
+  "대형 블록 탑재 크레인": { cadModel: "gantry-crane.step", cadTargetHeight: 5.2 },
+  // spray-robot.step: 현재 PAINT 프로필에 ROBOT 설비가 없어 미사용.
+  // PAINT 쪽에 스프레이 로봇 설비를 추가하면 여기에 매핑 추가.
 };
 
 const WORKER_TASKS = {
   ASSEMBLY: ["용접 비드 검사", "블록 위치 정렬", "강재 이송 감시", "용접 조건 확인", "품질 육안검사", "안전 순찰"],
   CUTTING: ["절단 노즐 점검", "강판 위치 정렬", "집진설비 확인", "절단 품질 검사", "소재 반입", "안전 순찰"],
+  SMALLPART: ["소부재 치수 검사", "마킹 좌표 확인", "이송라인 점검", "집진설비 확인", "소부재 분류", "안전 순찰"],
   PAINT: ["도료 압력 확인", "VOC 농도 측정", "부스 급기 점검", "도막 품질 검사", "세정액 보충", "안전 순찰"],
   DOCK: ["권상 작업 신호", "하중 결속 확인", "크레인 주행 감시", "도크 배수 점검", "이송 대차 유도", "안전 순찰"],
   OUTFITTING: ["배관 치수 확인", "수압 시험", "배관 용접", "배기설비 점검", "자재 운반", "안전 순찰"],
+  OFFSHORE: ["블록 탑재 신호", "와이어로프 점검", "정반 용접 감시", "구조물 치수 검사", "회전 포지셔너 조작", "안전 순찰"],
 };
 
+// 사진 속 실제 공장 라벨을 우선순위대로 매칭.
+// 더 구체적인 이름(소부재/해양제작/LNGC 등)을 먼저 검사해
+// 일반 키워드(도장·의장 등)에 앞서 정확히 분류되도록 함.
 function classify(name) {
+  if (name.includes("소부재")) return "SMALLPART";
+  if (name.includes("해양제작")) return "OFFSHORE";
   if (name.includes("도크") || name.includes("크레인")) return "DOCK";
   if (name.includes("도장") || name.includes("전처리")) return "PAINT";
   if (name.includes("의장")) return "OUTFITTING";
@@ -91,6 +136,7 @@ const rawFactoryCatalog = facilityTags
         assetCode: `${profileKey.slice(0, 3)}-${String(facility.id).padStart(2, "0")}-${String(index + 1).padStart(2, "0")}`,
         name,
         kind,
+        ...(EQUIPMENT_CAD_OVERRIDES[name] || {}),
         status: alarm ? "ALARM" : index === (faultIndex + 1) % profile.equipment.length ? "WARNING" : "NORMAL",
         operatingState: index % 2 ? "STANDBY" : "RUNNING",
         utilization: 62 + ((facility.id * 11 + index * 9) % 34),

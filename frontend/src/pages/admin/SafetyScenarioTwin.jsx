@@ -113,6 +113,16 @@ function useMeasuredHeight() {
 }
 
 function SafetyScenarioTwin({ session, notify, onOpenFactory }) {
+  useEffect(() => {
+    const previousBody = document.body.style.overflow;
+    const previousHtml = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousBody;
+      document.documentElement.style.overflow = previousHtml;
+    };
+  }, []);
   const [scenarioIndex, setScenarioIndex] = useState(0);
   const [latestRealCheck, setLatestRealCheck] = useState(null); // /api/admin/ppe-checks에서 온 실제 AI 분석 결과 (없으면 null)
 
@@ -204,7 +214,7 @@ function SafetyScenarioTwin({ session, notify, onOpenFactory }) {
   const reset = () => { setPlaying(false); setPhaseIndex(0); };
 
   const alertBanner = phaseIndex === 1 ? <div className="twin-preserve-dark rounded-2xl border border-red-400/50 bg-[#17090e]/95 px-5 py-4 shadow-[0_0_32px_rgba(255,59,48,.4)]">
-    <div className="flex items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-red-500 text-white"><Siren size={18}/></span><div><p className="text-[9px] font-black tracking-[.17em] text-red-300">CAM-01 · AI DETECTION</p><p className="mt-1 text-sm font-black text-white">{scenario.alertLine}</p><p className="mt-1 text-[10px] text-slate-400">{scenario.facilityLabel} {scenario.zoneLabel}</p></div></div>
+    <div className="flex items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-red-500 text-white"><Siren size={18}/></span><div><div className="flex items-center gap-2"><p className="text-[9px] font-black tracking-[.17em] text-red-300">CAM-01 · AI DETECTION</p><span className="rounded px-1.5 py-0.5 text-[7px] font-black tracking-[.1em] text-amber-200 bg-amber-400/15 border border-amber-400/30">SIMULATION</span></div><p className="mt-1 text-sm font-black text-white">{scenario.alertLine}</p><p className="mt-1 text-[10px] text-slate-400">{scenario.facilityLabel} {scenario.zoneLabel}</p></div></div>
   </div> : null;
 
   // KakaoYardMap 내부 오버레이(카메라배지/StoryPanel/선택카드)가 겹치지 않도록 하는 여백 —
@@ -213,7 +223,7 @@ function SafetyScenarioTwin({ session, notify, onOpenFactory }) {
   const bottomOffset = 16;
   const filterPanelTop = topOffset + Math.round(logHeight) + 8; // 로그 바로 밑에 구역필터가 오도록
 
-  return <div className="twin-theme-page safety-twin relative bg-[#050b12] text-slate-100" style={{ height: "100dvh", overflow: "hidden" }}>
+  return <div className="twin-theme-page safety-twin relative bg-[#050b12] text-slate-100" style={{ height: "100%", overflow: "hidden" }}>
 
     {/* 지도 — 화면 전체 배경 */}
     <div className="absolute inset-0">
@@ -257,11 +267,12 @@ function StoryPanel({ scenario, scenarioIndex, onChangeScenario, latestRealCheck
   ][phaseIndex];
   return <aside className="twin-theme-panel flex flex-col overflow-y-auto rounded-2xl border border-cyan/15 bg-ink/55 backdrop-blur-xl p-4 shadow-2xl" style={{ maxHeight: maxHeight || "70vh" }}>
     <label className="block mb-2.5">
-      <span className="block mb-1 text-[8px] font-black tracking-[.14em] text-slate-500">분석 대상 시나리오</span>
+      <span className="flex items-center gap-1.5 mb-1 text-[8px] font-black tracking-[.14em] text-slate-500">분석 대상 시나리오 <span className="rounded px-1.5 py-0.5 text-[7px] font-black tracking-[.1em] text-amber-200 bg-amber-400/15 border border-amber-400/30">SIMULATION</span></span>
       <select value={scenarioIndex} onChange={(e) => onChangeScenario(Number(e.target.value))}
         className="w-full h-9 rounded-lg border border-white/10 bg-[#0a1621] px-2.5 text-[11px] font-bold text-slate-200 outline-none focus:border-cyan-400/50">
         {SCENARIOS.map((option, index) => <option key={option.code} value={index}>{option.label}</option>)}
       </select>
+      <span className="block mt-1 text-[8px] leading-4 text-slate-500">실제 카메라·설비 데이터가 아닌, 정해진 시나리오로 재생되는 시연용 스토리입니다.</span>
     </label>
     <div className="flex items-center justify-end gap-2 mb-3">
       <button onClick={onTogglePlay} className="flex h-8 items-center gap-1.5 rounded-lg bg-cyan px-3 text-[9px] font-black text-ink shadow-[0_0_16px_rgba(0,210,255,.55)] hover:brightness-110 transition">{playing ? <Pause size={12}/> : <Play size={12}/>} {playing ? "일시정지" : phaseIndex ? "분석 계속" : "운영 이벤트 분석"}</button>
