@@ -111,7 +111,7 @@ function Dashboard({ session, onLogout, notify, theme, onToggleTheme }) {
       <section className="content" style={isMapPage ? { padding: 0, maxWidth: "none", margin: 0, flex: 1, minHeight: 0 } : undefined}>
         <Page page={page} session={session} notify={notify}/>
       </section>
-      <LegalFooter compact/>
+      {!isMapPage && <LegalFooter compact/>}
     </main>
   </div>;
 }
