@@ -1,5 +1,27 @@
 # API Spec
 
+## 안전 신고 상태 전환 API
+
+작업자 안전 신고(`sourceType=user_report`)는 다음 순서로 처리합니다.
+
+| 상태 코드 | 화면 표시 | 변경 주체 |
+| --- | --- | --- |
+| `received` | 접수 | 신고 등록 시 자동 |
+| `action_requested` | 조치 요청 | 관리자 |
+| `completion_reported` | 완료 확인 대기 | 신고한 Worker |
+| `resolved` | 처리 완료 | 관리자 |
+
+| Method | Endpoint | 권한 | 설명 |
+| --- | --- | --- | --- |
+| `POST` | `/api/safety-events/{id}/actions` | Admin | `action_requested` 또는 `resolved`로 변경 |
+| `POST` | `/api/safety-events/{id}/completion-report` | Worker, Admin | 본인 신고의 조치 완료 보고 |
+| `GET` | `/api/safety-events/{id}/actions` | Admin | 처리 이력 조회 |
+
+- `resolved` 전환은 현재 상태가 `completion_reported`일 때만 허용됩니다.
+- 완료 보고는 로그인 사용자가 해당 이벤트의 신고자일 때만 허용됩니다.
+- 완료 보고는 `action_requested` 또는 이전 버전 호환 상태인 `in_progress`에서 가능합니다.
+- 처리 이력 응답에는 `actionType`, `comment`, `actorName`, `employeeNo`, `actorRole`, `createdAt`이 포함됩니다.
+
 ## 필수 기능 대비 현재 상태
 
 - 회원가입/로그인: `users`, `auth_sessions` 테이블로 구현 가능하며 API를 추가했습니다.

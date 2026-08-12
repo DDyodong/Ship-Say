@@ -1,5 +1,67 @@
 # Safety AI Control
 
+## 안전 신고 조치 워크플로
+
+작업자가 등록한 안전 신고는 관리자와 신고 작업자가 역할을 나누어 처리합니다.
+
+```text
+접수(received)
+→ 관리자 조치 요청(action_requested)
+→ Worker 조치 완료 보고(completion_reported)
+→ 관리자 최종 확인 및 처리 완료(resolved)
+```
+
+### 역할별 권한
+
+| 역할 | 수행 가능한 작업 |
+| --- | --- |
+| Worker | 위험 상황 신고, 본인 신고 조회, 관리자 요청 확인, 본인 신고의 조치 완료 보고 |
+| Admin | 전체 신고 조회, AI 위험 분석 확인, 조치 요청, Worker 완료 보고 검토, 최종 처리 완료, 처리 완료 이벤트 삭제 |
+
+- Worker는 자신이 신고한 이벤트만 완료 보고할 수 있습니다.
+- 관리자는 Worker가 완료 보고하기 전에는 해당 신고를 최종 완료할 수 없습니다.
+- 이전 버전에서 `in_progress` 상태로 저장된 신고도 Worker 완료 보고가 가능합니다.
+- 관리자 화면의 `처리 이력 보기`에서 단계, 작성자, 입력 내용, 작성 시각을 시간순으로 확인할 수 있습니다.
+- 처리 이력 조회 API는 관리자만 접근할 수 있습니다.
+
+### 관련 API
+
+| Method | Endpoint | 권한 | 설명 |
+| --- | --- | --- | --- |
+| `POST` | `/api/safety-events` | Worker, Admin | 안전 신고 등록 |
+| `GET` | `/api/safety-events/my` | Worker, Admin | 본인의 신고 목록 조회 |
+| `GET` | `/api/safety-events/reports` | Admin | 전체 안전 이벤트 조회 |
+| `POST` | `/api/safety-events/{id}/actions` | Admin | 조치 요청 또는 최종 처리 완료 |
+| `POST` | `/api/safety-events/{id}/completion-report` | Worker, Admin | 신고 작업자의 조치 완료 보고 |
+| `GET` | `/api/safety-events/{id}/actions` | Admin | 처리 이력 조회 |
+| `DELETE` | `/api/safety-events/{id}` | Admin | 처리 완료 이벤트 삭제 |
+
+Worker 조치 완료 보고 예시:
+
+```http
+POST /api/safety-events/125/completion-report
+Authorization: Bearer {accessToken}
+Content-Type: application/json
+
+{
+  "comment": "가연물을 제거하고 소화기를 작업 위치 옆에 배치했습니다."
+}
+```
+
+관리자 조치 요청 예시:
+
+```http
+POST /api/safety-events/125/actions
+Authorization: Bearer {adminAccessToken}
+Content-Type: application/json
+
+{
+  "status": "action_requested",
+  "comment": "작업을 중단하고 가연물을 제거한 후 소화기를 배치해 주세요.",
+  "notifyReporter": true
+}
+```
+
 조선소·산업 현장의 안전 데이터를 통합 관리하는 AI 안전 관제 시스템입니다. 작업자는 작업 전 점검과 위험 신고를 수행하고, 관리자는 위험 이벤트·작업허가·AI 분석 결과를 조회하고 관리할 수 있습니다.
 
 ## 주요 기능
