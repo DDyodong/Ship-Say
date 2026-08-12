@@ -353,6 +353,71 @@ public class SafetyEventRepository {
         return true;
     }
 
+    public List<Map<String, Object>> findActionHistory(long eventId) {
+        return jdbcTemplate.queryForList(
+            """
+                SELECT ea.id,
+                       ea.action_type AS actionType,
+                       ea.comment,
+                       ea.created_at AS createdAt,
+                       u.name AS actorName,
+                       u.employee_no AS employeeNo,
+                       CASE
+                         WHEN EXISTS (
+                           SELECT 1
+                             FROM user_roles ur
+                             JOIN roles r ON r.id = ur.role_id
+                            WHERE ur.user_id = ea.actor_id
+                              AND r.role_code = 'ADMIN'
+                         ) THEN 'ADMIN'
+                         ELSE 'WORKER'
+                       END AS actorRole
+                  FROM event_actions ea
+                  LEFT JOIN users u ON u.id = ea.actor_id
+                 WHERE ea.event_id = ?
+                 ORDER BY ea.created_at ASC, ea.id ASC
+                """,
+            eventId
+        );
+    }
+
+    public WorkflowTarget findWorkflowTargetForUpdate(long eventId) {
+        List<WorkflowTarget> targets = jdbcTemplate.query(
+            "SELECT status, source_type FROM safety_events WHERE id = ? FOR UPDATE",
+            (resultSet, rowNum) -> new WorkflowTarget(
+                resultSet.getString("status"),
+                resultSet.getString("source_type")
+            ),
+            eventId
+        );
+        return targets.isEmpty() ? null : targets.get(0);
+    }
+
+    public boolean reportWorkerCompletion(long eventId, long reporterId, String comment) {
+        int updated = jdbcTemplate.update(
+            """
+                UPDATE safety_events
+                   SET status = 'completion_reported'
+                 WHERE id = ?
+                   AND reporter_id = ?
+                   AND source_type = 'user_report'
+                   AND status IN ('action_requested', 'in_progress')
+                """,
+            eventId,
+            reporterId
+        );
+        if (updated == 0) {
+            return false;
+        }
+        jdbcTemplate.update(
+            "INSERT INTO event_actions (event_id, actor_id, action_type, comment) VALUES (?, ?, 'completion_reported', ?)",
+            eventId,
+            reporterId,
+            comment
+        );
+        return true;
+    }
+
     public DeletionTarget findDeletionTargetForUpdate(long eventId) {
         List<DeletionTarget> targets = jdbcTemplate.query(
             "SELECT status, permit_id FROM safety_events WHERE id = ? FOR UPDATE",
@@ -373,5 +438,8 @@ public class SafetyEventRepository {
             "DELETE FROM safety_events WHERE id = ? AND status = 'resolved'",
             eventId
         ) > 0;
+    }
+
+    public record WorkflowTarget(String status, String sourceType) {
     }
 }

@@ -450,6 +450,8 @@ public class NotificationService {
 
     private String statusLabel(String status) {
         return switch (status) {
+            case "action_requested" -> "조치 요청";
+            case "completion_reported" -> "완료 확인 대기";
             case "confirmed" -> "확인";
             case "in_progress" -> "조치 중";
             case "resolved" -> "처리 완료";

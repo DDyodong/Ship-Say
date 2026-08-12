@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record SafetyEventActionRequest(
-    @NotBlank @Pattern(regexp = "received|confirmed|in_progress|resolved") String status,
+    @NotBlank @Pattern(regexp = "confirmed|in_progress|action_requested|resolved") String status,
     @Size(max = 2000) String comment,
     Boolean notifyReporter
 ) {
