@@ -3,7 +3,6 @@ import { Bell, ChevronDown, LogOut, Moon, Sun, UserRound } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiRequest } from "../../api/client";
 import { adminNav } from "../../data/navigation";
-import LegalFooter from "../common/LegalFooter";
 import Page from "./Page";
 
 function Dashboard({ session, onLogout, notify, theme, onToggleTheme }) {
@@ -111,7 +110,6 @@ function Dashboard({ session, onLogout, notify, theme, onToggleTheme }) {
       <section className="content" style={isMapPage ? { padding: 0, maxWidth: "none", margin: 0, flex: 1, minHeight: 0 } : undefined}>
         <Page page={page} session={session} notify={notify}/>
       </section>
-      <LegalFooter compact/>
     </main>
   </div>;
 }

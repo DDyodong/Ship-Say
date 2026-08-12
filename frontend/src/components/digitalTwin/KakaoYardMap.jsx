@@ -383,7 +383,7 @@ function KakaoYardMap({ facilities = defaultFacilities, workers = defaultWorkers
         시설 {facilities.length}개 · 한화오션 거제사업장 (실측 좌표)
       </div>
 
-      {selected && <div className="absolute left-1/2 -translate-x-1/2 z-10 w-[min(90%,520px)] rounded-xl bg-ink/70 backdrop-blur-xl border border-white/10 px-4 py-3 flex items-center gap-4" style={{ bottom: bottomOffset + 40 }}>
+      {selected && <div className="absolute left-1/2 -translate-x-1/2 z-10 w-[min(90%,520px)] rounded-xl bg-ink/70 backdrop-blur-xl border border-white/10 px-4 py-3 flex items-center gap-4" style={{ bottom: bottomOffset + 60 }}>
         <div className="w-3 h-3 rounded-full shrink-0" style={{ background: cameraAlertByFacility.has(selected.code) ? "#ff2448" : typeColors[selected.type] }}/>
         <div className="min-w-0">
           <p className="text-sm font-bold text-slate-100 truncate">{selected.name}</p>
