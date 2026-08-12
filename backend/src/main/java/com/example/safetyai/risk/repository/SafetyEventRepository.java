@@ -373,7 +373,7 @@ public class SafetyEventRepository {
                  WHERE id = ?
                    AND reporter_id = ?
                    AND source_type = 'user_report'
-                   AND status = 'action_requested'
+                   AND status IN ('action_requested', 'in_progress')
                 """,
             eventId,
             reporterId

@@ -836,7 +836,7 @@ function WorkerApp({ session, onLogout, notify }) {
               {formatTime(report.eventTime, locale)}
               {report.latestActionComment ? ` · ${report.latestActionComment}` : ""}
             </small>
-            {report.status === "action_requested"&&<div className="worker-completion-report">
+            {["action_requested", "in_progress"].includes(report.status)&&<div className="worker-completion-report">
               <b>조치 완료 보고</b>
               <p>관리자가 요청한 조치를 수행한 뒤 결과를 작성해 주세요.</p>
               <textarea

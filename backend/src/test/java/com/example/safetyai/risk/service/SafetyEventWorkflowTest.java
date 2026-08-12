@@ -70,6 +70,20 @@ class SafetyEventWorkflowTest {
     }
 
     @Test
+    void legacyInProgressReportCanBeCompletedByReporter() {
+        when(authService.requireUserId("Bearer worker")).thenReturn(11L);
+        when(repository.reportWorkerCompletion(125L, 11L, "legacy work completed"))
+            .thenReturn(true);
+
+        var result = service.reportWorkerCompletion(
+            "Bearer worker", 125L,
+            new WorkerCompletionReportRequest("legacy work completed")
+        );
+
+        assertEquals("completion_reported", result.get("status"));
+    }
+
+    @Test
     void managerCannotResolveBeforeWorkerCompletionReport() {
         when(authService.requireUserId("Bearer admin")).thenReturn(7L);
         when(repository.findWorkflowTargetForUpdate(125L))
