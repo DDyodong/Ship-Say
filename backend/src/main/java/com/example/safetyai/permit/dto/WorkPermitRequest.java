@@ -9,6 +9,7 @@ public record WorkPermitRequest(
     @NotNull Long siteId,
     Long blockId,
     String workType,
+    List<String> supplementaryWork,
     String workTitle,
     String workContent,
     Integer workerCount,
@@ -28,6 +29,9 @@ public record WorkPermitRequest(
         }
         if (status == null || status.isBlank()) {
             status = "draft";
+        }
+        if (supplementaryWork == null) {
+            supplementaryWork = List.of();
         }
     }
 }

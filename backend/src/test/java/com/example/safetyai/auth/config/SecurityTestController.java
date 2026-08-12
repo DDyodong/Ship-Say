@@ -49,7 +49,7 @@ class SecurityTestController {
         return Map.of("status", "ok");
     }
 
-    @DeleteMapping("/api/work-permits/1")
+    @DeleteMapping({"/api/work-permits/1", "/api/safety-events/1"})
     Map<String, String> delete() {
         return Map.of("status", "ok");
     }

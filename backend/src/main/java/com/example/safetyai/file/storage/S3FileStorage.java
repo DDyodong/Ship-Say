@@ -2,6 +2,7 @@ package com.example.safetyai.file.storage;
 
 import com.example.safetyai.common.exception.ApiException;
 import java.io.IOException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.ByteArrayResource;
@@ -10,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.ResponseBytes;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -25,17 +27,20 @@ public class S3FileStorage implements FileStorage {
     private final String bucket;
     private final S3Client s3Client;
 
+    @Autowired
     public S3FileStorage(
         @Value("${app.file-storage.s3.bucket}") String bucket,
         @Value("${app.file-storage.s3.region}") String region
     ) {
+        this(bucket, S3Client.builder().region(Region.of(region)).build());
+    }
+
+    S3FileStorage(String bucket, S3Client s3Client) {
         if (bucket == null || bucket.isBlank()) {
             throw new IllegalStateException("S3_BUCKET 환경변수가 필요합니다.");
         }
         this.bucket = bucket;
-        this.s3Client = S3Client.builder()
-            .region(Region.of(region))
-            .build();
+        this.s3Client = s3Client;
     }
 
     @Override
@@ -52,6 +57,25 @@ public class S3FileStorage implements FileStorage {
             return storageKey;
         } catch (S3Exception exception) {
             throw new IOException("S3 파일 업로드에 실패했습니다.", exception);
+        }
+    }
+
+    @Override
+    public String store(byte[] content, String contentType, String storageName) throws IOException {
+        // 운영 태스크 역할과 버킷 정책은 기존 업로드 경로인 uploads/*에 맞춰져 있다.
+        // 생성 파일도 같은 허용 prefix 아래에 두어 별도의 S3 정책 확장이 필요 없게 한다.
+        String storageKey = "uploads/generated/" + storageName;
+        PutObjectRequest request = PutObjectRequest.builder()
+            .bucket(bucket)
+            .key(storageKey)
+            .contentType(contentType)
+            .contentLength((long) content.length)
+            .build();
+        try {
+            s3Client.putObject(request, RequestBody.fromBytes(content));
+            return storageKey;
+        } catch (SdkException exception) {
+            throw new IOException("S3 생성 파일 업로드에 실패했습니다.", exception);
         }
     }
 

@@ -25,8 +25,18 @@ public class LocalFileStorage implements FileStorage {
     public String store(MultipartFile file, String storageName) throws IOException {
         Files.createDirectories(uploadDir);
         Path target = resolveLocalPath(storageName);
+        Files.createDirectories(target.getParent());
         file.transferTo(target);
         return storageName;
+    }
+
+    @Override
+    public String store(byte[] content, String contentType, String storageName) throws IOException {
+        Files.createDirectories(uploadDir);
+        Path target = resolveLocalPath("generated/" + storageName);
+        Files.createDirectories(target.getParent());
+        Files.write(target, content);
+        return uploadDir.relativize(target).toString().replace('\\', '/');
     }
 
     @Override

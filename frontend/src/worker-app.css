@@ -683,6 +683,24 @@
   gap: 10px;
 }
 
+.worker-report-record {
+  scroll-margin-block: 80px;
+  transition: border-color .25s ease, box-shadow .25s ease, background-color .25s ease;
+}
+
+.worker-report-record.highlighted {
+  border-color: var(--worker-orange);
+  background: rgba(255, 117, 24, .1);
+  box-shadow: 0 0 0 2px rgba(255, 117, 24, .28), 0 0 24px rgba(255, 117, 24, .18);
+  animation: worker-report-highlight 1s ease-in-out 2;
+}
+
+@keyframes worker-report-highlight {
+  50% {
+    box-shadow: 0 0 0 4px rgba(255, 117, 24, .36), 0 0 30px rgba(255, 117, 24, .24);
+  }
+}
+
 .worker-report-record > div b {
   color: var(--worker-cyan);
   font-size: 10px;

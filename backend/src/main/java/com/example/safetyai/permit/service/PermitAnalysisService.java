@@ -119,8 +119,12 @@ public class PermitAnalysisService {
 
         List<String> mainWorks = asStringList(parsed.get("main_works"));
         List<String> conditions = asStringList(parsed.get("conditions"));
+        // formType은 ptw_parser.py에서 "화기" 아니면 "일반위험" 둘 중 하나로만 내려온다.
+        // 프론트엔드 드롭다운도 "화기 작업"/"일반위험 작업" 2개뿐이므로, 파싱 자체가
+        // 실패해 formType이 없을 때도 그 둘 중 하나("일반위험 작업")로 맞춰야
+        // 화면에서 <select>가 옵션과 안 맞아 엉뚱한 값이 선택된 것처럼 보이는 버그를 피한다.
         String formType = trimToNull(parsed.get("form_type"));
-        String workType = formType != null ? formType + " 작업" : "일반 작업";
+        String workType = formType != null ? formType + " 작업" : "일반위험 작업";
 
         List<String> titleParts = !mainWorks.isEmpty() ? mainWorks : conditions;
         String workTitle = !titleParts.isEmpty() ? String.join("·", titleParts) + " 작업" : workType;
@@ -128,6 +132,9 @@ public class PermitAnalysisService {
         Map<String, Object> draft = new LinkedHashMap<>();
         draft.put("permitNo", trimToNull(parsed.get("permit_id")));
         draft.put("workType", workType);
+        // 보충작업 6종(밀폐공간·정전·굴착·방사선·고소·중장비) — ptw_parser의 conditions는
+        // 이 6종 체크박스 판독 결과만 담고 있어 그대로 프론트엔드 다중 선택 필드로 내려준다.
+        draft.put("supplementaryWork", conditions);
         draft.put("workTitle", workTitle);
         draft.put("workContent", trimToNull(parsed.get("work_summary")));
         draft.put("startTime", period.get("start"));

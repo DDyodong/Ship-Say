@@ -1,3 +1,9 @@
+// ARCHIVED — 어디서도 import하지 않는 미사용 컴포넌트입니다 (2026-08-12).
+// 라이브 야드 지도는 components/digitalTwin/KakaoYardMap.jsx가 대신합니다.
+// 이 파일은 실제 한화오션 거제사업장 공정 흐름(가공→조립→도장·의장→도크)을 반영한
+// 순수 React/SVG 레이아웃이라 Three.js·카카오맵 API 없이도 동작합니다 — 데모 당일
+// 카카오맵 API 키·네트워크 문제가 생기면 오프라인 대체 화면으로 되살릴 수 있어 보관합니다.
+// 되살리려면 pages/admin/DigitalTwin.jsx 계열에서 다시 import해서 라우팅에 연결하세요.
 import React, { useMemo, useRef, useState } from "react";
 import { GripVertical, Layers3, Minus, Plus, RotateCcw } from "lucide-react";
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle, BellRing, BrainCircuit, CheckCircle2, Clock3, FileImage, MapPin,
-  Maximize2, Search, Send, ShieldCheck, Siren, UserRound, Wrench, X,
+  Maximize2, Search, Send, ShieldCheck, Siren, Trash2, UserRound, Wrench, X,
 } from "lucide-react";
 import { apiBlob, apiRequest } from "../../api/client";
 import { SectionHead } from "../../components/common";
@@ -48,9 +48,11 @@ function WorkerReports({ session, notify }) {
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [notifyReporter, setNotifyReporter] = useState(true);
   const [alertDraft, setAlertDraft] = useState(null);
   const [sendingAlert, setSendingAlert] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   const headers = { Authorization:`Bearer ${session.token}` };
 
   const loadReports = async () => {
@@ -66,6 +68,14 @@ function WorkerReports({ session, notify }) {
   };
 
   useEffect(() => { loadReports(); }, [filter, sourceFilter]);
+  useEffect(() => {
+    const waiting = reports.some(report =>
+      report.sourceType === "user_report" && ["pending", "analyzing"].includes(report.analysisStatus)
+    );
+    if (!waiting) return undefined;
+    const timer = window.setInterval(loadReports, 5000);
+    return () => window.clearInterval(timer);
+  }, [reports, filter, sourceFilter]);
   const filtered = useMemo(() => {
     const keyword = query.trim().toLowerCase();
     return keyword ? reports.filter(report => [report.reportNo, report.description, report.reporterName, report.employeeNo].some(value => String(value || "").toLowerCase().includes(keyword))) : reports;
@@ -121,6 +131,26 @@ function WorkerReports({ session, notify }) {
     } catch (error) { notify(error.message); } finally { setSaving(false); }
   };
 
+  const deleteResolvedEvent = async () => {
+    if (!selected || selected.status !== "resolved") return;
+    if (!window.confirm(`${selected.reportNo} 안전 이벤트를 삭제하시겠습니까?\n삭제 후에는 목록에서 복구할 수 없습니다.`)) return;
+    setDeleting(true);
+    try {
+      await apiRequest(`/api/safety-events/${selected.id}`, {
+        method:"DELETE",
+        headers,
+      });
+      setPhotoExpanded(false);
+      notify("처리 완료된 안전 이벤트를 삭제했습니다.");
+      await loadReports();
+      window.dispatchEvent(new Event("safety-events-updated"));
+    } catch (error) {
+      notify(error.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const openAlertComposer = () => {
     if (!selected?.targetUserId) return;
     setAlertDraft({
@@ -162,6 +192,21 @@ function WorkerReports({ session, notify }) {
   const currentStep = selected ? Math.max(0, statusSteps.indexOf(selected.status)) : 0;
   const nextStatus = selected && currentStep < statusSteps.length - 1 ? statusSteps[currentStep + 1] : null;
   const analysisDone = selected?.analysisStatus === "completed";
+  const analysisFailed = selected?.analysisStatus === "failed";
+
+  const requestAnalysis = async () => {
+    if (!selected || selected.sourceType !== "user_report") return;
+    setAnalyzing(true);
+    try {
+      await apiRequest(`/api/safety-events/${selected.id}/analysis`, { method:"POST", headers });
+      await loadReports();
+      notify("AI 위험 분석을 시작했습니다.");
+    } catch (error) {
+      notify(error.message);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   return <>
     {selected && <div className="report-notification-controls">
@@ -202,12 +247,12 @@ function WorkerReports({ session, notify }) {
             })}</div>
             <small className="ai-confidence">검사 ID #{selected.ppeCheckId || "-"} · AI 판정은 관리자가 사진과 함께 검토하고 최종 조치해야 합니다.</small>
           </article>:<article className={`ai-report-result ${analysisDone?"completed":"pending"}`}>
-            <div className="ai-result-title"><BrainCircuit/><div><b>AI 위험 분석</b><span>{analysisDone?`분석 완료 · ${selected.modelVersion || "모델 버전 미기재"}`:"분석 대기"}</span></div></div>
-            {analysisDone?<><div className="ai-result-metrics"><div><MapPin/><span>추정 위치<b>{selected.estimatedLocation || "추정 불가"}</b></span></div><div><AlertTriangle/><span>위험 중요도<b className={`severity-${selected.severity}`}>{severityLabels[selected.severity] || selected.severity}</b></span></div><div><ShieldCheck/><span>위험 점수<b>{selected.riskScore ?? "-"}<small>/100</small></b></span></div></div><div className="ai-result-text"><div><b>분석 요약</b><p>{selected.analysisSummary}</p></div><div><b>권고 조치</b><p>{selected.recommendedAction}</p></div></div><small className="ai-confidence">모델 신뢰도 {selected.confidence == null ? "-" : `${Math.round(Number(selected.confidence) * 100)}%`} · 관리자가 결과를 검토하고 최종 확정해야 합니다.</small></>:<div className="ai-pending-message"><Clock3/><b>AI 모델 기다리는 중...</b></div>}
+            <div className="ai-result-title"><BrainCircuit/><div><b>AI 위험 분석</b><span>{analysisDone?`분석 완료 · ${selected.modelVersion || "모델 버전 미기재"}`:analysisFailed?"분석 실패":"분석 진행 중"}</span></div></div>
+            {analysisDone?<><div className="ai-result-metrics"><div><MapPin/><span>추정 위치<b>{selected.estimatedLocation || "추정 불가"}</b></span></div><div><AlertTriangle/><span>위험 중요도<b className={`severity-${selected.severity}`}>{severityLabels[selected.severity] || selected.severity}</b></span></div><div><ShieldCheck/><span>위험 점수<b>{selected.riskScore ?? "-"}<small>/100</small></b></span></div></div><div className="ai-result-text"><div><b>분석 요약</b><p>{selected.analysisSummary}</p></div><div><b>권고 조치</b><p>{selected.recommendedAction}</p></div></div><small className="ai-confidence">우선순위 {selected.priority || "-"} · 정책 {selected.policyVersion || "-"} · 모델 신뢰도 {selected.confidence == null ? "-" : `${Math.round(Number(selected.confidence) * 100)}%`}</small></>:<div className="ai-pending-message"><Clock3/><b>{analysisFailed ? selected.analysisError || "AI 분석에 실패했습니다." : "AI 모델 분석 중..."}</b><button type="button" className="outline-btn" disabled={analyzing} onClick={requestAnalysis}>{analyzing?"요청 중...":"다시 분석"}</button></div>}
           </article>}
           <div className="report-progress"><b>처리 상태</b><div>{statusSteps.map((status,index)=><span key={status} className={index<=currentStep?"active":""}><i>{index<currentStep?<CheckCircle2/>:index+1}</i>{statusLabels[status]}</span>)}</div></div>
           <label className="report-action-comment"><span>관리자 조치 내용</span><textarea value={comment} onChange={e=>setComment(e.target.value)} maxLength={2000} placeholder="현장 확인 결과와 조치 내용을 입력하세요."/></label>
-          <div className="report-detail-actions">{nextStatus?<button disabled={saving} className="primary-small" onClick={()=>updateStatus(nextStatus)}><Wrench/>{saving?"저장 중...":`${statusLabels[nextStatus]} 처리`}</button>:<button disabled className="resolved-button"><CheckCircle2/>처리 완료됨</button>}</div>
+          <div className="report-detail-actions">{nextStatus?<button disabled={saving} className="primary-small" onClick={()=>updateStatus(nextStatus)}><Wrench/>{saving?"저장 중...":`${statusLabels[nextStatus]} 처리`}</button>:<><button disabled className="resolved-button"><CheckCircle2/>처리 완료됨</button><button type="button" className="delete-event-button" disabled={deleting} onClick={deleteResolvedEvent}><Trash2/>{deleting?"삭제 중...":"이벤트 삭제"}</button></>}</div>
         </>}
       </section>
     </div>

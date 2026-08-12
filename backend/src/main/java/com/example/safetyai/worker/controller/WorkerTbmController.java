@@ -101,7 +101,7 @@ public class WorkerTbmController {
             user.id()
         );
         if (!sessions.isEmpty()) {
-            return response(sessions.get(0), user);
+            return response(sessions.get(0), user, language);
         }
 
         List<Map<String, Object>> permits = jdbcTemplate.queryForList(
@@ -144,7 +144,7 @@ public class WorkerTbmController {
             admin,
             user.id()
         );
-        return permits.isEmpty() ? Map.of() : response(permits.get(0), user);
+        return permits.isEmpty() ? Map.of() : response(permits.get(0), user, language);
     }
 
     @PostMapping("/confirm")
@@ -188,11 +188,17 @@ public class WorkerTbmController {
         return sessionIds.isEmpty() ? createSession(permitId) : sessionIds.get(0);
     }
 
-    private Map<String, Object> response(Map<String, Object> row, AuthService.AuthenticatedUser user) {
+    private Map<String, Object> response(
+        Map<String, Object> row,
+        AuthService.AuthenticatedUser user,
+        String language
+    ) {
+        Optional<Map<String, Object>> guidance = cachedGuidance(row);
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("permitId", row.get("permit_id"));
-        response.put("title", row.get("title"));
-        response.put("content", enrichedContent(row, user));
+        response.put("title", localizedValue(guidance, language, "title")
+            .orElse(String.valueOf(row.get("title"))));
+        response.put("content", enrichedContent(row, user, language, guidance));
         response.put("confirmed", Boolean.TRUE.equals(row.get("confirmed"))
             || row.get("confirmed") instanceof Number number && number.intValue() != 0);
         return response;
@@ -202,27 +208,40 @@ public class WorkerTbmController {
     // 캐시돼 있으면 그걸로 대체하고, 없으면(아직 생성 전, 실패, API 키 미설정 등) 기존 방식으로
     // 채워진 row.content(작업 내용 요약)를 그대로 쓴다. 여기서는 새로 생성을 트리거하지 않는다 —
     // 그러면 작업자의 "오늘 작업" 로딩이 OpenAI 응답 시간만큼 느려지기 때문이다.
-    private String enrichedContent(Map<String, Object> row, AuthService.AuthenticatedUser user) {
+    private Optional<Map<String, Object>> cachedGuidance(Map<String, Object> row) {
         Object permitIdValue = row.get("permit_id");
-        if (!(permitIdValue instanceof Number permitIdNumber)) {
-            return String.valueOf(row.get("content"));
-        }
-        try {
-            Optional<Map<String, Object>> guidance = fieldGuidanceService.peekCached(permitIdNumber.longValue());
-            if (guidance.isPresent()) {
-                String formatted = formatGuidance(guidance.get(), user.id());
-                if (!formatted.isBlank()) {
-                    return formatted;
-                }
+        if (permitIdValue instanceof Number permitIdNumber) {
+            try {
+                return fieldGuidanceService.peekCached(permitIdNumber.longValue());
+            } catch (Exception ignored) {
+                // 캐시 조회 자체가 실패해도 워커 화면은 DB 자료로 정상 동작해야 한다.
             }
-        } catch (Exception ignored) {
-            // 캐시 조회 자체가 실패해도 워커 화면은 기존 요약으로 정상 동작해야 한다.
         }
-        return String.valueOf(row.get("content"));
+        return Optional.empty();
+    }
+
+    private String enrichedContent(
+        Map<String, Object> row,
+        AuthService.AuthenticatedUser user,
+        String language,
+        Optional<Map<String, Object>> guidance
+    ) {
+        String base = localizedValue(guidance, language, "content")
+            .orElseGet(() -> String.valueOf(row.get("content")));
+        if (guidance.isEmpty()) {
+            return base;
+        }
+
+        if (base.isBlank() || "null".equals(base)) {
+            base = formatGuidance(guidance.get());
+        }
+        StringBuilder text = new StringBuilder(base.trim());
+        appendMyGuidance(text, guidance.get(), user.id(), language);
+        return text.toString().trim();
     }
 
     @SuppressWarnings("unchecked")
-    private String formatGuidance(Map<String, Object> guidance, long userId) {
+    private String formatGuidance(Map<String, Object> guidance) {
         StringBuilder text = new StringBuilder();
         String summary = trimToNull(guidance.get("tbmSummary"));
         if (summary != null) {
@@ -236,15 +255,44 @@ public class WorkerTbmController {
         appendPhase(text, items, "during", "\n[작업 중]");
         appendPhase(text, items, "emergency", "\n[비상시]");
 
+        return text.toString().trim();
+    }
+
+    @SuppressWarnings("unchecked")
+    private void appendMyGuidance(
+        StringBuilder text,
+        Map<String, Object> guidance,
+        long userId,
+        String language
+    ) {
         List<Map<String, Object>> workerGuidance = guidance.get("workerGuidance") instanceof List<?> list
             ? (List<Map<String, Object>>) list
             : List.of();
         workerGuidance.stream()
             .filter(worker -> worker.get("workerId") instanceof Number number && number.longValue() == userId)
+            .filter(worker -> language.equals(worker.get("language")))
             .findFirst()
-            .ifPresent(mine -> appendWorkerGuidance(text, mine));
+            .ifPresent(mine -> appendWorkerGuidance(text, mine, language));
+    }
 
-        return text.toString().trim();
+    @SuppressWarnings("unchecked")
+    private Optional<String> localizedValue(
+        Optional<Map<String, Object>> guidance,
+        String requestedLanguage,
+        String field
+    ) {
+        if (guidance.isEmpty()) {
+            return Optional.empty();
+        }
+        List<Map<String, Object>> localized = guidance.get().get("localizedTbm") instanceof List<?> list
+            ? (List<Map<String, Object>>) list
+            : List.of();
+        return localized.stream()
+            .filter(item -> requestedLanguage.equals(item.get("language")))
+            .findFirst()
+            .or(() -> localized.stream().filter(item -> "ko".equals(item.get("language"))).findFirst())
+            .map(item -> trimToNull(item.get(field)))
+            .filter(value -> value != null);
     }
 
     private void appendPhase(StringBuilder text, List<Map<String, Object>> items, String phase, String label) {
@@ -260,22 +308,23 @@ public class WorkerTbmController {
     }
 
     @SuppressWarnings("unchecked")
-    private void appendWorkerGuidance(StringBuilder text, Map<String, Object> mine) {
+    private void appendWorkerGuidance(StringBuilder text, Map<String, Object> mine, String language) {
+        boolean korean = "ko".equals(language);
         List<Map<String, Object>> ppe = mine.get("requiredPpe") instanceof List<?> list
             ? (List<Map<String, Object>>) list
             : List.of();
         if (!ppe.isEmpty()) {
-            text.append("\n[개인 보호구]\n");
+            text.append(korean ? "\n[개인 보호구]\n" : "\n[PPE]\n");
             ppe.forEach(item -> text.append("· ").append(item.get("name")).append("\n"));
         }
         List<?> checks = mine.get("checks") instanceof List<?> list ? list : List.of();
         if (!checks.isEmpty()) {
-            text.append("\n[확인 사항]\n");
+            text.append(korean ? "\n[확인 사항]\n" : "\n[CHECK]\n");
             checks.forEach(check -> text.append("· ").append(check).append("\n"));
         }
         List<?> warnings = mine.get("warnings") instanceof List<?> list ? list : List.of();
         if (!warnings.isEmpty()) {
-            text.append("\n[주의]\n");
+            text.append(korean ? "\n[주의]\n" : "\n[WARNING]\n");
             warnings.forEach(warning -> text.append("⚠ ").append(warning).append("\n"));
         }
     }

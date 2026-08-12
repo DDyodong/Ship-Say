@@ -12,7 +12,7 @@
 
 - 인증은 DB 세션 기반 Bearer 토큰을 사용하고 역할별 접근 제어를 적용합니다. 운영 확장 시 토큰 회전, 로그인 rate limit, 감사 로그를 추가할 수 있습니다.
 - 게시판 운영 기능: 게시글 수정/삭제, 공지 고정, 검색, 페이지네이션, 관리자 숨김 처리가 추가되면 좋습니다.
-- 파일 저장소: 현재 로컬 디렉터리에 저장합니다. 클라우드 배포 시 S3/Object Storage로 교체하는 구성이 필요합니다.
+- 파일 저장소: 기본값은 로컬이며 `FILE_STORAGE_TYPE=s3`, `S3_BUCKET` 설정 시 업로드 파일과 다국어 TBM JSON을 S3에 저장합니다.
 - AI 비동기 처리: 모델 호출이 오래 걸릴 수 있으므로 큐, 상태 업데이트, 재시도, 실패 로그가 있으면 안정적입니다.
 - 테스트 데이터/시드: 발표 시연을 위해 사이트, 사용자, 작업허가, 위험 이벤트 샘플 데이터가 필요합니다.
 
@@ -36,8 +36,8 @@ POST /api/auth/login                                         PUBLIC
 POST /api/auth/logout                                        AUTHENTICATED
 
 POST /api/files                                              WORKER | ADMIN
-GET  /api/files/{id}                                         소유자 | ADMIN | 허가서 배정 작업자
-GET  /api/files/{id}/download                                소유자 | ADMIN | 허가서 배정 작업자
+GET  /api/files/{id}                                         소유자 | ADMIN | 관련 허가서 배정 작업자
+GET  /api/files/{id}/download                                소유자 | ADMIN | 관련 허가서 배정 작업자
 
 GET  /api/board/posts?category=general                       WORKER | ADMIN
 GET  /api/board/posts/{id}                                   WORKER | ADMIN
@@ -59,6 +59,7 @@ DELETE /api/work-permits/{id}                                ADMIN
 GET  /api/work-permits/trash                                 ADMIN
 POST /api/work-permits/{id}/restore                          ADMIN
 POST /api/work-permits/{id}/analyze                          ADMIN
+POST /api/admin/work-permits/{id}/tbm/generate               ADMIN
 DELETE /api/work-permits/{id}/permanent                      ADMIN
 
 GET  /api/worker/tbm/today?language=ko                       WORKER | ADMIN
@@ -77,6 +78,7 @@ GET  /api/safety-events/reports?status=&sourceType=          ADMIN
 GET  /api/safety-events/my                                   WORKER | ADMIN
 POST /api/safety-events                                      WORKER | ADMIN
 POST /api/safety-events/{id}/actions                         ADMIN
+DELETE /api/safety-events/{id}                               ADMIN (처리 완료 상태만)
 
 GET  /api/ai/model-runs                                      ADMIN
 POST /api/ai/model-runs                                      ADMIN | AI_SERVICE

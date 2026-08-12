@@ -9,6 +9,8 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class SafetyEventRepository {
+    public record DeletionTarget(String status, Long permitId) {}
+
     private final JdbcTemplate jdbcTemplate;
 
     public SafetyEventRepository(JdbcTemplate jdbcTemplate) {
@@ -159,6 +161,9 @@ public class SafetyEventRepository {
                    JSON_UNQUOTE(JSON_EXTRACT(se.payload, '$.recommendedAction')) AS recommendedAction,
                    JSON_EXTRACT(se.payload, '$.confidence') AS confidence,
                    JSON_UNQUOTE(JSON_EXTRACT(se.payload, '$.modelVersion')) AS modelVersion,
+                   JSON_UNQUOTE(JSON_EXTRACT(se.payload, '$.priority')) AS priority,
+                   JSON_UNQUOTE(JSON_EXTRACT(se.payload, '$.policyVersion')) AS policyVersion,
+                   JSON_UNQUOTE(JSON_EXTRACT(se.payload, '$.analysisError')) AS analysisError,
                    JSON_UNQUOTE(JSON_EXTRACT(se.payload, '$.analyzedAt')) AS analyzedAt,
                    JSON_UNQUOTE(JSON_EXTRACT(se.payload, '$.reasonCode')) AS reasonCode,
                    JSON_EXTRACT(se.payload, '$.missingItems') AS missingItems,
@@ -221,6 +226,114 @@ public class SafetyEventRepository {
         ) > 0;
     }
 
+    public Map<String, Object> findUserReportForAnalysis(long eventId) {
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+            """
+                SELECT se.event_type, se.description, f.storage_key, f.mime_type
+                  FROM safety_events se
+                  JOIN files f ON f.id = se.file_id
+                 WHERE se.id = ? AND se.source_type = 'user_report'
+                """,
+            eventId
+        );
+        if (rows.isEmpty()) {
+            throw new IllegalStateException("Safety report or image was not found.");
+        }
+        return rows.get(0);
+    }
+
+    public void markAnalysisRunning(long eventId) {
+        jdbcTemplate.update(
+            """
+                UPDATE safety_events
+                   SET payload = JSON_SET(
+                       COALESCE(payload, JSON_OBJECT()),
+                       '$.analysisStatus', 'analyzing',
+                       '$.analysisError', NULL
+                   )
+                 WHERE id = ? AND source_type = 'user_report'
+                """,
+            eventId
+        );
+    }
+
+    public void resetAnalysis(long eventId) {
+        int updated = jdbcTemplate.update(
+            """
+                UPDATE safety_events
+                   SET payload = JSON_SET(
+                       COALESCE(payload, JSON_OBJECT()),
+                       '$.analysisStatus', 'pending',
+                       '$.analysisError', NULL
+                   )
+                 WHERE id = ? AND source_type = 'user_report'
+                """,
+            eventId
+        );
+        if (updated == 0) {
+            throw new IllegalStateException("Safety report was not found.");
+        }
+    }
+
+    public void saveAutomatedAnalysis(
+        long eventId,
+        String severity,
+        String estimatedLocation,
+        int riskScore,
+        String summary,
+        String recommendedAction,
+        double confidence,
+        String modelVersion,
+        String priority,
+        String policyVersion,
+        String factorsJson,
+        String observedHazardsJson
+    ) {
+        jdbcTemplate.update(
+            """
+                UPDATE safety_events
+                   SET severity = ?,
+                       payload = JSON_SET(
+                           COALESCE(payload, JSON_OBJECT()),
+                           '$.analysisStatus', 'completed',
+                           '$.estimatedLocation', ?,
+                           '$.riskScore', ?,
+                           '$.summary', ?,
+                           '$.recommendedAction', ?,
+                           '$.confidence', ?,
+                           '$.modelVersion', ?,
+                           '$.priority', ?,
+                           '$.policyVersion', ?,
+                           '$.factors', CAST(? AS JSON),
+                           '$.observedHazards', CAST(? AS JSON),
+                           '$.analysisError', NULL,
+                           '$.analyzedAt', DATE_FORMAT(UTC_TIMESTAMP(6), '%Y-%m-%dT%H:%i:%s.%fZ')
+                       )
+                 WHERE id = ? AND source_type = 'user_report'
+                """,
+            severity, estimatedLocation, riskScore, summary, recommendedAction,
+            confidence, modelVersion, priority, policyVersion, factorsJson,
+            observedHazardsJson, eventId
+        );
+    }
+
+    public void markAnalysisFailed(long eventId, String message) {
+        jdbcTemplate.update(
+            """
+                UPDATE safety_events
+                   SET payload = JSON_SET(
+                       COALESCE(payload, JSON_OBJECT()),
+                       '$.analysisStatus', 'failed',
+                       '$.analysisError', ?,
+                       '$.analyzedAt', DATE_FORMAT(UTC_TIMESTAMP(6), '%Y-%m-%dT%H:%i:%s.%fZ')
+                   )
+                 WHERE id = ? AND source_type = 'user_report'
+                """,
+            message,
+            eventId
+        );
+    }
+
     public boolean updateReportStatus(long eventId, long actorId, String status, String comment) {
         int updated = jdbcTemplate.update(
             "UPDATE safety_events SET status = ? WHERE id = ? AND source_type IN ('user_report', 'ai_ppe')",
@@ -238,5 +351,27 @@ public class SafetyEventRepository {
             comment
         );
         return true;
+    }
+
+    public DeletionTarget findDeletionTargetForUpdate(long eventId) {
+        List<DeletionTarget> targets = jdbcTemplate.query(
+            "SELECT status, permit_id FROM safety_events WHERE id = ? FOR UPDATE",
+            (resultSet, rowNum) -> new DeletionTarget(
+                resultSet.getString("status"),
+                resultSet.getObject("permit_id", Long.class)
+            ),
+            eventId
+        );
+        return targets.isEmpty() ? null : targets.get(0);
+    }
+
+    public boolean deleteResolved(long eventId) {
+        // 알림과 산출된 위험점수는 감사 이력으로 남기되 삭제된 이벤트와의 연결만 해제한다.
+        jdbcTemplate.update("UPDATE notifications SET event_id = NULL WHERE event_id = ?", eventId);
+        jdbcTemplate.update("UPDATE risk_scores SET event_id = NULL WHERE event_id = ?", eventId);
+        return jdbcTemplate.update(
+            "DELETE FROM safety_events WHERE id = ? AND status = 'resolved'",
+            eventId
+        ) > 0;
     }
 }

@@ -6,6 +6,7 @@ import com.example.safetyai.risk.service.SafetyEventService;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -59,6 +60,16 @@ public class SafetyEventController {
         @Valid @RequestBody SafetyEventActionRequest request
     ) {
         return safetyEventService.updateReportStatus(authorization, id, request);
+    }
+
+    @DeleteMapping("/{id}")
+    public Map<String, Object> deleteResolved(@PathVariable long id) {
+        return safetyEventService.deleteResolved(id);
+    }
+
+    @PostMapping("/{id}/analysis")
+    public Map<String, Object> requestAnalysis(@PathVariable long id) {
+        return safetyEventService.requestAnalysis(id);
     }
 
 }

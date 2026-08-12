@@ -2,6 +2,7 @@ package com.example.safetyai.risk.controller;
 
 import com.example.safetyai.common.util.JdbcInsert;
 import com.example.safetyai.permit.service.PermitFieldGuidanceService;
+import com.example.safetyai.permit.service.TbmMaterialService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.util.Arrays;
@@ -20,10 +21,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class AiModelController {
     private final JdbcTemplate jdbcTemplate;
     private final PermitFieldGuidanceService fieldGuidanceService;
+    private final TbmMaterialService tbmMaterialService;
 
-    public AiModelController(JdbcTemplate jdbcTemplate, PermitFieldGuidanceService fieldGuidanceService) {
+    public AiModelController(
+        JdbcTemplate jdbcTemplate,
+        PermitFieldGuidanceService fieldGuidanceService,
+        TbmMaterialService tbmMaterialService
+    ) {
         this.jdbcTemplate = jdbcTemplate;
         this.fieldGuidanceService = fieldGuidanceService;
+        this.tbmMaterialService = tbmMaterialService;
     }
 
     @GetMapping("/model-runs")
@@ -81,7 +88,9 @@ public class AiModelController {
 
     @PostMapping("/work-permits/{permitId}/field-guidance")
     public Map<String, Object> createFieldGuidance(@PathVariable long permitId) {
-        return fieldGuidanceService.generate(permitId);
+        Map<String, Object> guidance = fieldGuidanceService.generate(permitId);
+        tbmMaterialService.save(permitId, guidance);
+        return guidance;
     }
 
     public record ModelRunRequest(

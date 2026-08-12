@@ -39,6 +39,14 @@ class OpenAiPermitFieldGuidanceServiceTest {
         assertThat(workerProperties.path("requiredPpe").path("maxItems").asInt()).isEqualTo(6);
         assertThat(workerProperties.path("checks").path("maxItems").asInt()).isEqualTo(4);
         assertThat(workerProperties.path("warnings").path("maxItems").asInt()).isEqualTo(2);
+        assertThat(properties.path("translationTargets").path("maxItems").asInt()).isEqualTo(12);
+        assertThat(properties.path("translationTargets").path("minItems").asInt()).isEqualTo(12);
+        assertThat(properties.path("localizedTbm").path("maxItems").asInt()).isEqualTo(12);
+        assertThat(properties.path("localizedTbm").path("minItems").asInt()).isEqualTo(12);
+        assertThat(properties.path("terminologyCorrections").path("maxItems").asInt()).isEqualTo(12);
+        assertThat(properties.path("localizedTbm").path("items").path("required"))
+            .extracting(JsonNode::asText)
+            .containsExactlyInAnyOrder("language", "title", "content");
     }
 
     @Test
@@ -97,6 +105,12 @@ class OpenAiPermitFieldGuidanceServiceTest {
     }
 
     @Test
+    void supportedLanguagesMatchEveryWorkerAppOption() {
+        assertThat(OpenAiPermitFieldGuidanceService.SUPPORTED_TBM_LANGUAGES)
+            .containsExactly("ko", "en", "vi", "zh", "ne", "uz", "si", "ta", "id", "th", "fil", "my");
+    }
+
+    @Test
     void duplicateWorkerIdIsRejected() {
         List<Map<String, Object>> workers = List.of(
             worker(1, "김작업", "ko"),
@@ -106,8 +120,6 @@ class OpenAiPermitFieldGuidanceServiceTest {
             worker(1, "김작업", "ko"),
             worker(1, "김작업", "ko")
         ));
-        guidance.withArray("translationTargets").removeAll().add("ko").add("uz");
-
         assertThatThrownBy(() -> OpenAiPermitFieldGuidanceService.validateGuidance(guidance, workers))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("중복된 작업자 ID");
@@ -141,13 +153,27 @@ class OpenAiPermitFieldGuidanceServiceTest {
     }
 
     @Test
-    void translationTargetsMustMatchAssignedWorkerLanguages() {
+    void translationTargetsMustMatchEverySupportedLanguage() {
         List<Map<String, Object>> workers = List.of(worker(1, "Ali", "uz"));
         ObjectNode guidance = validGuidance(workers);
-        guidance.withArray("translationTargets").add("en");
+        guidance.withArray("translationTargets").remove(11);
+        guidance.withArray("translationTargets").add("fr");
 
         assertThatThrownBy(() -> OpenAiPermitFieldGuidanceService.validateGuidance(guidance, workers))
             .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("번역 대상 언어")
+            .hasMessageContaining("앱 지원 언어");
+    }
+
+    @Test
+    void localizedTbmMustMatchTranslationTargets() {
+        List<Map<String, Object>> workers = List.of(worker(1, "Ali", "uz"));
+        ObjectNode guidance = validGuidance(workers);
+        guidance.withArray("localizedTbm").remove(1);
+
+        assertThatThrownBy(() -> OpenAiPermitFieldGuidanceService.validateGuidance(guidance, workers))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("다국어 TBM")
             .hasMessageContaining("번역 대상 언어");
     }
 
@@ -193,6 +219,7 @@ class OpenAiPermitFieldGuidanceServiceTest {
         return new OpenAiPermitFieldGuidanceService(
             jdbcTemplate,
             objectMapper,
+            mock(TbmMaterialService.class),
             RestClient.builder(),
             "",
             "https://api.openai.com/v1",
@@ -207,6 +234,8 @@ class OpenAiPermitFieldGuidanceServiceTest {
 
     private ObjectNode validGuidance(List<Map<String, Object>> workers) {
         ObjectNode guidance = objectMapper.createObjectNode();
+        guidance.put("tbmTitle", "표준 TBM");
+        guidance.put("tbmSummary", "표준 안전 안내");
         guidance.putArray("tbmItems");
         guidance.putArray("commonPpe");
 
@@ -223,11 +252,17 @@ class OpenAiPermitFieldGuidanceServiceTest {
             item.putArray("warnings");
         }
 
-        Set<String> languages = new LinkedHashSet<>();
-        languages.add("ko");
-        workers.forEach(worker -> languages.add(String.valueOf(worker.get("language"))));
+        Set<String> languages = new LinkedHashSet<>(
+            OpenAiPermitFieldGuidanceService.SUPPORTED_TBM_LANGUAGES
+        );
         ArrayNode translationTargets = guidance.putArray("translationTargets");
         languages.forEach(translationTargets::add);
+        ArrayNode localizedTbm = guidance.putArray("localizedTbm");
+        languages.forEach(language -> localizedTbm.addObject()
+            .put("language", language)
+            .put("title", "TBM " + language)
+            .put("content", "TBM content " + language));
+        guidance.putArray("terminologyCorrections");
         guidance.putArray("operatorWarnings");
         return guidance;
     }

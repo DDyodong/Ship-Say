@@ -1,18 +1,16 @@
 package com.example.safetyai.permit.controller;
 
 import com.example.safetyai.common.exception.ApiException;
-import com.example.safetyai.common.util.JdbcInsert;
 import com.example.safetyai.permit.service.PermitFieldGuidanceService;
+import com.example.safetyai.permit.service.TbmMaterialService;
 import com.example.safetyai.risk.service.PermitRiskScoringService;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,15 +25,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminPermitProgressController {
     private final JdbcTemplate jdbcTemplate;
     private final PermitFieldGuidanceService fieldGuidanceService;
+    private final TbmMaterialService tbmMaterialService;
     private final PermitRiskScoringService riskScoringService;
 
     public AdminPermitProgressController(
         JdbcTemplate jdbcTemplate,
         PermitFieldGuidanceService fieldGuidanceService,
+        TbmMaterialService tbmMaterialService,
         PermitRiskScoringService riskScoringService
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.fieldGuidanceService = fieldGuidanceService;
+        this.tbmMaterialService = tbmMaterialService;
         this.riskScoringService = riskScoringService;
     }
 
@@ -47,80 +48,13 @@ public class AdminPermitProgressController {
         return progress(permitId);
     }
 
-    // 관리자가 "지금 바로" OpenAI 현장 안내(TBM 요약·단계별 행동요령)를 생성하고,
-    // 그 결과로 오늘자 tbm_sessions/tbm_materials를 만들어(이미 있으면 재사용) 이 화면
-    // 자체에서 바로 확인할 수 있게 한다. 원래는 승인 시점 백그라운드 생성 → 워커가
-    // TBM을 확인해야만 세션이 생겼는데, 그 두 단계를 관리자가 한 번에 트리거하는 것.
+    // 관리자가 표준화·다국어 번역·파일 저장을 즉시 다시 실행할 때 쓰는 엔드포인트다.
+    // 승인 시점에도 동일한 생성/저장 흐름이 백그라운드에서 자동 실행된다.
     @PostMapping("/{permitId}/tbm/generate")
-    @Transactional
     public Map<String, Object> generateTbm(@PathVariable long permitId) {
         Map<String, Object> guidance = fieldGuidanceService.generate(permitId);
-        long sessionId = ensureTodaySession(permitId, guidance);
-        saveMaterial(sessionId, guidance);
+        tbmMaterialService.save(permitId, guidance);
         return progress(permitId);
-    }
-
-    private long ensureTodaySession(long permitId, Map<String, Object> guidance) {
-        List<Long> existing = jdbcTemplate.query(
-            """
-                SELECT id FROM tbm_sessions
-                 WHERE permit_id = ? AND session_date = CURRENT_DATE
-                 ORDER BY created_at DESC
-                 LIMIT 1
-                """,
-            (resultSet, rowNumber) -> resultSet.getLong("id"),
-            permitId
-        );
-        if (!existing.isEmpty()) {
-            return existing.get(0);
-        }
-        String title = String.valueOf(guidance.getOrDefault("tbmTitle", "TBM 브리핑"));
-        return JdbcInsert.insert(
-            jdbcTemplate,
-            """
-                INSERT INTO tbm_sessions (permit_id, title, session_date, status)
-                SELECT id, ?, CURRENT_DATE, 'completed'
-                  FROM work_permits
-                 WHERE id = ? AND status NOT IN ('rejected', 'deleted')
-                """,
-            Arrays.asList(title, permitId)
-        );
-    }
-
-    @SuppressWarnings("unchecked")
-    private void saveMaterial(long sessionId, Map<String, Object> guidance) {
-        StringBuilder content = new StringBuilder();
-        Object summary = guidance.get("tbmSummary");
-        if (summary != null && !String.valueOf(summary).isBlank()) {
-            content.append(summary).append("\n");
-        }
-        List<Map<String, Object>> items = guidance.get("tbmItems") instanceof List<?> list
-            ? (List<Map<String, Object>>) list
-            : List.of();
-        appendPhase(content, items, "before", "\n[작업 전]");
-        appendPhase(content, items, "during", "\n[작업 중]");
-        appendPhase(content, items, "emergency", "\n[비상시]");
-
-        jdbcTemplate.update(
-            """
-                INSERT INTO tbm_materials (tbm_session_id, material_type, language, content, model_name)
-                VALUES (?, 'script', 'ko', ?, 'openai-field-guidance')
-                """,
-            sessionId,
-            content.toString().trim()
-        );
-    }
-
-    private void appendPhase(StringBuilder text, List<Map<String, Object>> items, String phase, String label) {
-        List<String> lines = items.stream()
-            .filter(item -> phase.equals(item.get("phase")))
-            .map(item -> ("critical".equals(item.get("priority")) ? "⚠ " : "· ") + item.get("text"))
-            .toList();
-        if (lines.isEmpty()) {
-            return;
-        }
-        text.append(label).append("\n");
-        lines.forEach(line -> text.append(line).append("\n"));
     }
 
     @GetMapping("/{permitId}/progress")
@@ -175,7 +109,7 @@ public class AdminPermitProgressController {
                              FROM tbm_materials tm
                             WHERE tm.tbm_session_id = ts.id
                               AND tm.content IS NOT NULL AND tm.content <> ''
-                            ORDER BY tm.created_at DESC
+                            ORDER BY (tm.language = 'ko') DESC, tm.created_at DESC
                             LIMIT 1
                        ) AS content
                   FROM tbm_sessions ts
@@ -186,13 +120,15 @@ public class AdminPermitProgressController {
                 """,
             (resultSet, rowNumber) -> {
                 Map<String, Object> row = new LinkedHashMap<>();
-                row.put("id", resultSet.getLong("id"));
+                long sessionId = resultSet.getLong("id");
+                row.put("id", sessionId);
                 row.put("title", resultSet.getString("title"));
                 row.put("sessionDate", resultSet.getObject("session_date"));
                 row.put("status", resultSet.getString("status"));
                 row.put("attendanceCount", resultSet.getInt("attendance_count"));
                 row.put("confirmedCount", resultSet.getInt("confirmed_count"));
                 row.put("content", resultSet.getString("content"));
+                row.put("materials", tbmMaterials(sessionId));
                 return row;
             },
             permitId
@@ -290,6 +226,29 @@ public class AdminPermitProgressController {
     private Boolean nullableBoolean(ResultSet row, String column) throws SQLException {
         boolean value = row.getBoolean(column);
         return row.wasNull() ? null : value;
+    }
+
+    private List<Map<String, Object>> tbmMaterials(long sessionId) {
+        return jdbcTemplate.query(
+            """
+                SELECT tm.language, tm.file_id, tm.model_name,
+                       f.original_name, f.file_size
+                  FROM tbm_materials tm
+             LEFT JOIN files f ON f.id = tm.file_id
+                 WHERE tm.tbm_session_id = ?
+                 ORDER BY (tm.language = 'ko') DESC, tm.language
+                """,
+            (resultSet, rowNumber) -> {
+                Map<String, Object> material = new LinkedHashMap<>();
+                material.put("language", resultSet.getString("language"));
+                material.put("fileId", nullableLong(resultSet, "file_id"));
+                material.put("modelName", resultSet.getString("model_name"));
+                material.put("originalName", resultSet.getString("original_name"));
+                material.put("fileSize", nullableLong(resultSet, "file_size"));
+                return material;
+            },
+            sessionId
+        );
     }
 
     private Long nullableLong(ResultSet row, String column) throws SQLException {

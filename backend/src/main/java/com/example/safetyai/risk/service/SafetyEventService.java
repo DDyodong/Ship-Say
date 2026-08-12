@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,19 +30,22 @@ public class SafetyEventService {
     private final NotificationService notificationService;
     private final PermitRiskScoringService riskScoringService;
     private final JdbcTemplate jdbcTemplate;
+    private final ApplicationEventPublisher eventPublisher;
 
     public SafetyEventService(
         SafetyEventRepository safetyEventRepository,
         AuthService authService,
         NotificationService notificationService,
         PermitRiskScoringService riskScoringService,
-        JdbcTemplate jdbcTemplate
+        JdbcTemplate jdbcTemplate,
+        ApplicationEventPublisher eventPublisher
     ) {
         this.safetyEventRepository = safetyEventRepository;
         this.authService = authService;
         this.notificationService = notificationService;
         this.riskScoringService = riskScoringService;
         this.jdbcTemplate = jdbcTemplate;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -63,6 +67,7 @@ public class SafetyEventService {
             eventName + " 신고",
             request.description().trim()
         );
+        eventPublisher.publishEvent(new SafetyReportAnalysisRequested(id));
         String reportNo = "SR-" + Year.now().getValue() + "-" + String.format("%06d", id);
         return Map.of(
             "id", id,
@@ -83,6 +88,12 @@ public class SafetyEventService {
 
     public List<Map<String, Object>> getWorkerReports(String status, String sourceType) {
         return safetyEventRepository.findWorkerReports(status, sourceType);
+    }
+
+    public Map<String, Object> requestAnalysis(long eventId) {
+        safetyEventRepository.resetAnalysis(eventId);
+        eventPublisher.publishEvent(new SafetyReportAnalysisRequested(eventId));
+        return Map.of("id", eventId, "analysisStatus", "pending");
     }
 
     @Transactional
@@ -140,6 +151,22 @@ public class SafetyEventService {
         );
     }
 
+    @Transactional
+    public Map<String, Object> deleteResolved(long eventId) {
+        SafetyEventRepository.DeletionTarget target = safetyEventRepository.findDeletionTargetForUpdate(eventId);
+        if (target == null) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "안전 이벤트를 찾을 수 없습니다.");
+        }
+        if (!"resolved".equals(target.status())) {
+            throw new ApiException(HttpStatus.CONFLICT, "처리 완료된 안전 이벤트만 삭제할 수 있습니다.");
+        }
+        if (!safetyEventRepository.deleteResolved(eventId)) {
+            throw new ApiException(HttpStatus.CONFLICT, "안전 이벤트 상태가 변경되어 삭제할 수 없습니다.");
+        }
+        recomputePermitRiskSafely(target.permitId(), eventId);
+        return Map.of("id", eventId, "deleted", true);
+    }
+
     // 이벤트에 연결된 허가서가 있을 때만 재계산한다(permit_id가 없는 이벤트도 있음).
     // 재계산 실패로 이벤트 처리 자체가 실패해서는 안 되므로 예외를 삼킨다.
     private void recomputeRiskScoreSafely(long eventId) {
@@ -156,6 +183,17 @@ public class SafetyEventService {
             // 조회 시점에 이미 삭제된 경우 — 무시
         } catch (Exception exception) {
             log.warn("Risk score recompute failed after safety event {}: {}", eventId, exception.getMessage());
+        }
+    }
+
+    private void recomputePermitRiskSafely(Long permitId, long eventId) {
+        if (permitId == null) {
+            return;
+        }
+        try {
+            riskScoringService.recompute(permitId);
+        } catch (Exception exception) {
+            log.warn("Risk score recompute failed after deleting safety event {}: {}", eventId, exception.getMessage());
         }
     }
 

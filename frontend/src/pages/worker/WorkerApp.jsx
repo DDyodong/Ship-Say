@@ -117,10 +117,13 @@ function WorkerApp({ session, onLogout, notify }) {
   const [reportPreview, setReportPreview] = useState("");
   const [eventType, setEventType] = useState("FALL_HEIGHT");
   const [description, setDescription] = useState("");
+  const [highlightedReportId, setHighlightedReportId] = useState(null);
   const [pushState, setPushState] = useState(
     () => localStorage.getItem("fcm-installation-id") ? "ready" : "idle",
   );
   const contentRef = useRef(null);
+  const reportRefs = useRef(new Map());
+  const pendingReportIdRef = useRef(null);
 
   const openTab = nextTab => {
     setTab(nextTab);
@@ -210,6 +213,40 @@ function WorkerApp({ session, onLogout, notify }) {
   useEffect(() => {
     setTab(workerTabFromPath(location.pathname));
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (tab !== "report" || reports.length === 0) return undefined;
+    const eventId = new URLSearchParams(location.search).get("eventId")
+      || location.state?.eventId
+      || pendingReportIdRef.current;
+    if (!eventId) return undefined;
+
+    const reportId = String(eventId);
+    const reportElement = reportRefs.current.get(reportId);
+    if (!reportElement) return undefined;
+
+    const frameId = window.requestAnimationFrame(() => {
+      const scrollContainer = contentRef.current;
+      if (scrollContainer) {
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const reportRect = reportElement.getBoundingClientRect();
+        const targetTop = scrollContainer.scrollTop
+          + reportRect.top
+          - containerRect.top
+          - (scrollContainer.clientHeight - reportElement.offsetHeight) / 2;
+        scrollContainer.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
+      } else {
+        reportElement.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      setHighlightedReportId(reportId);
+      pendingReportIdRef.current = null;
+    });
+    const timeoutId = window.setTimeout(() => setHighlightedReportId(null), 3500);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.clearTimeout(timeoutId);
+    };
+  }, [location.search, location.state, reports, tab]);
 
   useEffect(() => {
     let unsubscribe;
@@ -455,8 +492,17 @@ function WorkerApp({ session, onLogout, notify }) {
           ? { ...item, acknowledgedAt: new Date().toISOString() }
           : item
       )));
-      const targetTab = workerTabFromPath(notification.targetUrl || "/worker/work");
-      openTab(targetTab);
+      const baseTargetUrl = notification.targetUrl || "/worker/work";
+      const targetUrl = notification.eventId && baseTargetUrl.startsWith("/worker/report")
+        ? `/worker/report?eventId=${encodeURIComponent(notification.eventId)}`
+        : baseTargetUrl;
+      pendingReportIdRef.current = notification.eventId
+        ? String(notification.eventId)
+        : null;
+      setTab(workerTabFromPath(targetUrl.split("?")[0]));
+      navigate(targetUrl, {
+        state: notification.eventId ? { eventId: String(notification.eventId) } : undefined,
+      });
     } catch (error) {
       notify(error.message);
     } finally {
@@ -744,7 +790,16 @@ function WorkerApp({ session, onLogout, notify }) {
       </div>
       {reports.length ? (
         reports.map(report => (
-          <section className="worker-card worker-report-record" key={report.id}>
+          <section
+            className={`worker-card worker-report-record${highlightedReportId === String(report.id) ? " highlighted" : ""}`}
+            key={report.id}
+            data-report-id={report.id}
+            ref={element => {
+              const reportId = String(report.id);
+              if (element) reportRefs.current.set(reportId, element);
+              else reportRefs.current.delete(reportId);
+            }}
+          >
             <div>
               <b>{report.reportNo}</b>
               <span>{reportStatus[report.status] || report.status}</span>
