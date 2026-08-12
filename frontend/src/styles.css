@@ -3520,6 +3520,20 @@ button {
   }
 }
 
+/* Equipment twin: keep secondary copy readable against the dark control-room UI. */
+.factory-detail-twin .text-slate-700,
+.factory-detail-twin .text-slate-600 {
+  color: #94a3b8;
+}
+
+.factory-detail-twin .text-slate-500 {
+  color: #cbd5e1;
+}
+
+.factory-detail-twin .text-slate-400 {
+  color: #e2e8f0;
+}
+
 /* AI safety digital twin: follow the dashboard theme while keeping map/3D canvases dark. */
 .light-theme .twin-theme-page {
   background: #eef3f8 !important;

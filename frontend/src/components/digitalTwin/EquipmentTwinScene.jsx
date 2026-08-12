@@ -4,11 +4,107 @@ import { ContactShadows, Environment, Html, OrbitControls, RoundedBox } from "@r
 import { Box, RotateCcw, ScanLine } from "lucide-react";
 import * as THREE from "three";
 import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 // 오버헤드 스튜디오 조명(RectAreaLight)을 쓰려면 한 번 초기화가 필요하다.
 if (typeof window !== "undefined") RectAreaLightUniformsLib.init();
 
-const POSITIONS = [[-5, 0, -3.2], [2.2, 0, -3.2], [-4.3, 0, 3.4], [3.3, 0, 3.1], [0, 0, 0]];
+const EQUIPMENT_IVORY = "#e8e1d3";
+const EQUIPMENT_IVORY_LIGHT = "#f3ede2";
+const EQUIPMENT_IVORY_SHADE = "#cbc4b8";
+const EQUIPMENT_MECHANICAL = "#4d5353";
+const EQUIPMENT_WHEEL = "#252b2d";
+
+const CAD_IVORY_MATERIAL = new THREE.MeshStandardMaterial({
+  color: EQUIPMENT_IVORY,
+  roughness: 0.52,
+  metalness: 0.24,
+});
+
+const DEFAULT_LAYOUT = [
+  { position: [-5.5, 0, -3.2], rotationY: 0 },
+  { position: [5.5, 0, -3.2], rotationY: 0 },
+  { position: [-5.5, 0, 3.2], rotationY: 0 },
+  { position: [5.5, 0, 3.2], rotationY: 0 },
+];
+
+// 공정별 실제 작업 흐름을 읽을 수 있도록 대형 설비는 후면, 보조 설비는 측면,
+// 이송 설비는 전면에 배치하고 중앙에는 작업 통로를 남긴다.
+const EQUIPMENT_LAYOUTS = {
+  ASSEMBLY: [
+    // 긴 중앙 이송축을 기준으로 포지셔너·용접 로봇은 측면 작업 셀,
+    // 품질 검사기는 컨베이어를 가로지르는 포털형 검사 게이트로 둔다.
+    { position: [-1.1, 0, -1.15], rotationY: -Math.PI / 2 },
+    { position: [-5.15, 0, -2.55], rotationY: 0 },
+    { position: [0, 0, 1], rotationY: 0 },
+    { position: [4.7, 0, 1], rotationY: Math.PI / 2 },
+  ],
+  CUTTING: [
+    { position: [-4.8, 0, -2.1], rotationY: 0 },
+    { position: [3.9, 0, 2.8], rotationY: Math.PI / 2 },
+    { position: [5.8, 0, -3.8], rotationY: 0 },
+    { position: [-5.8, 0, 3.5], rotationY: 0 },
+  ],
+  SMALLPART: [
+    { position: [-5.2, 0, -2.5], rotationY: 0 },
+    { position: [5.3, 0, -3.1], rotationY: -.35 },
+    { position: [3.2, 0, 3.5], rotationY: 0 },
+    { position: [-5.6, 0, 3.7], rotationY: 0 },
+  ],
+  PAINT: [
+    { position: [-6.1, 0, 3], rotationY: 0 },
+    { position: [-3.3, 0, -3.6], rotationY: 0 },
+    { position: [3.3, 0, -3.6], rotationY: 0 },
+    { position: [6.1, 0, 3], rotationY: Math.PI },
+  ],
+  DOCK: [
+    { position: [0, 0, -4.5], rotationY: 0 },
+    { position: [-6, 0, 3.1], rotationY: 0 },
+    { position: [4.8, 0, 2.7], rotationY: Math.PI / 2 },
+  ],
+  OUTFITTING: [
+    { position: [-4.8, 0, -1.8], rotationY: 0 },
+    { position: [-6, 0, 3.5], rotationY: 0 },
+    { position: [5, 0, -2.8], rotationY: -.35 },
+    { position: [5.8, 0, 3.4], rotationY: 0 },
+  ],
+  OFFSHORE: [
+    { position: [-5.3, 0, -3.5], rotationY: 0 },
+    { position: [5.8, 0, -3], rotationY: -.35 },
+    { position: [-5, 0, 3.4], rotationY: 0 },
+    { position: [4.3, 0, 3.2], rotationY: 0 },
+  ],
+};
+
+const LABEL_POSITION_BY_KIND = {
+  ROBOT: [0, 4.35, 0],
+  INSPECTOR: [0, 3.35, 0],
+  POSITIONER: [0, 2.45, 0],
+  BENDER: [0, 3.15, 0],
+  CONVEYOR: [0, 1.75, 0],
+  TRANSPORTER: [0, 2.25, 0],
+  CUTTER: [0, 3.55, 0],
+  FAN: [0, 3.25, 0],
+  PUMP: [0, 2.35, 0],
+  CRANE: [0, 5.1, 0],
+  BLOCK_CRANE: [0, 6.45, 0],
+  GOLIATH: [0, 8.35, 0],
+};
+
+const SELECTION_RING_SCALE_BY_KIND = {
+  ROBOT: [1.05, 1.05, 1],
+  INSPECTOR: [1.9, 1.05, 1],
+  POSITIONER: [1.35, 1.1, 1],
+  BENDER: [1.8, 1.05, 1],
+  CONVEYOR: [2.35, .85, 1],
+  TRANSPORTER: [2.05, 1.05, 1],
+  CUTTER: [2, 1.15, 1],
+  FAN: [1.3, 1.05, 1],
+  PUMP: [1.5, .9, 1],
+  CRANE: [2.25, .85, 1],
+  BLOCK_CRANE: [4.2, 1.2, 1],
+  GOLIATH: [10.5, 1.5, 1],
+};
 
 // ---------------------------------------------------------------------------
 // REAL CAD (GrabCAD STEP) 연동
@@ -31,8 +127,7 @@ const OCCT_SRC = "https://unpkg.com/occt-import-js@0.0.23/dist/occt-import-js.js
 // 추가하면 kind 매핑보다 우선 적용됩니다. 예)
 //   { assetCode: "ASS-04-03", kind: "ROBOT", cadModel: "welding-station.step", cadTargetHeight: 2.3, ... }
 const KIND_TO_CAD = {
-  ROBOT: { file: "robot-arm.step", targetHeight: 2.4 },
-  CRANE: { file: "gantry-crane.step", targetHeight: 4.2 },
+  // 관절 애니메이션이 필요한 로봇은 정적 CAD 대신 아래의 관절형 모델을 사용한다.
 };
 
 let occtEnginePromise = null;
@@ -62,12 +157,44 @@ function loadOcctEngine() {
 
 // 같은 STEP 파일을 여러 설비/여러 공장에서 재사용해도 한 번만 파싱하도록 캐시.
 const cadModelCache = new Map();
+const gltfLoader = new GLTFLoader();
+
+function normalizeCadGroup(group, targetHeight) {
+  group.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(group);
+  const size = new THREE.Vector3();
+  box.getSize(size);
+  const scale = targetHeight / Math.max(size.y, 1e-6);
+  group.scale.multiplyScalar(scale);
+  group.updateMatrixWorld(true);
+
+  const scaledBox = new THREE.Box3().setFromObject(group);
+  const center = new THREE.Vector3();
+  scaledBox.getCenter(center);
+  group.position.x -= center.x;
+  group.position.z -= center.z;
+  group.position.y -= scaledBox.min.y;
+  group.updateMatrixWorld(true);
+  return group;
+}
 
 function loadCadGroup(file, targetHeight) {
   const cacheKey = `${file}:${targetHeight}`;
   if (cadModelCache.has(cacheKey)) return cadModelCache.get(cacheKey);
 
   const promise = (async () => {
+    if (file.toLowerCase().endsWith(".glb")) {
+      const gltf = await gltfLoader.loadAsync(`${CAD_BASE_PATH}/${file}`);
+      const group = gltf.scene;
+      group.traverse((child) => {
+        if (!child.isMesh) return;
+        child.material = CAD_IVORY_MATERIAL;
+        child.castShadow = true;
+        child.receiveShadow = true;
+      });
+      return normalizeCadGroup(group, targetHeight);
+    }
+
     const occt = await loadOcctEngine();
     const res = await fetch(`${CAD_BASE_PATH}/${file}`);
     if (!res.ok) throw new Error(`CAD 파일 로드 실패 (${res.status}): ${file}`);
@@ -89,32 +216,15 @@ function loadCadGroup(file, targetHeight) {
       }
       geometry.setIndex(Array.from(m.index.array));
       if (!m.attributes.normal) geometry.computeVertexNormals();
-      const color = m.color && m.color.length === 3
-        ? new THREE.Color(m.color[0], m.color[1], m.color[2])
-        : new THREE.Color("#9fb6bc");
       // 도장된 산업용 금속 느낌 — 살짝 광택(clearcoat) 있는 물리 재질
-      const mesh = new THREE.Mesh(geometry, new THREE.MeshPhysicalMaterial({
-        color, roughness: 0.35, metalness: 0.25, clearcoat: 0.5, clearcoatRoughness: 0.25,
-      }));
+      const mesh = new THREE.Mesh(geometry, CAD_IVORY_MATERIAL);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       group.add(mesh);
     }
 
     // STEP 원점/스케일이 제각각이라, 바닥에 붙이고 높이를 targetHeight에 맞춰 정규화한다.
-    const box = new THREE.Box3().setFromObject(group);
-    const size = new THREE.Vector3();
-    box.getSize(size);
-    const scale = targetHeight / Math.max(size.y, 1e-6);
-    group.scale.setScalar(scale);
-    const scaledBox = new THREE.Box3().setFromObject(group);
-    const center = new THREE.Vector3();
-    scaledBox.getCenter(center);
-    group.position.x -= center.x;
-    group.position.z -= center.z;
-    group.position.y -= scaledBox.min.y;
-
-    return group;
+    return normalizeCadGroup(group, targetHeight);
   })();
 
   cadModelCache.set(cacheKey, promise);
@@ -189,7 +299,7 @@ function ScanOverlay({ group, color }) {
 
 // 실제 STEP CAD를 로드해서 보여준다. 로딩 중이거나 실패하면 기존 프로시저럴 모델(fallback)을 그대로 쓴다.
 // scanActive가 true면(선택됨/알람) 위 홀로그램 스캔 오버레이를 겹쳐 그린다.
-function CadModel({ file, targetHeight, fallback, scanActive, scanColor }) {
+function CadModel({ file, targetHeight, modelScale = [1, 1, 1], fallback, scanActive, scanColor }) {
   const [group, setGroup] = useState(null);
   const [failed, setFailed] = useState(false);
 
@@ -207,35 +317,10 @@ function CadModel({ file, targetHeight, fallback, scanActive, scanColor }) {
   }, [file, targetHeight]);
 
   if (!group || failed) return fallback;
-  return <>
+  return <group scale={modelScale}>
     <primitive object={group} />
     {scanActive && <ScanOverlay group={group} color={scanColor}/>}
-  </>;
-}
-
-// 레퍼런스 사진처럼 배경을 채우는 장식용 로봇 라인 — 실제 설비 데이터와 무관.
-// 클릭도 안 되고 진단 정보도 없는 순수 비주얼 요소라, 실제 자산 목록(사이드 패널)에는 나타나지 않는다.
-// 전부 같은 targetHeight를 써서 캐시를 공유하므로 STEP은 한 번만 파싱된다.
-const DECORATIVE_ROBOT_LINE = [-11.5, -8.3, -5.1, -1.9, 1.9, 5.1, 8.3, 11.5].map((x, i) => ({
-  x, z: -9.4 + (i % 2 === 0 ? 0 : 0.35), rotY: (i % 2 === 0 ? 1 : -1) * 0.3 + 0.15,
-}));
-
-function DecorativeRobot({ x, z, rotY }) {
-  const [group, setGroup] = useState(null);
-  useEffect(() => {
-    let cancelled = false;
-    loadCadGroup("robot-arm.step", KIND_TO_CAD.ROBOT.targetHeight)
-      .then((loaded) => { if (!cancelled) setGroup(loaded.clone(true)); })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, []);
-  return <group position={[x, 0, z]} rotation={[0, rotY, 0]}>
-    {group ? <primitive object={group}/> : <RobotMachine accent="#23c8ee" alarm={false}/>}
   </group>;
-}
-
-function DecorativeRobotLine() {
-  return <group>{DECORATIVE_ROBOT_LINE.map((r, i) => <DecorativeRobot key={i} {...r}/>)}</group>;
 }
 
 // 작업자는 3D로 표현하지 않는다 — 실제 GPS/UWB 위치 연동 전까지는 좌표를 지어낼 수밖에 없고,
@@ -243,16 +328,22 @@ function DecorativeRobotLine() {
 // 패널(목록 클릭 → chooseWorker)에서만 보여준다.
 function EquipmentTwinScene({ factory, selectedAsset, onSelectAsset }) {
   const controlsRef = useRef();
+  const cameraPosition = factory.profileKey === "DOCK" ? [18, 12, 22] : [13.5, 8.5, 16];
   const alarmIndex = factory.equipment.findIndex((asset) => asset.fault);
   const hasRealCad = factory.equipment.some((asset) => asset.cadModel || KIND_TO_CAD[asset.kind]);
+  const layout = EQUIPMENT_LAYOUTS[factory.profileKey] || DEFAULT_LAYOUT;
+  const placements = factory.equipment.map((_, index) => layout[index] || DEFAULT_LAYOUT[index] || {
+    position: [index * 3 - 4.5, 0, 0],
+    rotationY: 0,
+  });
   const resetCamera = () => {
     if (!controlsRef.current) return;
-    controlsRef.current.object.position.set(18, 12, 22);
+    controlsRef.current.object.position.set(...cameraPosition);
     controlsRef.current.target.set(0, 1.5, 0);
     controlsRef.current.update();
   };
   return <div className="twin-preserve-dark relative h-[610px] overflow-hidden rounded-2xl border border-cyan-400/15 bg-[#06111a]">
-    <Canvas shadows dpr={[1, 1.65]} camera={{ position: [18, 12, 22], fov: 40, near: .1, far: 140 }}>
+    <Canvas shadows dpr={[1, 1.65]} camera={{ position: cameraPosition, fov: factory.profileKey === "DOCK" ? 40 : 38, near: .1, far: 140 }}>
       <Suspense fallback={null}>
         <color attach="background" args={["#06111a"]}/><fog attach="fog" args={["#06111a", 30, 70]}/>
         <Environment preset="studio" environmentIntensity={0.7}/>
@@ -260,9 +351,9 @@ function EquipmentTwinScene({ factory, selectedAsset, onSelectAsset }) {
         <directionalLight castShadow position={[10, 15, 10]} intensity={2.3} color="#fff6e6" shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-bias={-0.0015}/>
         <pointLight position={[0, 7, 0]} intensity={5} color="#ffffff" distance={30} decay={2}/>
         <FactoryFloor profileKey={factory.profileKey}/>
-        <DecorativeRobotLine/>
-        <SafetyZone alarmPosition={POSITIONS[alarmIndex]}/>
-        {factory.equipment.map((asset, index) => <MachineUnit key={asset.assetCode} asset={asset} position={POSITIONS[index] || [index * 2 - 4, 0, 0]}
+        {factory.profileKey === "ASSEMBLY" && <AssemblySafetyPartitions/>}
+        <SafetyZone alarmPosition={placements[alarmIndex]?.position}/>
+        {factory.equipment.map((asset, index) => <MachineUnit key={asset.assetCode} asset={asset} {...placements[index]}
           selected={selectedAsset?.assetCode === asset.assetCode} onSelect={onSelectAsset}/>) }
         <ContactShadows position={[0, -.04, 0]} scale={38} opacity={.58} blur={2.5} far={15}/>
         <OrbitControls ref={controlsRef} makeDefault target={[0, 1.5, 0]} enableDamping dampingFactor={.1} minDistance={8} maxDistance={48} minPolarAngle={.45} maxPolarAngle={1.45}/>
@@ -296,6 +387,28 @@ function SafetyZone({ alarmPosition }) {
     <mesh rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[2.1, 2.22, 64]}/><meshBasicMaterial color="#ff354d" transparent opacity={.92}/></mesh>
     <mesh ref={pulseRef} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[2.1, 64]}/><meshBasicMaterial color="#ff263f" transparent opacity={.12} depthWrite={false}/></mesh>
     <Html center position={[0, .18, -2.45]} distanceFactor={10}><div className="whitespace-nowrap rounded-lg border border-red-400/50 bg-[#260810]/90 px-2.5 py-1.5 text-[8px] font-black text-red-200">AI 위험 반경 · 8m</div></Html>
+  </group>;
+}
+
+function SafetyPartition({ position, rotationY = 0, width }) {
+  return <group position={position} rotation={[0, rotationY, 0]}>
+    <mesh castShadow position={[0,.94,0]}>
+      <boxGeometry args={[width,1.28,.06]}/>
+      <meshStandardMaterial color="#202a30" metalness={.32} roughness={.58} transparent opacity={.76} side={THREE.DoubleSide}/>
+    </mesh>
+    {[-width/2,width/2].map((x) => <mesh key={x} castShadow position={[x,.92,0]}>
+      <boxGeometry args={[.08,1.62,.09]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.62} roughness={.4}/>
+    </mesh>)}
+    <mesh position={[0,1.75,0]}><boxGeometry args={[width+.1,.08,.09]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.62} roughness={.4}/></mesh>
+    <mesh position={[0,.1,0]}><boxGeometry args={[width+.14,.1,.2]}/><meshStandardMaterial color="#d6a52c" metalness={.3} roughness={.5}/></mesh>
+  </group>;
+}
+
+function AssemblySafetyPartitions() {
+  return <group>
+    <SafetyPartition position={[-1.1,0,-2.55]} width={3}/>
+    <SafetyPartition position={[-2.62,0,-2.05]} rotationY={Math.PI/2} width={1}/>
+    <SafetyPartition position={[.42,0,-2.05]} rotationY={Math.PI/2} width={1}/>
   </group>;
 }
 
@@ -464,13 +577,12 @@ function SafetyRailing() {
   </group>;
 }
 
-// 밝은 회백색 천장 트러스 + 오버헤드 스튜디오 조명 패널 (레퍼런스의 균일하고 밝은 하이라이트용)
+// 초기 카메라가 위에서 내려다보므로 천장판/수평 트러스는 그리지 않고 조명과 측면 기둥만 둔다.
+// 수평 구조물을 보이게 만들면 설비보다 카메라에 먼저 걸려 현장 전체를 가리게 된다.
 function OverheadStructure({ accent }) {
   return <group>
-    <mesh position={[0, 6.9, 0]}><boxGeometry args={[29, .3, 21]}/><meshStandardMaterial color="#e9ebee" metalness={.15} roughness={.65}/></mesh>
     {[-11, -6.6, -2.2, 2.2, 6.6, 11].map((x) => <group key={x}>
       <rectAreaLight width={2.4} height={.45} intensity={6} color="#fff8ec" position={[x, 6.55, 0]} rotation={[-Math.PI / 2, 0, 0]}/>
-      <mesh position={[x, 6.6, 0]}><boxGeometry args={[2.4, .06, .45]}/><meshStandardMaterial color="#fff8ec" emissive="#fff8ec" emissiveIntensity={1.4}/></mesh>
     </group>)}
     {[-13.5,13.5].map((x)=><group key={x}>{[-9,0,9].map((z)=><mesh key={z} castShadow position={[x,3.2,z]}><boxGeometry args={[.26,6.4,.26]}/><meshStandardMaterial color={accent} metalness={.3} roughness={.55}/></mesh>)}</group>)}
   </group>;
@@ -498,54 +610,147 @@ function faultJitter(t, seed = 0) {
 }
 function speedMultiplier(alarm, warning) { return alarm ? 2.4 : warning ? 1.4 : 1; }
 
-function MachineUnit({ asset, position, selected, onSelect }) {
+function MachineUnit({ asset, position, rotationY = 0, selected, onSelect }) {
   const alarm = Boolean(asset.fault);
   const warning = !alarm && asset.status === "WARNING";
   const running = asset.operatingState === "RUNNING";
   const seed = asset.assetCode.split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 100;
   const accent = alarm ? "#ff3b4f" : selected ? "#ff9d38" : warning ? "#ffb23e" : "#23c8ee";
-  const issuePositions = { ROBOT:[0,2.3,0], POSITIONER:[0,1.1,.4], CONVEYOR:[2.5,.55,0], CUTTER:[0,2.3,0], FAN:[0,1.65,.55], PUMP:[.7,.8,0], CRANE:[0,3.8,0] };
+  const issuePositions = { ROBOT:[0,2.3,0], INSPECTOR:[0,2.45,0], POSITIONER:[0,1.1,.4], BENDER:[0,2.15,0], CONVEYOR:[2.5,.55,0], TRANSPORTER:[1.7,.5,1], CUTTER:[0,2.3,0], FAN:[0,1.65,.55], PUMP:[.7,.8,0], CRANE:[0,3.8,0], BLOCK_CRANE:[0,4.9,0], GOLIATH:[0,6.75,0] };
 
-  const motion = { accent, alarm, warning, running, seed };
+  const motion = { accent, alarm, warning, running, seed, utilization: asset.utilization, conveyorLength: asset.conveyorLength };
   const cad = asset.cadModel
-    ? { file: asset.cadModel, targetHeight: asset.cadTargetHeight || 2.2 }
+    ? { file: asset.cadModel, targetHeight: asset.cadTargetHeight || 2.2, modelScale: asset.cadScale || [1, 1, 1] }
     : KIND_TO_CAD[asset.kind];
   const fallback = <KindFallback kind={asset.kind} motion={motion}/>;
+  const labelPosition = asset.labelPosition || LABEL_POSITION_BY_KIND[asset.kind] || [0, 3.5, 0];
+  const ringScale = asset.selectionRingScale || SELECTION_RING_SCALE_BY_KIND[asset.kind] || [1, 1, 1];
 
-  return <group position={position} onClick={(event)=>{event.stopPropagation();onSelect(asset);}} onPointerOver={()=>{document.body.style.cursor="pointer";}} onPointerOut={()=>{document.body.style.cursor="default";}}>
-    {cad ? <CadModel file={cad.file} targetHeight={cad.targetHeight} fallback={fallback} scanActive={alarm || selected} scanColor={accent}/> : fallback}
-    {alarm && <pointLight position={[0, (cad?.targetHeight || 2.2) * 0.55, 0]} intensity={10} distance={4} color="#ff2f48"/>}
-    <mesh position={[0,.04,0]} rotation={[-Math.PI/2,0,0]}><ringGeometry args={[1.2,1.28,48]}/><meshBasicMaterial color={accent}/></mesh>
+  return <group position={position} rotation={[0, rotationY, 0]} onClick={(event)=>{event.stopPropagation();onSelect(asset);}} onPointerOver={()=>{document.body.style.cursor="pointer";}} onPointerOut={()=>{document.body.style.cursor="default";}}>
+    {cad ? <CadModel file={cad.file} targetHeight={cad.targetHeight} modelScale={cad.modelScale} fallback={fallback} scanActive={alarm || selected} scanColor={accent}/> : fallback}
+    {alarm && <pointLight position={[0, asset.kind === "GOLIATH" ? 6.6 : (cad?.targetHeight || 2.2) * 0.55, 0]} intensity={10} distance={4} color="#ff2f48"/>}
+    <mesh position={[0,.04,0]} rotation={[-Math.PI/2,0,0]} scale={ringScale}><ringGeometry args={[1.2,1.28,48]}/><meshBasicMaterial color={accent}/></mesh>
     {alarm && <FaultMarker position={issuePositions[asset.kind]} part={asset.fault.part} seed={seed}/>}
-    <Html center position={[0,4.9,0]} distanceFactor={10}><button onClick={()=>onSelect(asset)} className={`min-w-[118px] rounded-lg border px-2.5 py-2 text-left shadow-xl backdrop-blur-md ${alarm?"border-red-400/60 bg-[#230b12]/90":"border-cyan-400/25 bg-[#07151f]/88"}`}><span className={`block text-[8px] font-black tracking-wider ${alarm?"text-red-300":"text-cyan-300"}`}>{asset.assetCode}</span><b className="mt-0.5 block whitespace-nowrap text-[10px] text-white">{asset.name}</b><small className={`mt-0.5 block text-[8px] ${alarm?"text-red-300":"text-slate-500"}`}>{alarm?asset.fault.symptom:`${asset.operatingState} · ${asset.utilization}%`}</small></button></Html>
+    <Html center position={labelPosition}><button onClick={()=>onSelect(asset)} className={`min-w-[118px] rounded-lg border px-2.5 py-2 text-left shadow-xl backdrop-blur-md ${alarm?"border-red-400/60 bg-[#230b12]/95":"border-cyan-400/35 bg-[#07151f]/95"}`}><span className={`block text-[8px] font-black tracking-wider ${alarm?"text-red-300":"text-cyan-300"}`}>{asset.assetCode}</span><b className="mt-0.5 block whitespace-nowrap text-[10px] text-white">{asset.name}</b><small className={`mt-0.5 block text-[8px] ${alarm?"text-red-300":"text-slate-500"}`}>{alarm?asset.fault.symptom:`${asset.operatingState} · 운전 부하 ${asset.utilization}%`}</small></button></Html>
   </group>;
 }
 
 function KindFallback({ kind, motion }) {
   switch (kind) {
     case "ROBOT": return <RobotMachine {...motion}/>;
+    case "INSPECTOR": return <InspectorMachine {...motion}/>;
     case "POSITIONER": return <PositionerMachine {...motion}/>;
+    case "BENDER": return <PipeBenderMachine {...motion}/>;
     case "CONVEYOR": return <ConveyorMachine {...motion}/>;
+    case "TRANSPORTER": return <TransporterMachine {...motion}/>;
     case "CUTTER": return <CutterMachine {...motion}/>;
     case "FAN": return <FanMachine {...motion}/>;
     case "PUMP": return <PumpMachine {...motion}/>;
     case "CRANE": return <CraneMachine {...motion}/>;
+    case "BLOCK_CRANE": return <BlockCraneMachine {...motion}/>;
+    case "GOLIATH": return <GoliathCraneMachine {...motion}/>;
     default: return null;
   }
 }
 
-function RobotMachine({accent,alarm,warning,running,seed}) {
-  const shoulder = useRef(); const elbow = useRef();
+function RobotCadHead() {
+  const [head, setHead] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    loadCadGroup("robot-head.glb", .72)
+      .then((loaded) => { if (!cancelled) setHead(loaded.clone(true)); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+  return head
+    ? <primitive object={head}/>
+    : <mesh><cylinderGeometry args={[.12,.07,.55,14]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.6} roughness={.38}/></mesh>;
+}
+
+function RobotMachine({accent,alarm,warning,running,seed,utilization=0}) {
+  const waist = useRef();
+  const shoulder = useRef();
+  const elbow = useRef();
+  const wrist = useRef();
+  const weldingArc = useRef();
   useFrame(({clock}) => {
     const t = clock.elapsedTime;
+    const utilizationRate = THREE.MathUtils.clamp(utilization / 100, 0, 1);
     const speed = speedMultiplier(alarm, warning);
-    const wave = running ? Math.sin(t * 1.1 * speed + seed) : 0;
+    const cycleSpeed = THREE.MathUtils.lerp(.48, .92, utilizationRate) * speed;
+    const phase = t * cycleSpeed + seed;
+    const wave = running ? Math.sin(phase) : 0;
     const jitter = alarm ? faultJitter(t, seed) * .09 : 0;
-    if (shoulder.current) shoulder.current.rotation.z = -.65 + wave * .16 + jitter;
-    if (elbow.current) elbow.current.rotation.z = 1.3 + wave * .24 + jitter * 1.5;
+    if (waist.current) waist.current.rotation.y = (running ? Math.sin(phase * .55) * THREE.MathUtils.lerp(.08, .18, utilizationRate) : 0) + jitter * .22;
+    if (shoulder.current) shoulder.current.rotation.z = -.9 + wave * THREE.MathUtils.lerp(.05, .11, utilizationRate) + jitter;
+    if (elbow.current) elbow.current.rotation.z = -1.1 + (running ? Math.sin(phase + .85) * THREE.MathUtils.lerp(.08, .15, utilizationRate) : 0) + jitter * 1.4;
+    if (wrist.current) wrist.current.rotation.z = 1.08 + (running ? Math.sin(phase * 1.35 + 1.4) * .08 : 0) + jitter * .8;
+    if (weldingArc.current) {
+      const welding = running && Math.sin(phase * 2.2) > -.35;
+      weldingArc.current.visible = welding;
+      const pulse = .8 + Math.abs(Math.sin(t * 24 + seed)) * .45;
+      weldingArc.current.scale.setScalar(pulse);
+    }
   });
-  return <group><mesh castShadow position={[0,.35,0]}><cylinderGeometry args={[.65,.82,.7,24]}/><meshStandardMaterial color="#17495c" metalness={.65}/></mesh><mesh castShadow position={[0,.88,0]}><cylinderGeometry args={[.38,.48,.6,24]}/><meshStandardMaterial color={accent} emissive={alarm?accent:"#000"} emissiveIntensity={alarm?1.2:0}/></mesh><group ref={shoulder} position={[0,1.18,0]}><Arm length={1.65} color="#2ca9c8"/><group ref={elbow} position={[0,1.5,0]}><Arm length={1.35} color={accent}/></group></group></group>; }
-function Arm({length,color}) { return <group><mesh castShadow position={[0,length/2,0]}><capsuleGeometry args={[.2,length-.3,8,16]}/><meshStandardMaterial color={color} metalness={.6}/></mesh><mesh position={[0,length,0]}><sphereGeometry args={[.28,18,18]}/><meshStandardMaterial color="#bdd7dc" metalness={.7}/></mesh></group>; }
+  return <group>
+    <RoundedBox castShadow args={[1.45,.22,1.25]} position={[0,.13,0]} radius={.08} smoothness={3}><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.34} roughness={.5}/></RoundedBox>
+    <group ref={waist} position={[0,.25,0]}>
+      <mesh castShadow position={[0,.35,0]}><cylinderGeometry args={[.58,.7,.7,28]}/><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.3} roughness={.5}/></mesh>
+      <mesh castShadow position={[0,.82,0]}><cylinderGeometry args={[.4,.5,.35,28]}/><meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.25} roughness={.47}/></mesh>
+      <mesh position={[0,.84,.43]}><sphereGeometry args={[.09,14,14]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={alarm||warning||running?2:.7}/></mesh>
+      <group ref={shoulder} position={[0,1.05,0]}>
+        <Arm length={1.55}/>
+        <group ref={elbow} position={[0,1.42,0]}>
+          <Arm length={1.22}/>
+          <group ref={wrist} position={[0,1.13,0]}>
+            <mesh castShadow position={[0,.16,0]}><cylinderGeometry args={[.13,.17,.32,16]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.56} roughness={.4}/></mesh>
+            <group position={[0,.42,0]} rotation={[0,0,Math.PI]}><RobotCadHead/></group>
+            <mesh castShadow position={[0,-.18,0]} rotation={[0,0,.18]}><cylinderGeometry args={[.08,.11,.42,14]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.68} roughness={.34}/></mesh>
+            <mesh castShadow position={[-.04,-.47,0]} rotation={[0,0,.18]}><coneGeometry args={[.055,.24,14]}/><meshStandardMaterial color="#30383b" metalness={.72} roughness={.3}/></mesh>
+            <group ref={weldingArc} position={[-.08,-.62,0]}>
+              <mesh><sphereGeometry args={[.11,12,12]}/><meshBasicMaterial color="#b9f4ff" toneMapped={false}/></mesh>
+              <pointLight color="#65dcff" intensity={7} distance={2.6}/>
+              {[
+                [-.22,-.14,.04], [.18,-.11,-.05], [-.13,-.25,-.12],
+                [.26,-.22,.1], [.06,-.3,.16], [-.28,-.31,.08],
+              ].map((position,index) => <mesh key={index} position={position}>
+                <sphereGeometry args={[.025,8,8]}/><meshBasicMaterial color={index%2 ? "#ffb44d" : "#d8f8ff"} toneMapped={false}/>
+              </mesh>)}
+            </group>
+          </group>
+        </group>
+      </group>
+    </group>
+  </group>;
+}
+function Arm({length}) { return <group><mesh castShadow position={[0,length/2,0]}><capsuleGeometry args={[.2,length-.3,8,16]}/><meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.24} roughness={.48}/></mesh><mesh position={[0,length,0]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.28,.28,.36,20]}/><meshStandardMaterial color={EQUIPMENT_IVORY_LIGHT} metalness={.3} roughness={.42}/></mesh><mesh position={[.19,length*.55,.03]}><torusGeometry args={[.13,.025,8,18]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.55} roughness={.4}/></mesh></group>; }
+
+function InspectorMachine({accent,alarm,warning,running,seed}) {
+  const scanner = useRef();
+  useFrame(({clock}) => {
+    if (!scanner.current) return;
+    const t = clock.elapsedTime;
+    const speed = speedMultiplier(alarm, warning);
+    const jitter = alarm ? faultJitter(t, seed) * .025 : 0;
+    scanner.current.position.x = (running ? Math.sin(t * .55 * speed + seed) * .62 : 0) + jitter;
+  });
+  return <group>
+    {[-1.05,1.05].map((x) => <group key={x}>
+      <mesh castShadow position={[x,1.5,0]}><boxGeometry args={[.18,2.55,.18]}/><meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.24} roughness={.5}/></mesh>
+      <RoundedBox castShadow args={[.52,.12,.52]} position={[x,.08,0]} radius={.035} smoothness={2}><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.34} roughness={.5}/></RoundedBox>
+    </group>)}
+    <mesh castShadow position={[0,2.73,0]}><boxGeometry args={[2.45,.24,.3]}/><meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.24} roughness={.48}/></mesh>
+    <mesh castShadow position={[0,2.98,0]}><boxGeometry args={[1.1,.28,.62]}/><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.28} roughness={.46}/></mesh>
+    {[-.92,.92].map((x) => <mesh key={`brace-${x}`} position={[x,2.38,0]} rotation={[0,0,x < 0 ? -.42 : .42]}>
+      <boxGeometry args={[.08,.72,.1]}/><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.32} roughness={.46}/>
+    </mesh>)}
+    <group ref={scanner} position={[0,2.48,0]}>
+      <RoundedBox castShadow args={[.58,.42,.58]} radius={.06} smoothness={3}><meshStandardMaterial color={EQUIPMENT_IVORY_LIGHT} metalness={.24} roughness={.45}/></RoundedBox>
+      <mesh position={[0,-.43,0]}><cylinderGeometry args={[.07,.04,.48,12]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.55}/></mesh>
+      <mesh position={[0,-1.04,0]}><cylinderGeometry args={[.018,.018,.82,8]}/><meshBasicMaterial color={accent} transparent opacity={.8} toneMapped={false}/></mesh>
+    </group>
+  </group>;
+}
 
 function PositionerMachine({accent,alarm,warning,running,seed}) {
   const table = useRef();
@@ -556,14 +761,36 @@ function PositionerMachine({accent,alarm,warning,running,seed}) {
     const jitter = alarm ? faultJitter(t, seed) * .04 : 0;
     table.current.rotation.y = (running ? t * .6 * speed : 0) + jitter;
   });
-  return <group><RoundedBox castShadow args={[2.5,.75,1.9]} position={[0,.42,0]} radius={.15}><meshStandardMaterial color="#214553" metalness={.58}/></RoundedBox><group ref={table} position={[0,1.05,0]}><mesh castShadow><cylinderGeometry args={[.85,.85,.3,32]}/><meshStandardMaterial color={accent} emissive={alarm?accent:"#000"} emissiveIntensity={alarm?1:0}/></mesh><mesh position={[.6,.02,0]}><boxGeometry args={[.18,.1,.18]}/><meshStandardMaterial color="#eafeff" emissive="#eafeff" emissiveIntensity={1.4}/></mesh></group><mesh position={[0,1.5,0]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.13,.13,2.3,16]}/><meshStandardMaterial color="#9fb6bc" metalness={.75}/></mesh></group>; }
+  return <group><RoundedBox castShadow args={[2.5,.75,1.9]} position={[0,.42,0]} radius={.15}><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.28} roughness={.54}/></RoundedBox><group ref={table} position={[0,1.05,0]}><mesh castShadow><cylinderGeometry args={[.85,.85,.3,32]}/><meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.24} roughness={.48}/></mesh><mesh position={[.6,.02,0]}><boxGeometry args={[.18,.1,.18]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={alarm||warning||running?2:.7}/></mesh></group><mesh position={[0,1.5,0]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.13,.13,2.3,16]}/><meshStandardMaterial color={EQUIPMENT_IVORY_LIGHT} metalness={.3} roughness={.45}/></mesh></group>; }
+
+function PipeBenderMachine({accent,alarm,warning,running,seed}) {
+  const press = useRef();
+  useFrame(({clock}) => {
+    if (!press.current) return;
+    const t = clock.elapsedTime;
+    const speed = speedMultiplier(alarm, warning);
+    const stroke = running ? (Math.sin(t * .7 * speed + seed) + 1) * .11 : 0;
+    const jitter = alarm ? faultJitter(t, seed) * .02 : 0;
+    press.current.position.y = 2.12 - stroke + jitter;
+  });
+  return <group>
+    <RoundedBox castShadow args={[3.8,.46,2.05]} position={[0,.3,0]} radius={.1} smoothness={3}><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.3} roughness={.54}/></RoundedBox>
+    {[-1.45,1.45].map((x) => <mesh key={x} castShadow position={[x,1.45,0]}><boxGeometry args={[.28,2.35,.34]}/><meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.25} roughness={.5}/></mesh>)}
+    <mesh castShadow position={[0,2.55,0]}><boxGeometry args={[3.2,.28,.42]}/><meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.25} roughness={.48}/></mesh>
+    {[-.65,.65].map((x) => <mesh key={x} position={[x,1.05,.18]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.38,.38,.42,20]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.52} roughness={.42}/></mesh>)}
+    <group ref={press} position={[0,2.12,.18]}><mesh><cylinderGeometry args={[.16,.16,1.15,16]}/><meshStandardMaterial color={EQUIPMENT_IVORY_LIGHT} metalness={.35} roughness={.42}/></mesh><mesh position={[0,-.62,0]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.32,.32,.42,20]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={alarm||warning||running?1.7:.45}/></mesh></group>
+    <mesh position={[0,.92,.2]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.12,.12,3.25,18]}/><meshStandardMaterial color={EQUIPMENT_IVORY_LIGHT} metalness={.42} roughness={.38}/></mesh>
+  </group>;
+}
 
 const CONVEYOR_LENGTH = 5.3;
 const CONVEYOR_STRIP_COUNT = 4;
 
-function ConveyorMachine({accent,alarm,warning,running,seed}) {
+function ConveyorMachine({accent,alarm,warning,running,seed,conveyorLength=CONVEYOR_LENGTH}) {
   const body = useRef();
   const strips = useRef([]);
+  const workpiece = useRef();
+  const rollerCount = Math.max(9, Math.round(conveyorLength / .58));
   useFrame(({clock}) => {
     const t = clock.elapsedTime;
     const speed = speedMultiplier(alarm, warning);
@@ -574,18 +801,83 @@ function ConveyorMachine({accent,alarm,warning,running,seed}) {
       body.current.rotation.z = alarm ? jitter * .012 : 0;
     }
 
+    if (workpiece.current) workpiece.current.position.x = -1.1 + (running ? Math.sin(t * .22) * .55 : 0);
+
     if (!running) return;
-    const spacing = CONVEYOR_LENGTH / CONVEYOR_STRIP_COUNT;
+    const spacing = conveyorLength / CONVEYOR_STRIP_COUNT;
     strips.current.forEach((strip, index) => {
       if (!strip) return;
-      const travelled = (t * .9 * speed + index * spacing) % CONVEYOR_LENGTH;
-      const x = travelled - CONVEYOR_LENGTH / 2;
+      const travelled = (t * .9 * speed + index * spacing) % conveyorLength;
+      const x = travelled - conveyorLength / 2;
       strip.position.x = x + jitter * .025;
-      const distanceToEdge = CONVEYOR_LENGTH / 2 - Math.abs(x);
+      const distanceToEdge = conveyorLength / 2 - Math.abs(x);
       strip.material.opacity = Math.min(1, Math.max(0, distanceToEdge / .4));
     });
   });
-  return <group ref={body}><RoundedBox castShadow receiveShadow args={[5.5,.42,1.6]} position={[0,.55,0]} radius={.12}><meshStandardMaterial color="#203c46" metalness={.58}/></RoundedBox>{Array.from({length:9}).map((_,i)=><mesh key={i} position={[-2.35+i*.59,.82,0]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.1,.1,1.35,12]}/><meshStandardMaterial color="#8ea7ad" metalness={.8}/></mesh>)}{running && Array.from({length:CONVEYOR_STRIP_COUNT}).map((_,index)=><mesh key={index} ref={(node)=>{strips.current[index]=node;}} position={[-CONVEYOR_LENGTH/2,.79,0]}><boxGeometry args={[.25,.05,1.3]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={2} transparent opacity={0} depthWrite={false}/></mesh>)}<mesh position={[2.55,.45,0]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.38,.38,.9,18]}/><meshStandardMaterial color={accent} emissive={alarm?accent:"#000"} emissiveIntensity={alarm?1.3:0}/></mesh></group>; }
+  const rollerSpacing = (conveyorLength - .6) / (rollerCount - 1);
+  return <group ref={body}>
+    <RoundedBox castShadow receiveShadow args={[conveyorLength+.2,.42,1.6]} position={[0,.55,0]} radius={.12}><meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.24} roughness={.52}/></RoundedBox>
+    {Array.from({length:rollerCount}).map((_,index)=><mesh key={index} position={[-conveyorLength/2+.3+index*rollerSpacing,.82,0]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.1,.1,1.35,12]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.48} roughness={.46}/></mesh>)}
+    {Array.from({length:Math.max(3,Math.floor(conveyorLength/2.6))}).map((_,index) => {
+      const x = -conveyorLength/2+1.2+index*((conveyorLength-2.4)/Math.max(1,Math.floor(conveyorLength/2.6)-1));
+      return <group key={`support-${index}`}>{[-.62,.62].map((z) => <mesh key={z} position={[x,.22,z]}><boxGeometry args={[.16,.48,.16]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.5} roughness={.48}/></mesh>)}</group>;
+    })}
+    {running && Array.from({length:CONVEYOR_STRIP_COUNT}).map((_,index)=><mesh key={index} ref={(node)=>{strips.current[index]=node;}} position={[-conveyorLength/2,.86,0]}><boxGeometry args={[.25,.04,1.3]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={2} transparent opacity={0} depthWrite={false}/></mesh>)}
+    {conveyorLength > CONVEYOR_LENGTH && <group ref={workpiece} position={[-1.1,1.03,0]}>
+      <RoundedBox castShadow args={[1.45,.2,1]} radius={.04} smoothness={2}><meshStandardMaterial color="#59646a" metalness={.72} roughness={.36}/></RoundedBox>
+      <mesh position={[0,.13,0]}><boxGeometry args={[1.12,.08,.68]}/><meshStandardMaterial color="#879196" metalness={.68} roughness={.34}/></mesh>
+      <mesh position={[.58,.2,.38]}><sphereGeometry args={[.055,10,10]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={1.6}/></mesh>
+    </group>}
+    <mesh position={[conveyorLength/2-.2,.45,0]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.38,.38,.9,18]}/><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.3} roughness={.52}/></mesh>
+    <mesh position={[conveyorLength/2-.18,.83,.48]}><sphereGeometry args={[.1,14,14]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={alarm||warning||running?2:.7}/></mesh>
+  </group>; }
+
+const TRANSPORTER_WHEEL_X = [-1.75, -1.05, -.35, .35, 1.05, 1.75];
+
+function TransporterMachine({accent,alarm,warning,running,seed}) {
+  const body = useRef();
+  const wheels = useRef([]);
+  useFrame(({clock}) => {
+    if (!body.current) return;
+    const t = clock.elapsedTime;
+    const speed = speedMultiplier(alarm, warning);
+    const travel = running ? Math.sin(t * .62 * speed + seed) * .22 : 0;
+    const jitter = alarm ? faultJitter(t, seed) : 0;
+    body.current.position.x = travel + jitter * .025;
+    body.current.position.y = alarm ? jitter * .018 : 0;
+    body.current.rotation.z = alarm ? jitter * .008 : 0;
+    wheels.current.forEach((wheel) => {
+      if (wheel) wheel.rotation.z = -travel / .27 + jitter * .04;
+    });
+  });
+
+  return <group ref={body}>
+    <RoundedBox castShadow receiveShadow args={[4.7,.32,2.35]} position={[0,.7,0]} radius={.14} smoothness={4}>
+      <meshStandardMaterial color={EQUIPMENT_IVORY} roughness={.5} metalness={.24}/>
+    </RoundedBox>
+    <RoundedBox castShadow args={[4.15,.3,1.9]} position={[0,.46,0]} radius={.08} smoothness={3}>
+      <meshStandardMaterial color={EQUIPMENT_MECHANICAL} roughness={.62} metalness={.45}/>
+    </RoundedBox>
+    <RoundedBox castShadow args={[3.5,.22,1.45]} position={[0,.96,0]} radius={.06} smoothness={3}>
+      <meshStandardMaterial color={EQUIPMENT_IVORY_LIGHT} roughness={.56} metalness={.18}/>
+    </RoundedBox>
+    {TRANSPORTER_WHEEL_X.flatMap((x, axle) => [-1,1].map((side) => {
+      const wheelIndex = axle * 2 + (side === 1 ? 1 : 0);
+      return <mesh key={`${x}-${side}`} ref={(node)=>{wheels.current[wheelIndex]=node;}} castShadow position={[x,.32,side*1.02]} rotation={[Math.PI/2,0,0]}>
+        <cylinderGeometry args={[.27,.27,.24,16]}/>
+        <meshStandardMaterial color={EQUIPMENT_WHEEL} roughness={.78} metalness={.18}/>
+      </mesh>;
+    }))}
+    {[-1,1].flatMap((x) => [-1,1].map((z) => <mesh key={`${x}-${z}`} position={[x*2.12,.84,z*.94]}>
+      <boxGeometry args={[.18,.11,.3]}/>
+      <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={running || alarm || warning ? 2.1 : .8}/>
+    </mesh>))}
+    <mesh position={[0,1.09,0]}>
+      <boxGeometry args={[2.1,.035,.08]}/>
+      <meshBasicMaterial color={accent} toneMapped={false}/>
+    </mesh>
+  </group>;
+}
 
 function CutterMachine({accent,alarm,warning,running,seed}) {
   const torch = useRef(); const tip = useRef();
@@ -595,9 +887,43 @@ function CutterMachine({accent,alarm,warning,running,seed}) {
     if (torch.current) torch.current.position.y = 2.05 + (running ? Math.sin(t * 2.2 * speed + seed) * .18 : 0);
     if (tip.current) tip.current.emissiveIntensity = alarm ? 1.6 + Math.abs(faultJitter(t, seed)) * 1.8 : 1;
   });
-  return <group><RoundedBox castShadow args={[4.8,.45,2.4]} position={[0,.38,0]} radius={.12}><meshStandardMaterial color="#263f49" metalness={.64}/></RoundedBox>{[-2,2].map(x=><mesh key={x} position={[x,1.55,0]}><boxGeometry args={[.18,2.5,.18]}/><meshStandardMaterial color="#376b79" metalness={.55}/></mesh>)}<mesh position={[0,2.72,0]}><boxGeometry args={[4.3,.22,.22]}/><meshStandardMaterial color="#39798c" metalness={.6}/></mesh><mesh ref={torch} position={[0,2.05,0]}><cylinderGeometry args={[.16,.1,1.2,18]}/><meshStandardMaterial ref={tip} color={accent} emissive={alarm?accent:"#126c80"} emissiveIntensity={alarm?2:1}/></mesh></group>; }
+  return <group><RoundedBox castShadow args={[4.8,.45,2.4]} position={[0,.38,0]} radius={.12}><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.3} roughness={.54}/></RoundedBox>{[-2,2].map(x=><mesh key={x} position={[x,1.55,0]}><boxGeometry args={[.18,2.5,.18]}/><meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.24} roughness={.5}/></mesh>)}<mesh position={[0,2.72,0]}><boxGeometry args={[4.3,.22,.22]}/><meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.24} roughness={.5}/></mesh><mesh ref={torch} position={[0,2.05,0]}><cylinderGeometry args={[.16,.1,1.2,18]}/><meshStandardMaterial ref={tip} color={EQUIPMENT_IVORY_LIGHT} emissive={accent} emissiveIntensity={alarm?1.6:.18}/></mesh></group>; }
 
-function FanMachine({accent,alarm,warning,running,seed}) { const rotor=useRef();useFrame(({clock})=>{if(!rotor.current)return;const t=clock.elapsedTime;const speed=speedMultiplier(alarm,warning);const jitter=alarm?faultJitter(t,seed)*.3:0;rotor.current.rotation.z=(running?t*2.4*speed:0)+jitter;});return <group><mesh castShadow position={[0,1.6,0]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[1.35,1.35,.75,32]}/><meshStandardMaterial color="#244955" metalness={.55}/></mesh><group ref={rotor} position={[0,1.6,.42]}>{[0,1,2,3,4,5].map(i=><mesh key={i} rotation={[0,0,i*Math.PI/3]} position={[0,.55,0]}><boxGeometry args={[.28,1.1,.08]}/><meshStandardMaterial color="#71aeba" metalness={.62}/></mesh>)}<mesh><cylinderGeometry args={[.3,.3,.28,20]}/><meshStandardMaterial color={accent} emissive={alarm?accent:"#000"} emissiveIntensity={alarm?1.5:0}/></mesh></group><RoundedBox args={[2.2,.55,1.4]} position={[0,.3,0]} radius={.12}><meshStandardMaterial color="#173845"/></RoundedBox></group>; }
+function FanMachine({accent,alarm,warning,running,seed}) {
+  const rotor = useRef();
+  useFrame(({clock}) => {
+    if (!rotor.current) return;
+    const t = clock.elapsedTime;
+    const speed = speedMultiplier(alarm, warning);
+    const jitter = alarm ? faultJitter(t, seed) * .3 : 0;
+    rotor.current.rotation.z = (running ? t * 2.4 * speed : 0) + jitter;
+  });
+
+  return <group>
+    <RoundedBox castShadow args={[2.65,.28,1.62]} position={[0,.18,0]} radius={.08} smoothness={3}>
+      <meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.3} roughness={.55}/>
+    </RoundedBox>
+    {[-.82,.82].map((x) => <mesh key={x} castShadow position={[x,.72,0]}>
+      <boxGeometry args={[.24,.95,.72]}/><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.28} roughness={.52}/>
+    </mesh>)}
+    <mesh castShadow position={[0,1.72,-.1]} rotation={[Math.PI/2,0,0]}>
+      <cylinderGeometry args={[1.38,1.38,.82,40]}/><meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.25} roughness={.48}/>
+    </mesh>
+    <mesh position={[0,1.72,.34]} rotation={[Math.PI/2,0,0]}>
+      <cylinderGeometry args={[1.12,1.12,.08,40]}/><meshStandardMaterial color="#303638" metalness={.35} roughness={.64}/>
+    </mesh>
+    <group ref={rotor} position={[0,1.72,.43]}>
+      {[0,1,2,3,4,5].map((index) => <mesh key={index} rotation={[0,0,index*Math.PI/3]} position={[0,.53,0]}>
+        <capsuleGeometry args={[.16,.72,6,12]}/><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.34} roughness={.44}/>
+      </mesh>)}
+      <mesh rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.3,.3,.32,20]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.6} roughness={.38}/></mesh>
+    </group>
+    {[.44,.76,1.08].map((radius) => <mesh key={radius} position={[0,1.72,.62]}><torusGeometry args={[radius,.025,8,36]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.58} roughness={.42}/></mesh>)}
+    {[0,Math.PI/2].map((angle) => <mesh key={angle} position={[0,1.72,.62]} rotation={[0,0,angle]}><boxGeometry args={[2.15,.035,.04]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.58}/></mesh>)}
+    <mesh position={[0,1.72,.66]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.13,.13,.1,16]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={alarm||warning||running?2:.65}/></mesh>
+    <RoundedBox castShadow args={[.78,.72,.7]} position={[0,1.72,-.76]} radius={.1} smoothness={3}><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.3} roughness={.5}/></RoundedBox>
+  </group>;
+}
 
 function PumpMachine({accent,alarm,warning,running,seed}) {
   const body = useRef();
@@ -609,7 +935,141 @@ function PumpMachine({accent,alarm,warning,running,seed}) {
     const jitter = alarm ? faultJitter(t, seed) * .04 : 0;
     body.current.scale.setScalar(base + jitter);
   });
-  return <group ref={body}><RoundedBox args={[3.2,.35,1.65]} position={[0,.2,0]} radius={.1}><meshStandardMaterial color="#1c3b47"/></RoundedBox><mesh castShadow position={[-.65,.75,0]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.58,.58,1.45,24]}/><meshStandardMaterial color="#2d6675" metalness={.6}/></mesh><mesh castShadow position={[.75,.78,0]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.72,.72,.7,24]}/><meshStandardMaterial color={accent} emissive={alarm?accent:"#000"} emissiveIntensity={alarm?1.2:0}/></mesh><mesh position={[1.2,1.38,0]}><cylinderGeometry args={[.13,.13,1.2,12]}/><meshStandardMaterial color="#8cb2ba" metalness={.7}/></mesh></group>; }
+  return <group ref={body}>
+    <RoundedBox castShadow args={[3.8,.24,1.8]} position={[0,.16,0]} radius={.07} smoothness={3}><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.34} roughness={.55}/></RoundedBox>
+    {[-.64,.64].map((z) => <mesh key={z} position={[0,.04,z]}><boxGeometry args={[3.55,.16,.2]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.48} roughness={.52}/></mesh>)}
+    <mesh castShadow position={[-.82,.78,0]} rotation={[0,0,Math.PI/2]}>
+      <cylinderGeometry args={[.55,.55,1.55,28]}/><meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.28} roughness={.48}/>
+    </mesh>
+    {[-1.38,-1.13,-.88,-.63,-.38].map((x) => <mesh key={x} position={[x,.78,0]} rotation={[0,Math.PI/2,0]}><torusGeometry args={[.57,.035,8,24]}/><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.34} roughness={.45}/></mesh>)}
+    <mesh position={[-1.66,.78,0]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.4,.5,.18,24]}/><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.32} roughness={.5}/></mesh>
+    <RoundedBox castShadow args={[.62,.68,.74]} position={[.08,.72,0]} radius={.12} smoothness={3}><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.38} roughness={.5}/></RoundedBox>
+    <mesh castShadow position={[.9,.82,0]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.72,.72,.68,32]}/><meshStandardMaterial color={EQUIPMENT_IVORY_LIGHT} metalness={.26} roughness={.46}/></mesh>
+    <mesh position={[.9,.82,.38]}><torusGeometry args={[.48,.11,12,30]}/><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.32} roughness={.45}/></mesh>
+    <mesh position={[1.55,.82,0]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.22,.22,.9,18]}/><meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.34} roughness={.42}/></mesh>
+    <mesh position={[1.96,.82,0]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.36,.36,.12,20]}/><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.4} roughness={.4}/></mesh>
+    <mesh position={[.9,1.52,0]}><cylinderGeometry args={[.2,.2,.88,18]}/><meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.34} roughness={.42}/></mesh>
+    <mesh position={[.9,1.94,0]}><cylinderGeometry args={[.34,.34,.12,20]}/><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.4} roughness={.4}/></mesh>
+    <group position={[1.35,1.65,.22]} rotation={[0,-.12,0]}>
+      <mesh><torusGeometry args={[.25,.055,10,24]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.55} roughness={.4}/></mesh>
+      <mesh><circleGeometry args={[.2,24]}/><meshStandardMaterial color="#dce4df" metalness={.1} roughness={.5}/></mesh>
+      <mesh position={[0,0,.015]} rotation={[0,0,-.65]}><boxGeometry args={[.025,.17,.018]}/><meshBasicMaterial color="#df3648" toneMapped={false}/></mesh>
+    </group>
+    <mesh position={[.9,1.16,.39]}><sphereGeometry args={[.1,14,14]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={alarm||warning||running?2:.7}/></mesh>
+  </group>;
+}
+
+function BlockCraneMachine({accent,alarm,warning,running,seed,utilization=0}) {
+  const trolley = useRef();
+  const hook = useRef();
+  const velocity = useRef(0);
+  useFrame(({clock}, delta) => {
+    if (!trolley.current) return;
+    const t = clock.elapsedTime;
+    const utilizationRate = THREE.MathUtils.clamp(utilization / 100, 0, 1);
+    const travelLimit = 3.55;
+    const safeDelta = Math.min(delta, .05);
+    const targetX = running ? Math.sin(t * THREE.MathUtils.lerp(.05, .085, utilizationRate)) * travelLimit : trolley.current.position.x;
+    const desiredVelocity = running ? THREE.MathUtils.clamp((targetX - trolley.current.position.x) * .4, -.42, .42) : 0;
+    velocity.current = THREE.MathUtils.damp(velocity.current, desiredVelocity, 1.4, safeDelta);
+    const nextX = trolley.current.position.x + velocity.current * safeDelta;
+    trolley.current.position.x = THREE.MathUtils.clamp(nextX, -travelLimit, travelLimit);
+    if (nextX !== trolley.current.position.x) velocity.current = 0;
+    const jitter = alarm ? faultJitter(t, seed) : 0;
+    trolley.current.position.y = 4.86 + jitter * .006;
+    if (hook.current) hook.current.rotation.z = THREE.MathUtils.damp(hook.current.rotation.z, -velocity.current * .06 + jitter * .005, 1.8, safeDelta);
+  });
+
+  return <group>
+    {[-5.05,5.05].map((x) => <group key={x}>
+      {[-.55,.55].map((z) => <mesh key={z} castShadow position={[x,2.65,z]} rotation={[0,0,x < 0 ? -.055 : .055]}><boxGeometry args={[.38,5.05,.38]}/><meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.26} roughness={.5}/></mesh>)}
+      <RoundedBox castShadow args={[1.05,.34,1.75]} position={[x,.22,0]} radius={.07} smoothness={3}><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.32} roughness={.5}/></RoundedBox>
+    </group>)}
+    <RoundedBox castShadow args={[11.2,.66,1.2]} position={[0,5.25,0]} radius={.08} smoothness={3}><meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.27} roughness={.48}/></RoundedBox>
+    {[-3.85,3.85].map((x) => <mesh key={`block-stop-${x}`} position={[x,4.88,0]}><boxGeometry args={[.16,.36,1.12]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.55} roughness={.42}/></mesh>)}
+    <group ref={trolley} position={[0,4.86,0]}>
+      <RoundedBox castShadow args={[1.12,.44,1.04]} radius={.07} smoothness={3}><meshStandardMaterial color={EQUIPMENT_IVORY_LIGHT} metalness={.3} roughness={.44}/></RoundedBox>
+      <mesh position={[0,.02,.56]}><sphereGeometry args={[.09,12,12]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={alarm||warning||running?2:.7}/></mesh>
+      <group ref={hook} position={[0,-.25,0]}>
+        <mesh position={[0,-1.4,0]}><cylinderGeometry args={[.03,.03,2.8,8]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.7} roughness={.4}/></mesh>
+        <mesh position={[0,-2.78,0]}><torusGeometry args={[.2,.055,10,22]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.66} roughness={.42}/></mesh>
+      </group>
+    </group>
+  </group>;
+}
+
+function GoliathCraneMachine({accent,alarm,warning,running,seed,utilization=0}) {
+  const trolley = useRef();
+  const hook = useRef();
+  const trolleyVelocity = useRef(0);
+  useFrame(({clock}, delta) => {
+    const t = clock.elapsedTime;
+    const utilizationRate = THREE.MathUtils.clamp(utilization / 100, 0, 1);
+    const cycleSpeed = THREE.MathUtils.lerp(.035, .065, utilizationRate);
+    const statusFactor = alarm ? 1.12 : warning ? 1.05 : 1;
+    // 양쪽 다리와 충돌하지 않도록 트롤리 레일의 안쪽 구간만 사용한다.
+    // 탭이 멈췄다가 복귀할 때 큰 delta가 들어와도 한 프레임에 경계를 넘지 않게 제한한다.
+    const travelLimit = 7.4;
+    const safeDelta = Math.min(delta, .05);
+    const targetX = running ? Math.sin(t * cycleSpeed * statusFactor) * travelLimit : trolley.current?.position.x || 0;
+    const maxSpeed = THREE.MathUtils.lerp(.24, .5, utilizationRate) * statusFactor;
+    const jitter = alarm ? faultJitter(t, seed) : 0;
+    if (trolley.current) {
+      const positionError = targetX - trolley.current.position.x;
+      const desiredVelocity = running ? THREE.MathUtils.clamp(positionError * .32, -maxSpeed, maxSpeed) : 0;
+      trolleyVelocity.current = THREE.MathUtils.damp(trolleyVelocity.current, desiredVelocity, 1.25, safeDelta);
+      const nextX = trolley.current.position.x + trolleyVelocity.current * safeDelta;
+      trolley.current.position.x = THREE.MathUtils.clamp(nextX, -travelLimit, travelLimit);
+      if (nextX !== trolley.current.position.x) trolleyVelocity.current = 0;
+      trolley.current.position.y = 6.28 + jitter * .008;
+    }
+    if (hook.current) {
+      const targetSway = running ? THREE.MathUtils.clamp(-trolleyVelocity.current * .055, -.026, .026) : 0;
+      hook.current.rotation.z = THREE.MathUtils.damp(hook.current.rotation.z, targetSway + jitter * .006, 1.8, delta);
+    }
+  });
+
+  return <group>
+    {[-12.6,12.6].map((x) => <group key={x}>
+      {[-.72,.72].map((z) => <mesh key={z} castShadow position={[x,3.45,z]} rotation={[0,0,x < 0 ? -.045 : .045]}>
+        <boxGeometry args={[.48,6.55,.48]}/>
+        <meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.25} roughness={.5}/>
+      </mesh>)}
+      <RoundedBox castShadow args={[1.25,.36,2.15]} position={[x,.22,0]} radius={.08} smoothness={3}>
+        <meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.32} roughness={.5}/>
+      </RoundedBox>
+      {[-.72,.72].map((z) => <mesh key={`wheel-${z}`} position={[x,.16,z]} rotation={[Math.PI/2,0,0]}>
+        <cylinderGeometry args={[.2,.2,.28,14]}/>
+        <meshStandardMaterial color={EQUIPMENT_WHEEL} metalness={.2} roughness={.75}/>
+      </mesh>)}
+      {[2.15,4.05].map((y) => <mesh key={y} position={[x,y,0]}>
+        <boxGeometry args={[.66,.22,1.65]}/>
+        <meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.25} roughness={.52}/>
+      </mesh>)}
+    </group>)}
+    <RoundedBox castShadow receiveShadow args={[27.2,.82,1.55]} position={[0,6.9,0]} radius={.1} smoothness={4}>
+      <meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.27} roughness={.48}/>
+    </RoundedBox>
+    <mesh position={[0,7.42,-.62]}><boxGeometry args={[26.8,.08,.08]}/><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.28}/></mesh>
+    <mesh position={[0,7.42,.62]}><boxGeometry args={[26.8,.08,.08]}/><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.28}/></mesh>
+    {[-7.8,7.8].map((x) => <mesh key={`trolley-stop-${x}`} position={[x,6.3,0]}>
+      <boxGeometry args={[.18,.42,1.42]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.55} roughness={.42}/>
+    </mesh>)}
+    {Array.from({length: 14}, (_, index) => -12.5 + index * (25 / 13)).map((x) => <mesh key={x} position={[x,7.68,0]}>
+      <boxGeometry args={[.07,.52,1.28]}/><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE}/>
+    </mesh>)}
+    <group ref={trolley} position={[0,6.28,0]}>
+      <RoundedBox castShadow args={[1.3,.52,1.32]} radius={.08} smoothness={3}>
+        <meshStandardMaterial color={EQUIPMENT_IVORY_LIGHT} metalness={.28} roughness={.46}/>
+      </RoundedBox>
+      <mesh position={[0,.02,.7]}><sphereGeometry args={[.11,14,14]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={alarm||warning||running?2.2:.7}/></mesh>
+      <group ref={hook} position={[0,-.3,0]}>
+        <mesh position={[0,-1.95,0]}><cylinderGeometry args={[.035,.035,3.9,8]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.72} roughness={.38}/></mesh>
+        <mesh position={[0,-3.9,0]}><torusGeometry args={[.25,.065,10,24]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.68} roughness={.4}/></mesh>
+      </group>
+    </group>
+  </group>;
+}
 
 function CraneMachine({accent,alarm,warning,running,seed}) {
   const hook = useRef();
@@ -621,7 +1081,7 @@ function CraneMachine({accent,alarm,warning,running,seed}) {
     const jitter = alarm ? faultJitter(t, seed) * .06 : 0;
     hook.current.rotation.z = sway + jitter;
   });
-  return <group>{[-2.2,2.2].map(x=><mesh key={x} position={[x,2,0]}><boxGeometry args={[.25,4,.25]}/><meshStandardMaterial color="#386f80" metalness={.6}/></mesh>)}<mesh position={[0,4,0]}><boxGeometry args={[5,.3,.35]}/><meshStandardMaterial color="#3c7f92" metalness={.6}/></mesh><RoundedBox args={[1.1,.65,.8]} position={[0,3.65,0]} radius={.1}><meshStandardMaterial color={accent} emissive={alarm?accent:"#000"} emissiveIntensity={alarm?1.5:0}/></RoundedBox><group ref={hook} position={[0,2.5,0]}><mesh position={[0,-.85,0]}><cylinderGeometry args={[.035,.035,2.2,8]}/><meshStandardMaterial color="#b8ced3" metalness={.8}/></mesh><mesh position={[0,-1.65,0]}><torusGeometry args={[.22,.06,10,22]}/><meshStandardMaterial color="#c6d9dd" metalness={.8}/></mesh></group></group>; }
+  return <group>{[-2.2,2.2].map(x=><mesh key={x} position={[x,2,0]}><boxGeometry args={[.25,4,.25]}/><meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.24} roughness={.5}/></mesh>)}<mesh position={[0,4,0]}><boxGeometry args={[5,.3,.35]}/><meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.24} roughness={.5}/></mesh><RoundedBox args={[1.1,.65,.8]} position={[0,3.65,0]} radius={.1}><meshStandardMaterial color={EQUIPMENT_IVORY_LIGHT} metalness={.22} roughness={.48}/></RoundedBox><mesh position={[0,3.62,.43]}><sphereGeometry args={[.1,14,14]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={alarm||warning||running?2:.7}/></mesh><group ref={hook} position={[0,2.5,0]}><mesh position={[0,-.85,0]}><cylinderGeometry args={[.035,.035,2.2,8]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.7} roughness={.4}/></mesh><mesh position={[0,-1.65,0]}><torusGeometry args={[.22,.06,10,22]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.65} roughness={.42}/></mesh></group></group>; }
 
 function FaultMarker({position,part,seed=0}) {
   const ring = useRef();

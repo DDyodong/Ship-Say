@@ -6,8 +6,13 @@ import Dashboard from "./components/layout/Dashboard";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import WorkerApp from "./pages/worker/WorkerApp";
+import FactoryDetailTwin from "./pages/admin/FactoryDetailTwin";
 
 function App() {
+  const previewTwinCode = new URLSearchParams(window.location.search).get("previewTwin");
+  if (import.meta.env.DEV && previewTwinCode) {
+    return <FactoryDetailTwin facilityCode={previewTwinCode} onBack={() => {}} notify={() => {}}/>;
+  }
   const navigate = useNavigate();
   const [theme, setTheme] = useState(() => localStorage.getItem("dashboard-theme") || "dark");
   const [session, setSession] = useState(() => {
