@@ -1283,8 +1283,8 @@ button {
 .permit-progress-title-row,
 .permit-progress-panel .permit-progress-title {
   margin: 24px 0 10px;
-  min-height: 44px;
-  padding: 9px 12px;
+  min-height: 38px;
+  padding: 4px 10px;
   border: 1px solid rgba(48,198,242,.16);
   border-left: 3px solid var(--cyan);
   border-radius: 9px;
@@ -1300,7 +1300,7 @@ button {
   box-sizing: border-box;
 }
 
-.permit-progress-title-row h4,
+.permit-progress-panel .permit-progress-title-row h4,
 .permit-progress-panel .permit-progress-title {
   color: var(--text);
   font-size: 12px;
@@ -1311,7 +1311,7 @@ button {
 
 .permit-progress-title-row h4 {
   margin: 0;
-  min-height: 32px;
+  min-height: 30px;
   display: flex;
   align-items: center;
   padding: 0;
@@ -1323,8 +1323,8 @@ button {
 }
 
 .permit-progress-title-row .outline-btn {
-  height: 32px;
-  min-height: 32px;
+  height: 30px;
+  min-height: 30px;
   margin-left: auto;
   padding: 6px 12px;
   flex: 0 0 auto;
@@ -1340,7 +1340,7 @@ button {
   color: #1c3545;
 }
 
-.light-theme .permit-progress-title-row h4,
+.light-theme .permit-progress-panel .permit-progress-title-row h4,
 .light-theme .permit-progress-panel .permit-progress-title {
   color: #1c3545;
 }
