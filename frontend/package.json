@@ -4,7 +4,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "sync:welding-data": "node scripts/sync-welding-demo-data.mjs",
+    "predev": "npm run sync:welding-data",
     "dev": "vite",
+    "prebuild": "npm run sync:welding-data",
     "build": "vite build",
     "cad:gantry": "node scripts/convert-step-to-glb.mjs public/cad/gantry-crane.step public/cad/gantry-crane.glb",
     "cad:jib": "node scripts/convert-step-to-glb.mjs public/cad/jib-crane.step public/cad/jib-crane.glb",

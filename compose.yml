@@ -89,6 +89,7 @@ services:
       - "${FRONTEND_PORT:-5173}:5173"
     volumes:
       - ./frontend:/app
+      - ./ai/robot_anomaly_agent:/data/robot_anomaly_agent:ro
       - frontend-node-modules:/app/node_modules
     depends_on:
       - backend

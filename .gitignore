@@ -37,6 +37,7 @@ frontend/.vite/
 frontend/.cache/
 frontend/.npm-cache/
 frontend/coverage/
+frontend/.generated/
 frontend/.env
 frontend/.env.*
 !frontend/.env.example
