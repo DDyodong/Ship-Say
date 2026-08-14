@@ -741,6 +741,22 @@ button {
   align-items: center;
   gap: 12px;
   min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.topnav-brand:hover b {
+  color: var(--cyan);
+}
+
+.topnav-brand:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 6px;
+  border-radius: 4px;
 }
 
 .topnav-avatar {
@@ -3557,6 +3573,15 @@ button {
   background: #ffffff !important;
   border-color: #d5e0e8 !important;
   box-shadow: 0 10px 28px rgba(15, 23, 42, .065) !important;
+}
+
+/* Grid/stack sections only arrange cards. Keeping them transparent prevents
+   their square background from showing outside the cards' rounded corners. */
+.light-theme .factory-detail-twin > section.grid,
+.light-theme .factory-detail-twin > section.space-y-4 {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 
 .light-theme .safety-twin [class*="bg-[#07111a]"],

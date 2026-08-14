@@ -249,7 +249,7 @@ function SafetyScenarioTwin({ session, notify, onOpenFactory }) {
     </div>
 
     {/* 왼쪽 맨 위: 세로 로그. 구역 필터(KakaoYardMap 내부)는 이 밑으로 옮겨짐 */}
-    <div ref={logRef} className="absolute z-10 w-52" style={{ left: 16, top: topOffset }}>
+    <div ref={logRef} className="twin-preserve-dark absolute z-10 w-52" style={{ left: 16, top: topOffset }}>
       <OperationalTimeline phaseIndex={phaseIndex} onSelect={(index) => { setPlaying(false); setPhaseIndex(index); }}/>
     </div>
   </div>;

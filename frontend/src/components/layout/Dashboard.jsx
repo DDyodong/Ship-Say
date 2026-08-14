@@ -56,10 +56,11 @@ function Dashboard({ session, onLogout, notify, theme, onToggleTheme }) {
   return <div className={`app-shell ${theme}-theme`} style={{ gridTemplateColumns: "1fr" }}>
     <main className="workspace dashboard-workspace" style={{ gridColumn: "1 / -1" }}>
       <header className="topnav-header">
-        <div className="topnav-brand">
+        <button type="button" className="topnav-brand" onClick={() => navigate("/admin/dashboard")}
+          aria-label="디지털 트윈 관리 홈으로 이동">
           <b>SHIP-SAY</b>
           <span>스마트 조선소 통합 안전 모니터링</span>
-        </div>
+        </button>
 
         <div className="topnav-right">
           <nav className="topnav-menu" aria-label="관리자 메뉴">
