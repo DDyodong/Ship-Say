@@ -52,12 +52,12 @@ const EQUIPMENT_LAYOUTS = {
     { position: [-5.2, 0, -3.45], rotationY: 0 },
   ],
   PAINT: [
-    { position: [-6.1, 0, 3], rotationY: 0 },
+    { position: [-10, 0, -1.2], rotationY: 0 },
     { position: [-5.2, 0, -9.25], rotationY: 0 },
     { position: [5.2, 0, -9.25], rotationY: 0 },
-    { position: [6.1, 0, 3], rotationY: Math.PI },
-    { position: [-3.9, 0, 5.8], rotationY: 0 },
-    { position: [3.9, 0, 5.8], rotationY: Math.PI },
+    { position: [10, 0, -1.2], rotationY: Math.PI },
+    { position: [-4, 0, 4.8], rotationY: 0 },
+    { position: [4, 0, 4.8], rotationY: Math.PI },
   ],
   DOCK: [
     { position: [0, 0, -4.5], rotationY: 0 },
@@ -96,29 +96,22 @@ const OUTFITTING_SECONDARY_LAYOUT = {
   "국소 배기 장치": { position: [5.2, 0, -9.25], rotationY: 0 },
 };
 
-function rotateFactoryPlacement(placement, angle, offsetX = 0, offsetZ = 0) {
-  const [x, y, z] = placement.position;
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  return {
-    position: [x * cos - z * sin + offsetX, y, x * sin + z * cos + offsetZ],
-    rotationY: placement.rotationY + angle,
+function assemblyFactoryPlacement(asset, facilityCode) {
+  if (!["TAG-1", "TAG-2", "TAG-4"].includes(facilityCode)) return null;
+  const lineZ = 1;
+  const placements = {
+    ROBOT: { position: [-1.1,0,lineZ - 2.15], rotationY: -Math.PI / 2 },
+    POSITIONER: { position: [-5.15,0,lineZ - 3.55], rotationY: 0 },
+    CONVEYOR: { position: [0,0,lineZ], rotationY: 0 },
+    INSPECTOR: { position: [4.7,0,lineZ], rotationY: Math.PI / 2 },
   };
+  return placements[asset.kind] || null;
 }
 
 function withFacilityLayoutVariation(asset, placement, facilityCode, index) {
   if (facilityCode === "TAG-25" && OUTFITTING_SECONDARY_LAYOUT[asset.name]) return OUTFITTING_SECONDARY_LAYOUT[asset.name];
-  const assemblyLayoutTransform = {
-    "TAG-1": { angle: -.075, x: -.2, z: .25 },
-    "TAG-2": { angle: .12, x: .25, z: -.2 },
-    "TAG-4": { angle: -.14, x: .1, z: .15 },
-  }[facilityCode];
-  if (assemblyLayoutTransform) return rotateFactoryPlacement(
-    placement,
-    assemblyLayoutTransform.angle,
-    assemblyLayoutTransform.x,
-    assemblyLayoutTransform.z,
-  );
+  const assemblyPlacement = assemblyFactoryPlacement(asset, facilityCode);
+  if (assemblyPlacement) return assemblyPlacement;
   if (asset.fixedLayout || asset.lineSync || FIXED_PROCESS_KINDS.has(asset.kind)) return placement;
   const facilityNumber = Number(String(facilityCode || "0").match(/\d+/)?.[0] || 0);
   const variant = CONCEPT_LAYOUT_VARIANTS[(facilityNumber + index) % CONCEPT_LAYOUT_VARIANTS.length];
@@ -155,7 +148,7 @@ const SELECTION_RING_SCALE_BY_KIND = {
   POSITIONER: [1.35, 1.1, 1],
   BENDER: [1.8, 1.05, 1],
   CONVEYOR: [2.35, .85, 1],
-  TRANSPORTER: [2.05, 1.05, 1],
+  TRANSPORTER: [2.35, 1.25, 1],
   CUTTER: [2, 1.15, 1],
   FAN: [1.3, 1.05, 1],
   PUMP: [1.5, .9, 1],
@@ -572,44 +565,37 @@ function OutfittingExhaustDuct({ facilityCode }) {
 function FactoryConveyorVariation({ profileKey, facilityCode }) {
   const factoryNumber = Number(String(facilityCode || "0").match(/\d+/)?.[0] || 0);
   if (profileKey === "ASSEMBLY") {
-    const presets = [
-      { position: [-6.25,0,-1.45], rotationY: Math.PI / 2, length: 4.1 },
-      { position: [5.75,0,3.05], rotationY: Math.PI / 2, length: 4.35 },
-      { position: [4.9,0,-2.15], rotationY: -Math.PI / 2, length: 5.15 },
-    ];
-    const presetIndex = { "TAG-1": 0, "TAG-2": 1, "TAG-4": 2 }[facilityCode] ?? factoryNumber % presets.length;
-    const preset = presets[presetIndex];
-    return <group position={preset.position} rotation={[0,preset.rotationY,0]}>
-      <ConveyorMachine accent="#0091c2" alarm={false} warning={false} running seed={110 + factoryNumber} conveyorLength={preset.length} workpieceStyle="ASSEMBLY_BLOCK" workpieceCount={0}/>
+    return <group position={[7,0,-1.2]} rotation={[0,Math.PI / 2,0]}>
+      <ConveyorMachine accent="#0091c2" alarm={false} warning={false} running seed={110 + factoryNumber} conveyorLength={4.4} workpieceStyle="ASSEMBLY_BLOCK" workpieceCount={0}/>
     </group>;
   }
   if (profileKey === "PAINT") {
-    const presets = [
-      { position: [-7.8,0,6], rotationY: 0, length: 4.6 },
-      { position: [0,0,2.75], rotationY: Math.PI / 2, length: 5.1 },
-      { position: [7.8,0,6], rotationY: Math.PI, length: 4.6 },
-    ];
-    const presetIndex = { "TAG-20": 0, "TAG-21": 1, "TAG-24": 2 }[facilityCode] ?? factoryNumber % presets.length;
-    const preset = presets[presetIndex];
-    return <group position={preset.position} rotation={[0,preset.rotationY,0]}>
-      <ConveyorMachine accent="#d97a1f" alarm={false} warning={false} running seed={140 + factoryNumber} conveyorLength={preset.length} workpieceStyle="STEEL_PLATE" workpieceCount={1}/>
-    </group>;
+    const layouts = {
+      "TAG-20": [
+        { position: [-4.2,0,2.5], rotationY: 0, length: 8.4, workpieces: 1 },
+        { position: [0,0,3.45], rotationY: Math.PI / 2, length: 1.9, workpieces: 0 },
+      ],
+      "TAG-21": [
+        { position: [4.2,0,2.5], rotationY: 0, length: 8.4, workpieces: 1 },
+        { position: [0,0,3.45], rotationY: Math.PI / 2, length: 1.9, workpieces: 0 },
+      ],
+      "TAG-24": [
+        { position: [0,0,1.5], rotationY: Math.PI / 2, length: 4.6, workpieces: 1 },
+      ],
+    };
+    const segments = layouts[facilityCode] || layouts["TAG-24"];
+    return <group>{segments.map((segment,index) => <group key={`${segment.position.join("-")}-${index}`} position={segment.position} rotation={[0,segment.rotationY,0]}>
+      <ConveyorMachine accent="#d97a1f" alarm={false} warning={false} running seed={140 + factoryNumber + index} conveyorLength={segment.length} workpieceStyle="STEEL_PLATE" workpieceCount={segment.workpieces}/>
+    </group>)}</group>;
   }
   return null;
 }
 
-function OffshoreMaterialBay({ facilityCode }) {
-  const presetIndex = { "TAG-16": 0, "TAG-18": 1, "TAG-19": 2 }[facilityCode] ?? 0;
-  const presets = [
-    { stack: [8.4,0,8.25], stackRotation: 0, conveyor: [8.4,0,7.05], conveyorRotation: Math.PI / 2, conveyorLength: 2.4, bin: [11.55,0,5.75] },
-    { stack: [11.65,0,5.7], stackRotation: Math.PI / 2, conveyor: [10.45,0,5.7], conveyorRotation: 0, conveyorLength: 2.4, bin: [11.45,0,8.15] },
-    { stack: [8.4,0,2.25], stackRotation: 0, conveyor: [8.4,0,4.05], conveyorRotation: Math.PI / 2, conveyorLength: 2.5, bin: [11.45,0,2.9] },
-  ];
-  const preset = presets[presetIndex];
+function OffshoreMaterialBay() {
   return <group>
-    <PlateStack position={preset.stack} rotationY={preset.stackRotation} count={6} width={4.35} depth={1.8}/>
-    <group position={preset.conveyor} rotation={[0,preset.conveyorRotation,0]}><ConveyorMachine accent="#3a7d8c" alarm={false} warning={false} running seed={170 + presetIndex} conveyorLength={preset.conveyorLength} workpieceStyle="STEEL_PLATE" workpieceCount={1}/></group>
-    <PartsBin position={preset.bin} rotationY={-.08} color="#59686d"/>
+    <PlateStack position={[8.4,0,8.25]} count={6} width={4.35} depth={1.8}/>
+    <group position={[8.4,0,7.05]} rotation={[0,Math.PI / 2,0]}><ConveyorMachine accent="#3a7d8c" alarm={false} warning={false} running seed={170} conveyorLength={2.4} workpieceStyle="STEEL_PLATE" workpieceCount={1}/></group>
+    <PartsBin position={[11.55,0,5.75]} rotationY={-.08} color="#59686d"/>
   </group>;
 }
 
@@ -631,8 +617,8 @@ function FactoryContext({ profileKey, facilityCode }) {
   </group>;
   if (profileKey === "PAINT") return <group>
     <FactoryConveyorVariation profileKey={profileKey} facilityCode={facilityCode}/>
-    <BlockSection position={[0, .1, 5.9]} rotationY={.03} scale={.82} painted/>
-    <HoseReel position={[-10.2, 0, 5.8]} rotationY={.18}/><ServicePlatform position={[4, 0, 5.5]} rotationY={-.07}/><MaterialPallet position={[10.3, 0, -5.8]} rotationY={-.09}/>
+    <BlockSection position={[0, .1, 4.8]} scale={.8} painted/>
+    <HoseReel position={[-11, 0, 6.6]} rotationY={.18}/><MaterialPallet position={[10.6, 0, 7.6]} rotationY={-.09}/>
   </group>;
   if (profileKey === "OUTFITTING") return <group>
     <OutfittingConveyorNetwork facilityCode={facilityCode}/>
@@ -642,7 +628,7 @@ function FactoryContext({ profileKey, facilityCode }) {
   </group>;
   if (profileKey === "OFFSHORE") return <group>
     <FabricationTrestles position={[0, 0, 0]}/><BlockSection position={[0, .78, 0]} scale={1.18}/>
-    <OffshoreMaterialBay facilityCode={facilityCode}/>
+    <OffshoreMaterialBay/>
     <PlateStack position={[-10.4, 0, 7.4]} rotationY={.08} count={4}/>
   </group>;
   return null;
@@ -675,7 +661,7 @@ function DockEnvironment({ dockState }) {
     {!flooded && <><KeelBlocks/><mesh position={[-2.7, .02, -6.6]} rotation={[-Math.PI / 2, 0, 0]} scale={[1.7, .7, 1]}><circleGeometry args={[1, 32]}/><meshStandardMaterial color="#33484f" transparent opacity={.5} roughness={.18}/></mesh></>}
     {flooded && <mesh position={[0, .38, 0]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[9.7, 18.9, 12, 20]}/><meshStandardMaterial color="#237d99" transparent opacity={.72} metalness={.12} roughness={.2}/></mesh>}
     <DockShip flooded={flooded}/>
-    {[-8.7, 8.7].flatMap((x) => [-7, -2.4, 2.4, 7].map((z) => <group key={`${x}-${z}`} position={[x, .15, z]}>
+    {[-8.7, 8.7].flatMap((x) => (x > 0 ? [-7, -2.4, 0, 7] : [-7, -2.4, 2.4, 7]).map((z) => <group key={`${x}-${z}`} position={[x, .15, z]}>
       <mesh castShadow position={[0, .25, 0]}><cylinderGeometry args={[.18, .24, .5, 14]}/><meshStandardMaterial color="#c49b32" metalness={.42} roughness={.5}/></mesh>
       <mesh position={[0, .52, 0]}><torusGeometry args={[.2, .055, 8, 18]}/><meshStandardMaterial color="#3e4649" metalness={.55} roughness={.5}/></mesh>
     </group>))}
@@ -747,11 +733,13 @@ function MachineUnit({ asset, position, rotationY = 0, selected, onSelect }) {
   const fallback = <KindFallback kind={asset.kind} motion={motion}/>;
   const labelPosition = asset.labelPosition || LABEL_POSITION_BY_KIND[asset.kind] || [0, 3.5, 0];
   const ringScale = asset.selectionRingScale || SELECTION_RING_SCALE_BY_KIND[asset.kind] || [1, 1, 1];
+  const transporterRing = asset.kind === "TRANSPORTER";
+  const ringGeometryArgs = transporterRing ? [1.2,1.235,64] : [1.2,1.28,48];
 
   return <group position={position} rotation={[0, rotationY, 0]} onClick={(event)=>{event.stopPropagation();onSelect(asset);}} onPointerOver={()=>{document.body.style.cursor="pointer";}} onPointerOut={()=>{document.body.style.cursor="default";}}>
     {fallback}
     {alarm && <pointLight position={[0, ["GOLIATH", "BLOCK_CRANE"].includes(asset.kind) ? 6.6 : 1.21, 0]} intensity={10} distance={4} color="#ff2f48"/>}
-    <mesh position={[0,.04,0]} rotation={[-Math.PI/2,0,0]} scale={ringScale}><ringGeometry args={[1.2,1.28,48]}/><meshBasicMaterial color={accent}/></mesh>
+    <mesh position={[0,transporterRing ? .012 : .04,0]} rotation={[-Math.PI/2,0,0]} scale={ringScale}><ringGeometry args={ringGeometryArgs}/><meshBasicMaterial color={accent} transparent={transporterRing} opacity={transporterRing ? .78 : 1} depthWrite={!transporterRing} polygonOffset polygonOffsetFactor={-2}/></mesh>
     {alarm && <FaultMarker position={issuePositions[asset.kind]} part={asset.fault.part} seed={seed}/>}
     <Html center position={labelPosition}><button onClick={()=>onSelect(asset)} className={`min-w-[118px] rounded-lg border px-2.5 py-2 text-left shadow-xl backdrop-blur-md ${alarm?"border-red-400/60 bg-[#230b12]/95":"border-cyan-400/35 bg-[#07151f]/95"}`}><span className={`block text-[8px] font-black tracking-wider ${alarm?"text-red-300":"text-cyan-300"}`}>{asset.assetCode}</span><b className="mt-0.5 block whitespace-nowrap text-[10px] text-white">{asset.name}</b><small className={`mt-0.5 block text-[8px] ${alarm?"text-red-300":"text-slate-500"}`}>{alarm?asset.fault.symptom:`${asset.operatingState} · 운전 부하 ${asset.utilization}%`}</small></button></Html>
   </group>;

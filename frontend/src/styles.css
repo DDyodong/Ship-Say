@@ -5292,8 +5292,43 @@ button {
 
 /* Worker safety report control */
 
+.equipment-review-draft {
+  display: grid;
+  grid-template-columns: 44px minmax(0,1fr) auto;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid #ff741755;
+  border-radius: 12px;
+  background: linear-gradient(110deg,#ff741714,#091925 55%);
+}
+
+.equipment-review-draft-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 11px;
+  color: #ff9c5a;
+  background: #ff74171b;
+}
+
+.equipment-review-draft-icon svg { width: 21px; }
+.equipment-review-draft-body span { color: #ff9c5a; font-size: 8px; font-weight: 900; letter-spacing: .12em; }
+.equipment-review-draft-body h3 { margin: 4px 0; color: var(--text); font-size: 13px; }
+.equipment-review-draft-body p { margin: 0; color: #b6c6d1; font-size: 9px; }
+.equipment-review-draft-body small { display: block; margin-top: 5px; color: var(--muted); font-size: 8px; line-height: 1.5; }
+.equipment-review-draft-actions { display: flex; gap: 7px; }
+.equipment-review-draft-actions svg { width: 14px; }
+
+.light-theme .equipment-review-draft {
+  background: linear-gradient(110deg,#fff2e9,#fff 55%);
+}
+
 .worker-report-source-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 7px;
   margin: -2px 0 14px;
   padding: 5px;
@@ -5589,6 +5624,13 @@ button {
   width: 43px;
 }
 
+.report-photo.equipment {
+  color: #ff9c5a;
+  background: radial-gradient(circle at 50% 45%,#ff74171c,transparent 34%),#07141f;
+}
+
+.report-photo.equipment>svg { width: 56px; height: 56px; }
+
 .report-detail-source dl {
   margin: 0;
   border: 1px solid var(--border);
@@ -5840,6 +5882,32 @@ button {
   font-size: 7px;
 }
 
+.equipment-event-result {
+  border-color: #ff741746;
+  background: linear-gradient(135deg,#2a1b13,#091925 58%);
+}
+
+.equipment-event-result .ai-result-title>svg { color: #ff9c5a; }
+.equipment-event-result .ai-result-title span { color: #ff9c5a; }
+
+.equipment-event-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.equipment-event-grid>div {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: #071722;
+}
+
+.equipment-event-grid span,.equipment-event-grid b { display: block; }
+.equipment-event-grid span { color: #788fa0; font-size: 8px; }
+.equipment-event-grid b { margin-top: 4px; color: #eef6fa; font-size: 10px; }
+
 .ai-pending-message {
   display: flex;
   gap: 10px;
@@ -5936,6 +6004,38 @@ button {
   display: block;
   margin-top: 14px;
 }
+
+.report-action-assignee {
+  display: block;
+  margin-top: 14px;
+}
+
+.report-action-assignee>span {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.report-action-assignee>span small { color: var(--muted); font-size: 8px; font-weight: 400; }
+
+.report-action-assignee select {
+  width: 100%;
+  height: 38px;
+  margin-top: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  outline: 0;
+  background: #07141f;
+  color: #dbe7ee;
+  font-size: 9px;
+}
+
+.report-action-assignee select:focus { border-color: #30c6f266; }
 
 .report-action-comment>span {
   font-size: 10px;
@@ -6165,6 +6265,8 @@ button {
 }
 
 @media (max-width:760px) {
+  .equipment-review-draft { grid-template-columns: 38px 1fr; }
+  .equipment-review-draft-actions { grid-column: 1 / -1; justify-content: flex-end; }
   .worker-report-toolbar {
     align-items: stretch;
     flex-direction: column;

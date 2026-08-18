@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Activity, AlertTriangle, ArrowLeft, CheckCircle2, ChevronRight, Clock3, Factory,
   FileCheck2, Gauge, HardHat, Link2, Radio, ScanLine, ShieldAlert,
@@ -12,13 +13,14 @@ import {
 import { levelFromScore } from "../../utils/workerRiskEngine";
 
 function FactoryDetailTwin({ facilityCode, onBack, notify }) {
+  const navigate = useNavigate();
   const factory = useMemo(() => getFactoryDetail(facilityCode), [facilityCode]);
   const isWeldingDemo = factory.code === "TAG-4";
   const alarmAsset = factory.equipment.find((asset) => asset.fault);
   const [selectedAsset, setSelectedAsset] = useState(alarmAsset || factory.equipment[0]);
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [inventoryTab, setInventoryTab] = useState("equipment");
-  const [responseState, setResponseState] = useState({ alert: false, evacuate: false, isolate: false, maintenance: false });
+  const [responseState, setResponseState] = useState({ alert: false, evacuate: false, isolate: false });
   const [demoPlayback, setDemoPlayback] = useState({ mode: "AUTO", block: 0, scenarioStart: 0, step: 0, produced: 0 });
   const [demoPlaying, setDemoPlaying] = useState(true);
 
@@ -77,7 +79,7 @@ function FactoryDetailTwin({ facilityCode, onBack, notify }) {
     setSelectedAsset(factory.equipment.find((asset) => asset.fault) || factory.equipment[0]);
     setSelectedWorker(null);
     setInventoryTab("equipment");
-    setResponseState({ alert: false, evacuate: false, isolate: false, maintenance: false });
+    setResponseState({ alert: false, evacuate: false, isolate: false });
   }, [factory]);
 
   useEffect(() => {
@@ -132,6 +134,24 @@ function FactoryDetailTwin({ facilityCode, onBack, notify }) {
     setInventoryTab("workers");
     setSelectedAsset(factory.equipment.find((asset) => asset.assetCode === worker.assignedAssetCode) || selectedAsset);
   };
+  const reviewEquipmentAlert = (asset) => {
+    if (!asset?.fault) return;
+    navigate("/admin/reports", {
+      state: {
+        equipmentReview: {
+          facilityCode: factory.code,
+          facilityName: factory.name,
+          assetCode: asset.assetCode,
+          assetName: asset.name,
+          faultPart: asset.fault.part,
+          faultSymptom: asset.fault.symptom,
+          cause: asset.fault.cause,
+          recommendedAction: asset.fault.action,
+          severity: asset.status === "ALARM" ? "critical" : "warning",
+        },
+      },
+    });
+  };
 
   return <div className="twin-theme-page factory-detail-twin min-h-full bg-[#050b12] px-5 py-5 text-slate-100 md:px-7 md:py-6">
     <header className="twin-theme-hero rounded-3xl border border-cyan-400/15 bg-[radial-gradient(circle_at_85%_10%,rgba(0,210,255,.12),transparent_30%),linear-gradient(135deg,#0b1a27,#071019)] p-6 shadow-2xl">
@@ -172,7 +192,7 @@ function FactoryDetailTwin({ facilityCode, onBack, notify }) {
 
     {isWeldingDemo ? <WeldingProcessDemoPanel demo={weldingDemo} playing={demoPlaying} autoMode={demoPlayback.mode === "AUTO"} onToggle={toggleDemo} onRestart={startAutoplay} onAuto={startAutoplay} onJump={jumpToScenario}/> : <>
       <section className="mt-4 grid gap-4 xl:grid-cols-[1.15fr_.85fr]">
-        {selectedWorker ? <><WorkerSafetyPanel worker={selectedWorker} factory={factory} responseState={responseState} notify={notify}/><WorkerPermitPanel worker={selectedWorker}/></> : <><AssetDiagnosis asset={selectedAssetView} notify={notify}/><SensorPanel asset={selectedAssetView}/></>}
+        {selectedWorker ? <><WorkerSafetyPanel worker={selectedWorker} factory={factory} responseState={responseState} notify={notify}/><WorkerPermitPanel worker={selectedWorker}/></> : <><AssetDiagnosis asset={selectedAssetView} onReviewSafetyEvent={reviewEquipmentAlert}/><SensorPanel asset={selectedAssetView}/></>}
       </section>
 
       <IncidentCommandConsole factory={factory} alarmAsset={alarmAsset} state={responseState} execute={executeResponse}/>
@@ -318,10 +338,9 @@ function IncidentCommandConsole({ factory, alarmAsset, state, execute }) {
     { key: "alert", title: "현장 경보 전송", body: `${factory.exposedWorkers}명 작업자 앱·방송 연동`, action: "경보 전송" },
     { key: "evacuate", title: "대피 완료 확인", body: `${factory.safetyState.musterPoint} · 예상 42초`, action: "대피 확인" },
     { key: "isolate", title: "설비 선택 격리", body: `${alarmAsset.assetCode} LOTO 적용`, action: "격리 승인" },
-    { key: "maintenance", title: "정비 작업 발행", body: `${alarmAsset.fault.part} 점검 작업지시`, action: "작업 발행" },
   ];
-  const complete = Object.values(state).filter(Boolean).length;
-  return <section className="mt-4 rounded-2xl border border-red-400/20 bg-[linear-gradient(120deg,rgba(239,68,68,.07),#08131d_38%)] p-5"><div className="flex flex-col justify-between gap-3 md:flex-row md:items-center"><div><div className="flex items-center gap-2"><Activity size={15} className="text-red-300"/><p className="text-[9px] font-black tracking-[.16em] text-red-300">INCIDENT COMMAND CONSOLE · {factory.safetyState.incidentId}</p></div><h2 className="mt-2 text-base font-black text-white">AI 권고를 현장 실행 명령으로 전환</h2></div><div className="flex items-center gap-3"><span className="text-[9px] font-black text-slate-500">조치 {complete}/4</span><div className="h-2 w-28 overflow-hidden rounded-full bg-white/[.06]"><div className="h-full rounded-full bg-emerald-400 transition-all" style={{width:`${complete * 25}%`}}/></div></div></div><div className="mt-4 grid gap-2 md:grid-cols-4">{steps.map((step, index) => <div key={step.key} className={`rounded-xl border p-4 ${state[step.key] ? "border-emerald-400/20 bg-emerald-400/[.05]" : "border-white/[.07] bg-black/10"}`}><div className="flex items-center justify-between"><span className="grid h-7 w-7 place-items-center rounded-full bg-white/[.05] text-[9px] font-black text-slate-400">0{index + 1}</span>{state[step.key] && <CheckCircle2 size={15} className="text-emerald-300"/>}</div><b className="mt-3 block text-[10px] text-slate-200">{step.title}</b><p className="mt-1 min-h-8 text-[8px] leading-4 text-slate-600">{step.body}</p><button disabled={state[step.key]} onClick={() => execute(step.key, `${step.title} 처리가 완료되었습니다.`)} className={`mt-3 h-8 w-full rounded-lg text-[8px] font-black ${state[step.key] ? "bg-emerald-400/10 text-emerald-300" : "bg-white/[.06] text-slate-300 hover:bg-cyan-400/10 hover:text-cyan-200"}`}>{state[step.key] ? "완료 · 증적 저장" : step.action}</button></div>)}</div></section>;
+  const complete = steps.filter((step) => state[step.key]).length;
+  return <section className="mt-4 rounded-2xl border border-red-400/20 bg-[linear-gradient(120deg,rgba(239,68,68,.07),#08131d_38%)] p-5"><div className="flex flex-col justify-between gap-3 md:flex-row md:items-center"><div><div className="flex items-center gap-2"><Activity size={15} className="text-red-300"/><p className="text-[9px] font-black tracking-[.16em] text-red-300">INCIDENT COMMAND CONSOLE · {factory.safetyState.incidentId}</p></div><h2 className="mt-2 text-base font-black text-white">AI 권고를 현장 실행 명령으로 전환</h2><p className="mt-1 text-[9px] text-slate-600">정비 작업은 설비 진단의 안전 이벤트 검토를 거쳐 담당자를 지정한 뒤 발행합니다.</p></div><div className="flex items-center gap-3"><span className="text-[9px] font-black text-slate-500">현장 대응 {complete}/{steps.length}</span><div className="h-2 w-28 overflow-hidden rounded-full bg-white/[.06]"><div className="h-full rounded-full bg-emerald-400 transition-all" style={{width:`${complete / steps.length * 100}%`}}/></div></div></div><div className="mt-4 grid gap-2 md:grid-cols-3">{steps.map((step, index) => <div key={step.key} className={`rounded-xl border p-4 ${state[step.key] ? "border-emerald-400/20 bg-emerald-400/[.05]" : "border-white/[.07] bg-black/10"}`}><div className="flex items-center justify-between"><span className="grid h-7 w-7 place-items-center rounded-full bg-white/[.05] text-[9px] font-black text-slate-400">0{index + 1}</span>{state[step.key] && <CheckCircle2 size={15} className="text-emerald-300"/>}</div><b className="mt-3 block text-[10px] text-slate-200">{step.title}</b><p className="mt-1 min-h-8 text-[8px] leading-4 text-slate-600">{step.body}</p><button disabled={state[step.key]} onClick={() => execute(step.key, `${step.title} 처리가 완료되었습니다.`)} className={`mt-3 h-8 w-full rounded-lg text-[8px] font-black ${state[step.key] ? "bg-emerald-400/10 text-emerald-300" : "bg-white/[.06] text-slate-300 hover:bg-cyan-400/10 hover:text-cyan-200"}`}>{state[step.key] ? "완료 · 증적 저장" : step.action}</button></div>)}</div></section>;
 }
 
 function EnterpriseOperationsPanel({ factory, alarmAsset, notify }) { return <section className="mt-4 rounded-2xl border border-cyan-400/15 bg-[linear-gradient(120deg,#0a1722,#071018)] p-5"><div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-center"><div><p className="text-[9px] font-black tracking-[.16em] text-cyan-300">ENTERPRISE DECISION SUPPORT</p><h2 className="mt-1 text-base font-black text-white">전면 중단 대신, 영향 범위만 정확히 통제</h2><p className="mt-1 text-[10px] text-slate-500">설비 상태만 보는 화면이 아니라 누가·어떤 허가로·어느 고장 설비 주변에서 일하는지 계산해 현장 결정을 지원합니다.</p></div><button onClick={() => notify?.(`${alarmAsset.assetCode} 선택 정지안이 승인 대기열에 등록되었습니다.`)} className="h-10 rounded-xl border border-cyan-300/25 bg-cyan-400/[.08] px-4 text-[10px] font-black text-cyan-200 hover:bg-cyan-400/[.14]">선택 정지안 검토 요청</button></div><div className="mt-5 grid gap-3 md:grid-cols-4"><ValueCard icon={UsersRound} label="우선 보호 대상" value={`${factory.exposedWorkers}명`} body="고장 반경 내 작업자 자동 식별" danger/><ValueCard icon={Factory} label="선택 정지 범위" value={`1 / ${factory.equipment.length}`} body="정상 설비는 생산 지속"/><ValueCard icon={Clock3} label="예상 비가동 방지" value="3.6h" body="운영 모델 기준 추정값"/><ValueCard icon={FileCheck2} label="감사 증적" value="4종" body="CCTV·허가·센서·조치 이력"/></div></section>; }
@@ -337,7 +356,7 @@ function RiskAnalysisPanel({ analysis }) {
   return <div className="mt-3 rounded-xl border border-cyan-400/15 bg-[#06121b] p-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-[9px] font-black tracking-[.14em] text-cyan-300">EXPLAINABLE RISK ENGINE</p><p className="mt-1 text-[8px] text-slate-600">정책 {analysis.policyVersion} · 증적 완전성 {analysis.evidenceConfidence}%</p></div><span className="rounded-full border border-white/10 px-2 py-1 text-[8px] text-slate-400">0–29 정상 · 30–59 주의 · 60–79 위험 · 80+ 긴급</span></div><div className="mt-4 space-y-2">{analysis.factors.map((factor) => <div key={factor.key} className="grid grid-cols-[110px_minmax(0,1fr)_32px] items-center gap-2"><div><b className="block text-[8px] text-slate-400">{factor.label}</b><small className="block truncate text-[7px] text-slate-700">{factor.evidence}</small></div><div className="h-1.5 overflow-hidden rounded-full bg-white/[.06]"><div className={`h-full rounded-full ${factor.score ? "bg-gradient-to-r from-amber-400 to-red-500" : "bg-emerald-400/50"}`} style={{width:`${Math.max(factor.score ? 8 : 2, factor.score / factor.max * 100)}%`}}/></div><b className={factor.score ? "text-[9px] text-red-300" : "text-[9px] text-emerald-300"}>+{factor.score}</b></div>)}</div><div className="mt-4 border-t border-white/[.07] pt-3"><p className="text-[8px] font-black text-slate-500">조치 후 예상 위험도 · COUNTERFACTUAL</p><div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-4">{controlCards.map(([label, score]) => <div key={label} className="rounded-lg bg-white/[.025] p-2"><span className="block text-[7px] text-slate-600">{label}</span><b className={`mt-1 block text-[11px] ${score >= 60 ? "text-red-300" : score >= 30 ? "text-amber-300" : "text-emerald-300"}`}>{score}점</b></div>)}</div></div></div>;
 }
 
-function AssetDiagnosis({ asset, notify }) { const fault = asset.fault; return <article className={`rounded-2xl border p-5 ${fault ? "border-red-400/25 bg-red-500/[.045]" : "border-emerald-400/15 bg-[#08131d]"}`}><div className="flex items-start justify-between"><div><p className="text-[9px] font-black tracking-[.16em] text-cyan-300">SELECTED ASSET DIAGNOSIS</p><h2 className="mt-2 text-base font-black text-white">{asset.name}</h2><p className="mt-1 text-[9px] font-mono text-slate-500">{asset.assetCode} · {asset.kind}</p></div><StatusBadge status={asset.status}/></div>{fault ? <div className="mt-4"><div className="grid grid-cols-2 gap-2"><Info label="이상 부품" value={fault.part} danger/><Info label="감지 증상" value={fault.symptom} danger/><Info label="AI 진단 신뢰도" value={`${fault.confidence}%`}/><Info label="최초 감지" value={fault.detectedAt}/></div><div className="mt-3 rounded-xl border border-white/[.07] bg-black/10 p-4"><p className="text-[9px] font-black text-slate-500">AI ROOT CAUSE ANALYSIS</p><p className="mt-2 text-[11px] leading-5 text-slate-200">{fault.cause}</p></div><div className="mt-3 rounded-xl border border-cyan-400/15 bg-cyan-400/[.045] p-4"><p className="text-[9px] font-black text-cyan-300">RECOMMENDED MAINTENANCE</p><p className="mt-2 text-[11px] leading-5 text-cyan-50">{fault.action}</p></div><button onClick={() => notify?.(`${asset.assetCode} 정비 작업 요청을 등록했습니다.`)} className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-red-500 text-[10px] font-black text-white"><Wrench size={14}/> 정비 작업 요청</button></div> : <div className="mt-4 rounded-xl border border-emerald-400/15 bg-emerald-400/[.05] p-6 text-center"><CheckCircle2 size={25} className="mx-auto text-emerald-300"/><p className="mt-3 text-xs font-black text-emerald-200">설비 정상 운전</p><p className="mt-1 text-[10px] text-slate-500">부품과 센서값이 정상 범위에 있습니다.</p></div>}</article>; }
+function AssetDiagnosis({ asset, onReviewSafetyEvent }) { const fault = asset.fault; return <article className={`rounded-2xl border p-5 ${fault ? "border-red-400/25 bg-red-500/[.045]" : "border-emerald-400/15 bg-[#08131d]"}`}><div className="flex items-start justify-between"><div><p className="text-[9px] font-black tracking-[.16em] text-cyan-300">SELECTED ASSET DIAGNOSIS</p><h2 className="mt-2 text-base font-black text-white">{asset.name}</h2><p className="mt-1 text-[9px] font-mono text-slate-500">{asset.assetCode} · {asset.kind}</p></div><StatusBadge status={asset.status}/></div>{fault ? <div className="mt-4"><div className="grid grid-cols-2 gap-2"><Info label="이상 부품" value={fault.part} danger/><Info label="감지 증상" value={fault.symptom} danger/><Info label="AI 진단 신뢰도" value={`${fault.confidence}%`}/><Info label="최초 감지" value={fault.detectedAt}/></div><div className="mt-3 rounded-xl border border-white/[.07] bg-black/10 p-4"><p className="text-[9px] font-black text-slate-500">AI ROOT CAUSE ANALYSIS</p><p className="mt-2 text-[11px] leading-5 text-slate-200">{fault.cause}</p></div><div className="mt-3 rounded-xl border border-cyan-400/15 bg-cyan-400/[.045] p-4"><p className="text-[9px] font-black text-cyan-300">RECOMMENDED MAINTENANCE</p><p className="mt-2 text-[11px] leading-5 text-cyan-50">{fault.action}</p></div><button onClick={() => onReviewSafetyEvent(asset)} className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-red-500 text-[10px] font-black text-white"><ShieldAlert size={14}/> 안전 이벤트에서 검토</button><p className="mt-2 text-center text-[8px] leading-4 text-slate-600">이 단계에서는 작업 요청이나 작업자 알림이 발송되지 않습니다.</p></div> : <div className="mt-4 rounded-xl border border-emerald-400/15 bg-emerald-400/[.05] p-6 text-center"><CheckCircle2 size={25} className="mx-auto text-emerald-300"/><p className="mt-3 text-xs font-black text-emerald-200">설비 정상 운전</p><p className="mt-1 text-[10px] text-slate-500">부품과 센서값이 정상 범위에 있습니다.</p></div>}</article>; }
 
 function SensorPanel({ asset }) { return <article className="rounded-2xl border border-cyan-400/10 bg-[#08131d] p-5"><div className="flex items-center gap-2"><p className="text-[9px] font-black tracking-[.16em] text-cyan-300">TELEMETRY</p><span className="sim-badge">PROFILE DATA</span></div><h2 className="mt-2 text-sm font-black text-white">부품 센서 데이터</h2><div className="mt-4 space-y-3">{asset.sensors.map((sensor, index) => { const Icon = index === 0 ? Zap : index === 1 ? Thermometer : Gauge; return <div key={sensor.label} className={`rounded-xl border p-3 ${sensor.alarm ? "border-red-400/20 bg-red-500/[.055]" : "border-white/[.07] bg-white/[.025]"}`}><div className="flex items-center gap-3"><span className={`grid h-8 w-8 place-items-center rounded-lg ${sensor.alarm ? "bg-red-500/15 text-red-300" : "bg-cyan-400/10 text-cyan-300"}`}><Icon size={14}/></span><div className="flex-1"><span className="block text-[10px] font-medium text-slate-500">{sensor.label}</span><b className={sensor.alarm ? "text-red-200" : "text-slate-200"}>{sensor.value}<small className="ml-1 text-[9px] text-slate-600">{sensor.unit}</small></b></div><span className="text-[9px] font-medium text-slate-600">정상 {sensor.normalRange}</span></div></div>; })}</div><div className="mt-4 flex items-center gap-2 text-[9px] text-slate-600"><ScanLine size={12} className="text-cyan-300"/> 설비 프로필 기반 검증값 · 센서 입력 교체 가능</div></article>; }
 

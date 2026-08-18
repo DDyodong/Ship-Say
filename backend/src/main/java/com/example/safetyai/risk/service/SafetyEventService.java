@@ -3,6 +3,7 @@ package com.example.safetyai.risk.service;
 import com.example.safetyai.auth.service.AuthService;
 import com.example.safetyai.common.exception.ApiException;
 import com.example.safetyai.notification.service.NotificationService;
+import com.example.safetyai.risk.dto.CreateEquipmentAlertRequest;
 import com.example.safetyai.risk.dto.CreateSafetyEventRequest;
 import com.example.safetyai.risk.dto.SafetyEventActionRequest;
 import com.example.safetyai.risk.dto.SafetyEventAnalysisRequest;
@@ -78,6 +79,49 @@ public class SafetyEventService {
         );
     }
 
+    @Transactional
+    public Map<String, Object> createEquipmentAlert(
+        String authorization,
+        CreateEquipmentAlertRequest request
+    ) {
+        authService.requireUserId(authorization);
+        String facilityCode = request.facilityCode().trim();
+        String assetCode = request.assetCode().trim();
+        Map<String, Object> existing = safetyEventRepository.findOpenEquipmentAlert(
+            facilityCode,
+            assetCode
+        );
+        if (existing != null) {
+            long existingId = ((Number) existing.get("id")).longValue();
+            return Map.of(
+                "id", existingId,
+                "reportNo", "EQ-" + Year.now().getValue() + "-" + String.format("%06d", existingId),
+                "status", String.valueOf(existing.get("status")),
+                "created", false,
+                "message", "이미 검토 중인 설비 이상 이벤트가 있습니다."
+            );
+        }
+
+        long id = safetyEventRepository.createEquipmentAlert(
+            facilityCode,
+            request.facilityName().trim(),
+            assetCode,
+            request.assetName().trim(),
+            request.faultPart().trim(),
+            request.faultSymptom().trim(),
+            request.cause().trim(),
+            request.recommendedAction().trim(),
+            request.severity()
+        );
+        return Map.of(
+            "id", id,
+            "reportNo", "EQ-" + Year.now().getValue() + "-" + String.format("%06d", id),
+            "status", "received",
+            "created", true,
+            "message", "설비 이상이 관리자 검토 이벤트로 접수되었습니다."
+        );
+    }
+
     public List<Map<String, Object>> getMyReports(String authorization) {
         long reporterId = authService.requireUserId(authorization);
         return safetyEventRepository.findMyReports(reporterId);
@@ -132,7 +176,9 @@ public class SafetyEventService {
             throw new ApiException(HttpStatus.NOT_FOUND, "안전 이벤트를 찾을 수 없습니다.");
         }
         boolean userReport = "user_report".equals(target.sourceType());
-        boolean validTransition = userReport
+        boolean equipmentAlert = "equipment_alert".equals(target.sourceType());
+        boolean workerWorkflow = userReport || equipmentAlert;
+        boolean validTransition = workerWorkflow
             ? ("action_requested".equals(request.status())
                 ? List.of("received", "confirmed", "in_progress").contains(target.status())
                 : "resolved".equals(request.status()) && "completion_reported".equals(target.status()))
@@ -140,25 +186,61 @@ public class SafetyEventService {
         if (!validTransition) {
             throw new ApiException(HttpStatus.CONFLICT, "현재 처리 단계에서는 해당 상태로 변경할 수 없습니다.");
         }
-        boolean updated = safetyEventRepository.updateReportStatus(
-            eventId,
-            actorId,
-            request.status(),
-            request.comment() == null ? "" : request.comment().trim()
-        );
+        String comment = request.comment() == null ? "" : request.comment().trim();
+        Long assignedWorkerId = equipmentAlert && "action_requested".equals(request.status())
+            ? request.targetUserId()
+            : target.targetUserId();
+        if (equipmentAlert && "action_requested".equals(request.status()) && assignedWorkerId == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "조치를 수행할 작업자를 선택해 주세요.");
+        }
+        boolean updated = equipmentAlert && "action_requested".equals(request.status())
+            ? safetyEventRepository.assignEquipmentAlert(
+                eventId,
+                actorId,
+                assignedWorkerId,
+                request.status(),
+                comment
+            )
+            : safetyEventRepository.updateReportStatus(
+                eventId,
+                actorId,
+                request.status(),
+                comment
+            );
         if (!updated) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "안전 이벤트를 찾을 수 없습니다.");
+            throw new ApiException(
+                equipmentAlert ? HttpStatus.BAD_REQUEST : HttpStatus.NOT_FOUND,
+                equipmentAlert
+                    ? "유효한 작업자를 선택했는지 확인해 주세요."
+                    : "안전 이벤트를 찾을 수 없습니다."
+            );
         }
         recomputeRiskScoreSafely(eventId);
-        boolean notificationScheduled = Boolean.TRUE.equals(request.notifyReporter());
-        if (notificationScheduled) {
-            String comment = request.comment() == null ? "" : request.comment().trim();
+        boolean reporterNotification = userReport && Boolean.TRUE.equals(request.notifyReporter());
+        boolean workerNotification = equipmentAlert
+            && "action_requested".equals(request.status())
+            && assignedWorkerId != null;
+        boolean notificationScheduled = reporterNotification || workerNotification;
+        if (reporterNotification) {
             notificationService.afterCommit(
                 () -> notificationService.notifyReportStatus(
                     actorId,
                     eventId,
                     request.status(),
                     comment
+                )
+            );
+        }
+        if (workerNotification) {
+            long workerId = assignedWorkerId;
+            notificationService.afterCommit(
+                () -> notificationService.sendConfirmedAdminAlert(
+                    actorId,
+                    workerId,
+                    eventId,
+                    "설비 이상 조치 요청",
+                    comment,
+                    "/worker/report?eventId=" + eventId
                 )
             );
         }
@@ -184,7 +266,7 @@ public class SafetyEventService {
         if (!updated) {
             throw new ApiException(
                 HttpStatus.CONFLICT,
-                "본인에게 조치 요청된 신고만 완료 보고할 수 있습니다."
+                "본인에게 배정된 안전 이벤트만 완료 보고할 수 있습니다."
             );
         }
         recomputeRiskScoreSafely(eventId);

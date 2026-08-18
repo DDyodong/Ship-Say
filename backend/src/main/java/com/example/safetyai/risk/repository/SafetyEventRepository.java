@@ -35,6 +35,66 @@ public class SafetyEventRepository {
         );
     }
 
+    public Map<String, Object> findOpenEquipmentAlert(String facilityCode, String assetCode) {
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+            """
+                SELECT id, status
+                  FROM safety_events
+                 WHERE source_type = 'equipment_alert'
+                   AND status <> 'resolved'
+                   AND JSON_UNQUOTE(JSON_EXTRACT(payload, '$.facilityCode')) = ?
+                   AND JSON_UNQUOTE(JSON_EXTRACT(payload, '$.assetCode')) = ?
+                 ORDER BY event_time DESC
+                 LIMIT 1
+                """,
+            facilityCode,
+            assetCode
+        );
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
+    public long createEquipmentAlert(
+        String facilityCode,
+        String facilityName,
+        String assetCode,
+        String assetName,
+        String faultPart,
+        String faultSymptom,
+        String cause,
+        String recommendedAction,
+        String severity
+    ) {
+        return JdbcInsert.insert(
+            jdbcTemplate,
+            """
+                INSERT INTO safety_events
+                    (event_type, source_type, severity, title, description, payload, status)
+                VALUES (
+                    'EQUIPMENT_FAILURE', 'equipment_alert', ?, ?, ?,
+                    JSON_OBJECT(
+                        'facilityCode', ?, 'facilityName', ?, 'assetCode', ?, 'assetName', ?,
+                        'faultPart', ?, 'faultSymptom', ?, 'cause', ?,
+                        'recommendedAction', ?, 'analysisStatus', 'not_required'
+                    ),
+                    'received'
+                )
+                """,
+            Arrays.asList(
+                severity,
+                assetName + " 설비 이상",
+                faultPart + " · " + faultSymptom,
+                facilityCode,
+                facilityName,
+                assetCode,
+                assetName,
+                faultPart,
+                faultSymptom,
+                cause,
+                recommendedAction
+            )
+        );
+    }
+
     public Long createAiPpeEvent(
         long ppeCheckId,
         String description,
@@ -80,8 +140,12 @@ public class SafetyEventRepository {
         return jdbcTemplate.queryForList(
             """
                 SELECT se.id,
-                       CONCAT('SR-', DATE_FORMAT(se.event_time, '%Y'), '-', LPAD(se.id, 6, '0')) AS reportNo,
+                       CASE WHEN se.source_type = 'equipment_alert'
+                            THEN CONCAT('EQ-', DATE_FORMAT(se.event_time, '%Y'), '-', LPAD(se.id, 6, '0'))
+                            ELSE CONCAT('SR-', DATE_FORMAT(se.event_time, '%Y'), '-', LPAD(se.id, 6, '0'))
+                       END AS reportNo,
                        se.event_type AS eventType,
+                       se.source_type AS sourceType,
                        se.title,
                        se.description,
                        se.status,
@@ -113,10 +177,12 @@ public class SafetyEventRepository {
                          LIMIT 1) AS latestActionBy
                 FROM safety_events se
                 LEFT JOIN files f ON f.id = se.file_id
-                WHERE se.reporter_id = ? AND se.source_type = 'user_report'
+                WHERE (se.reporter_id = ? AND se.source_type = 'user_report')
+                   OR (se.target_user_id = ? AND se.source_type = 'equipment_alert')
                 ORDER BY se.event_time DESC
                 LIMIT 20
                 """,
+            reporterId,
             reporterId
         );
     }
@@ -138,6 +204,8 @@ public class SafetyEventRepository {
             SELECT se.id,
                    CASE WHEN se.source_type = 'ai_ppe'
                         THEN CONCAT('AI-PPE-', DATE_FORMAT(se.event_time, '%Y'), '-', LPAD(se.id, 6, '0'))
+                        WHEN se.source_type = 'equipment_alert'
+                        THEN CONCAT('EQ-', DATE_FORMAT(se.event_time, '%Y'), '-', LPAD(se.id, 6, '0'))
                         ELSE CONCAT('SR-', DATE_FORMAT(se.event_time, '%Y'), '-', LPAD(se.id, 6, '0'))
                    END AS reportNo,
                    se.event_type AS eventType,
@@ -166,6 +234,14 @@ public class SafetyEventRepository {
                    JSON_UNQUOTE(JSON_EXTRACT(se.payload, '$.analysisError')) AS analysisError,
                    JSON_UNQUOTE(JSON_EXTRACT(se.payload, '$.analyzedAt')) AS analyzedAt,
                    JSON_UNQUOTE(JSON_EXTRACT(se.payload, '$.reasonCode')) AS reasonCode,
+                   JSON_UNQUOTE(JSON_EXTRACT(se.payload, '$.facilityCode')) AS facilityCode,
+                   JSON_UNQUOTE(JSON_EXTRACT(se.payload, '$.facilityName')) AS facilityName,
+                   JSON_UNQUOTE(JSON_EXTRACT(se.payload, '$.assetCode')) AS assetCode,
+                   JSON_UNQUOTE(JSON_EXTRACT(se.payload, '$.assetName')) AS assetName,
+                   JSON_UNQUOTE(JSON_EXTRACT(se.payload, '$.faultPart')) AS faultPart,
+                   JSON_UNQUOTE(JSON_EXTRACT(se.payload, '$.faultSymptom')) AS faultSymptom,
+                   JSON_UNQUOTE(JSON_EXTRACT(se.payload, '$.cause')) AS cause,
+                   JSON_UNQUOTE(JSON_EXTRACT(se.payload, '$.recommendedAction')) AS equipmentRecommendedAction,
                    JSON_EXTRACT(se.payload, '$.missingItems') AS missingItems,
                    JSON_EXTRACT(se.payload, '$.helmetOn') AS helmetOn,
                    JSON_EXTRACT(se.payload, '$.harnessOn') AS harnessOn,
@@ -174,7 +250,7 @@ public class SafetyEventRepository {
             LEFT JOIN users u ON u.id = se.reporter_id
             LEFT JOIN users target ON target.id = se.target_user_id
             LEFT JOIN files f ON f.id = se.file_id
-            WHERE se.source_type IN ('user_report', 'ai_ppe', 'system_alert')
+            WHERE se.source_type IN ('user_report', 'ai_ppe', 'system_alert', 'equipment_alert')
             """ + statusCondition + sourceCondition + " ORDER BY se.event_time DESC";
         if (!statusCondition.isEmpty() && !sourceCondition.isEmpty()) {
             return jdbcTemplate.queryForList(sql, status, sourceType);
@@ -336,9 +412,50 @@ public class SafetyEventRepository {
 
     public boolean updateReportStatus(long eventId, long actorId, String status, String comment) {
         int updated = jdbcTemplate.update(
-            "UPDATE safety_events SET status = ? WHERE id = ? AND source_type IN ('user_report', 'ai_ppe')",
+            "UPDATE safety_events SET status = ? WHERE id = ? AND source_type IN ('user_report', 'ai_ppe', 'equipment_alert')",
             status,
             eventId
+        );
+        if (updated == 0) {
+            return false;
+        }
+        jdbcTemplate.update(
+            "INSERT INTO event_actions (event_id, actor_id, action_type, comment) VALUES (?, ?, ?, ?)",
+            eventId,
+            actorId,
+            status,
+            comment
+        );
+        return true;
+    }
+
+    public boolean assignEquipmentAlert(
+        long eventId,
+        long actorId,
+        long targetUserId,
+        String status,
+        String comment
+    ) {
+        int updated = jdbcTemplate.update(
+            """
+                UPDATE safety_events se
+                   SET se.status = ?, se.target_user_id = ?
+                 WHERE se.id = ?
+                   AND se.source_type = 'equipment_alert'
+                   AND EXISTS (
+                       SELECT 1
+                         FROM users u
+                         JOIN user_roles ur ON ur.user_id = u.id
+                         JOIN roles r ON r.id = ur.role_id
+                        WHERE u.id = ?
+                          AND u.status = 'active'
+                          AND r.role_code = 'WORKER'
+                   )
+                """,
+            status,
+            targetUserId,
+            eventId,
+            targetUserId
         );
         if (updated == 0) {
             return false;
@@ -383,10 +500,11 @@ public class SafetyEventRepository {
 
     public WorkflowTarget findWorkflowTargetForUpdate(long eventId) {
         List<WorkflowTarget> targets = jdbcTemplate.query(
-            "SELECT status, source_type FROM safety_events WHERE id = ? FOR UPDATE",
+            "SELECT status, source_type, target_user_id FROM safety_events WHERE id = ? FOR UPDATE",
             (resultSet, rowNum) -> new WorkflowTarget(
                 resultSet.getString("status"),
-                resultSet.getString("source_type")
+                resultSet.getString("source_type"),
+                resultSet.getObject("target_user_id", Long.class)
             ),
             eventId
         );
@@ -399,11 +517,12 @@ public class SafetyEventRepository {
                 UPDATE safety_events
                    SET status = 'completion_reported'
                  WHERE id = ?
-                   AND reporter_id = ?
-                   AND source_type = 'user_report'
+                   AND ((reporter_id = ? AND source_type = 'user_report')
+                     OR (target_user_id = ? AND source_type = 'equipment_alert'))
                    AND status IN ('action_requested', 'in_progress')
                 """,
             eventId,
+            reporterId,
             reporterId
         );
         if (updated == 0) {
@@ -440,6 +559,9 @@ public class SafetyEventRepository {
         ) > 0;
     }
 
-    public record WorkflowTarget(String status, String sourceType) {
+    public record WorkflowTarget(String status, String sourceType, Long targetUserId) {
+        public WorkflowTarget(String status, String sourceType) {
+            this(status, sourceType, null);
+        }
     }
 }

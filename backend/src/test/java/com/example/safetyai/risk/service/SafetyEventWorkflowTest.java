@@ -55,6 +55,28 @@ class SafetyEventWorkflowTest {
     }
 
     @Test
+    void managerAssignsEquipmentAlertBeforeItReachesWorker() {
+        when(authService.requireUserId("Bearer admin")).thenReturn(7L);
+        when(repository.findWorkflowTargetForUpdate(225L))
+            .thenReturn(new SafetyEventRepository.WorkflowTarget("received", "equipment_alert"));
+        when(repository.assignEquipmentAlert(225L, 7L, 11L, "action_requested", "모터 점검 후 결과 보고"))
+            .thenReturn(true);
+
+        var result = service.updateReportStatus(
+            "Bearer admin", 225L,
+            new SafetyEventActionRequest(
+                "action_requested", "모터 점검 후 결과 보고", false, 11L
+            )
+        );
+
+        assertEquals("action_requested", result.get("status"));
+        assertEquals(true, result.get("notificationScheduled"));
+        verify(repository).assignEquipmentAlert(
+            225L, 7L, 11L, "action_requested", "모터 점검 후 결과 보고"
+        );
+    }
+
+    @Test
     void reporterSubmitsCompletionReport() {
         when(authService.requireUserId("Bearer worker")).thenReturn(11L);
         when(repository.reportWorkerCompletion(125L, 11L, "completed safely"))

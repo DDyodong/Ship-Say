@@ -1,5 +1,6 @@
 package com.example.safetyai.risk.controller;
 
+import com.example.safetyai.risk.dto.CreateEquipmentAlertRequest;
 import com.example.safetyai.risk.dto.CreateSafetyEventRequest;
 import com.example.safetyai.risk.dto.SafetyEventActionRequest;
 import com.example.safetyai.risk.dto.WorkerCompletionReportRequest;
@@ -52,6 +53,14 @@ public class SafetyEventController {
         @Valid @RequestBody CreateSafetyEventRequest request
     ) {
         return safetyEventService.createUserReport(authorization, request);
+    }
+
+    @PostMapping("/equipment-alerts")
+    public Map<String, Object> createEquipmentAlert(
+        @RequestHeader(value = "Authorization", required = false) String authorization,
+        @Valid @RequestBody CreateEquipmentAlertRequest request
+    ) {
+        return safetyEventService.createEquipmentAlert(authorization, request);
     }
 
     @PostMapping("/{id}/actions")

@@ -93,6 +93,8 @@ const EQUIPMENT_RENDER_OVERRIDES = {
   "소부재 집진 설비": { lineSync: "SMALLPART", lineStationX: -4.4, operatingState: "RUNNING" },
   "VOC 배기 팬": { fixedLayout: true },
   "도장부스 급기 팬": { fixedLayout: true },
+  "고압 도료 공급 펌프": { fixedLayout: true },
+  "세정액 순환 펌프": { fixedLayout: true },
   "자동 도장 로봇 A": { fixedLayout: true, toolType: "PAINTER", operatingState: "RUNNING" },
   "자동 도장 로봇 B": { fixedLayout: true, toolType: "PAINTER", operatingState: "RUNNING" },
   "파이프 벤딩 머신": { fixedLayout: true },
