@@ -53,26 +53,28 @@ const EQUIPMENT_LAYOUTS = {
   ],
   PAINT: [
     { position: [-6.1, 0, 3], rotationY: 0 },
-    { position: [-3.3, 0, -3.6], rotationY: 0 },
-    { position: [3.3, 0, -3.6], rotationY: 0 },
+    { position: [-5.2, 0, -9.25], rotationY: 0 },
+    { position: [5.2, 0, -9.25], rotationY: 0 },
     { position: [6.1, 0, 3], rotationY: Math.PI },
+    { position: [-3.9, 0, 5.8], rotationY: 0 },
+    { position: [3.9, 0, 5.8], rotationY: Math.PI },
   ],
   DOCK: [
     { position: [0, 0, -4.5], rotationY: 0 },
     { position: [-6, 0, 3.1], rotationY: 0 },
-    { position: [4.8, 0, 2.7], rotationY: Math.PI / 2 },
+    { position: [7.2, 0, 2.7], rotationY: Math.PI / 2 },
   ],
   OUTFITTING: [
-    { position: [-4.8, 0, -1.8], rotationY: 0 },
-    { position: [-6, 0, 3.5], rotationY: 0 },
-    { position: [5, 0, -2.8], rotationY: -.35 },
-    { position: [5.8, 0, 3.4], rotationY: 0 },
+    { position: [-5.2, 0, -2.45], rotationY: 0 },
+    { position: [-1.75, 0, 2.45], rotationY: Math.PI },
+    { position: [1.75, 0, -2.45], rotationY: 0 },
+    { position: [5.2, 0, -9.25], rotationY: 0 },
   ],
   OFFSHORE: [
-    { position: [-5.3, 0, -3.5], rotationY: 0 },
-    { position: [5.8, 0, -3], rotationY: -.35 },
-    { position: [-5, 0, 3.4], rotationY: 0 },
-    { position: [4.3, 0, 3.2], rotationY: 0 },
+    { position: [0, 0, 0], rotationY: 0 },
+    { position: [-4.4, 0, 0], rotationY: 0 },
+    { position: [4.25, 0, 0], rotationY: 0 },
+    { position: [8.4, 0, 5.7], rotationY: 0 },
   ],
 };
 
@@ -87,14 +89,44 @@ const CONCEPT_LAYOUT_VARIANTS = [
   { x: -.42, z: -.16, rotation: -.045 },
 ];
 
+const OUTFITTING_SECONDARY_LAYOUT = {
+  "파이프 벤딩 머신": { position: [-5, 0, -3.1], rotationY: 0 },
+  "수압 시험 펌프": { position: [0, 0, 2.8], rotationY: Math.PI },
+  "배관 자동 용접기": { position: [4.2, 0, -3.2], rotationY: Math.PI },
+  "국소 배기 장치": { position: [5.2, 0, -9.25], rotationY: 0 },
+};
+
+function rotateFactoryPlacement(placement, angle, offsetX = 0, offsetZ = 0) {
+  const [x, y, z] = placement.position;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  return {
+    position: [x * cos - z * sin + offsetX, y, x * sin + z * cos + offsetZ],
+    rotationY: placement.rotationY + angle,
+  };
+}
+
 function withFacilityLayoutVariation(asset, placement, facilityCode, index) {
-  if (asset.lineSync || FIXED_PROCESS_KINDS.has(asset.kind)) return placement;
+  if (facilityCode === "TAG-25" && OUTFITTING_SECONDARY_LAYOUT[asset.name]) return OUTFITTING_SECONDARY_LAYOUT[asset.name];
+  const assemblyLayoutTransform = {
+    "TAG-1": { angle: -.075, x: -.2, z: .25 },
+    "TAG-2": { angle: .12, x: .25, z: -.2 },
+    "TAG-4": { angle: -.14, x: .1, z: .15 },
+  }[facilityCode];
+  if (assemblyLayoutTransform) return rotateFactoryPlacement(
+    placement,
+    assemblyLayoutTransform.angle,
+    assemblyLayoutTransform.x,
+    assemblyLayoutTransform.z,
+  );
+  if (asset.fixedLayout || asset.lineSync || FIXED_PROCESS_KINDS.has(asset.kind)) return placement;
   const facilityNumber = Number(String(facilityCode || "0").match(/\d+/)?.[0] || 0);
   const variant = CONCEPT_LAYOUT_VARIANTS[(facilityNumber + index) % CONCEPT_LAYOUT_VARIANTS.length];
   const mobility = asset.kind === "TRANSPORTER" ? 1.35 : ["PUMP", "FAN"].includes(asset.kind) ? 1 : .62;
   const variedX = placement.position[0] + variant.x * mobility;
+  const dockMinimumQuayX = asset.kind === "TRANSPORTER" ? 7 : 5.85;
   const dockQuayX = ["TAG-22", "TAG-23"].includes(facilityCode) && ["PUMP", "TRANSPORTER"].includes(asset.kind)
-    ? Math.sign(placement.position[0]) * Math.max(5.85, Math.abs(variedX))
+    ? Math.sign(placement.position[0]) * Math.max(dockMinimumQuayX, Math.abs(variedX))
     : variedX;
   return {
     position: [dockQuayX, placement.position[1], placement.position[2] + variant.z * mobility],
@@ -113,7 +145,7 @@ const LABEL_POSITION_BY_KIND = {
   FAN: [0, 3.25, 0],
   PUMP: [0, 2.35, 0],
   CRANE: [0, 5.1, 0],
-  BLOCK_CRANE: [0, 6.45, 0],
+  BLOCK_CRANE: [0, 8.35, 0],
   GOLIATH: [0, 8.35, 0],
 };
 
@@ -128,7 +160,7 @@ const SELECTION_RING_SCALE_BY_KIND = {
   FAN: [1.3, 1.05, 1],
   PUMP: [1.5, .9, 1],
   CRANE: [2.25, .85, 1],
-  BLOCK_CRANE: [4.2, 1.2, 1],
+  BLOCK_CRANE: [10.5, 1.5, 1],
   GOLIATH: [10.5, 1.5, 1],
 };
 
@@ -200,7 +232,7 @@ function EquipmentTwinScene({ factory, selectedAsset, onSelectAsset }) {
         <directionalLight castShadow position={[10, 15, 10]} intensity={2.3} color="#fff6e6" shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-bias={-0.0015}/>
         <pointLight position={[0, 7, 0]} intensity={5} color="#ffffff" distance={30} decay={2}/>
         <FactoryFloor profileKey={factory.profileKey} dockState={dockState}/>
-        <FactoryContext profileKey={factory.profileKey}/>
+        <FactoryContext profileKey={factory.profileKey} facilityCode={factory.code}/>
         {factory.profileKey === "ASSEMBLY" && <AssemblySafetyPartitions/>}
         <SafetyZone alarmPosition={placements[alarmIndex]?.position}/>
         {factory.equipment.map((asset, index) => <MachineUnit key={asset.assetCode} asset={asset} {...placements[index]}
@@ -522,9 +554,69 @@ function FabricationTrestles({ position, rotationY = 0 }) {
   </group>;
 }
 
-function FactoryContext({ profileKey }) {
+function OutfittingExhaustDuct({ facilityCode }) {
+  const ductMaterial = <meshStandardMaterial color="#9daeb4" metalness={.68} roughness={.34}/>;
+  const hood = facilityCode === "TAG-25" ? { x: 4.2, z: -3.2 } : { x: 1.75, z: -2.45 };
+  const wallX = 5.2;
+  const zLength = Math.abs(-9.15 - hood.z);
+  const xLength = Math.abs(wallX - hood.x);
+  return <group>
+    <mesh castShadow position={[wallX,3.15,-9.15]}><cylinderGeometry args={[.34,.34,3.9,18]}/>{ductMaterial}</mesh>
+    <mesh castShadow position={[wallX,5.05,(-9.15 + hood.z) / 2]} rotation={[Math.PI / 2,0,0]}><cylinderGeometry args={[.34,.34,zLength,18]}/>{ductMaterial}</mesh>
+    <mesh castShadow position={[(wallX + hood.x) / 2,5.05,hood.z]} rotation={[0,0,Math.PI / 2]}><cylinderGeometry args={[.34,.34,xLength,18]}/>{ductMaterial}</mesh>
+    <mesh castShadow position={[hood.x,4.25,hood.z]}><cylinderGeometry args={[.32,.32,1.6,18]}/>{ductMaterial}</mesh>
+    <mesh castShadow position={[hood.x,3.25,hood.z]} rotation={[0,0,Math.PI]}><coneGeometry args={[.72,.75,20,1,true]}/>{ductMaterial}</mesh>
+  </group>;
+}
+
+function FactoryConveyorVariation({ profileKey, facilityCode }) {
+  const factoryNumber = Number(String(facilityCode || "0").match(/\d+/)?.[0] || 0);
+  if (profileKey === "ASSEMBLY") {
+    const presets = [
+      { position: [-6.25,0,-1.45], rotationY: Math.PI / 2, length: 4.1 },
+      { position: [5.75,0,3.05], rotationY: Math.PI / 2, length: 4.35 },
+      { position: [4.9,0,-2.15], rotationY: -Math.PI / 2, length: 5.15 },
+    ];
+    const presetIndex = { "TAG-1": 0, "TAG-2": 1, "TAG-4": 2 }[facilityCode] ?? factoryNumber % presets.length;
+    const preset = presets[presetIndex];
+    return <group position={preset.position} rotation={[0,preset.rotationY,0]}>
+      <ConveyorMachine accent="#0091c2" alarm={false} warning={false} running seed={110 + factoryNumber} conveyorLength={preset.length} workpieceStyle="ASSEMBLY_BLOCK" workpieceCount={0}/>
+    </group>;
+  }
+  if (profileKey === "PAINT") {
+    const presets = [
+      { position: [-7.8,0,6], rotationY: 0, length: 4.6 },
+      { position: [0,0,2.75], rotationY: Math.PI / 2, length: 5.1 },
+      { position: [7.8,0,6], rotationY: Math.PI, length: 4.6 },
+    ];
+    const presetIndex = { "TAG-20": 0, "TAG-21": 1, "TAG-24": 2 }[facilityCode] ?? factoryNumber % presets.length;
+    const preset = presets[presetIndex];
+    return <group position={preset.position} rotation={[0,preset.rotationY,0]}>
+      <ConveyorMachine accent="#d97a1f" alarm={false} warning={false} running seed={140 + factoryNumber} conveyorLength={preset.length} workpieceStyle="STEEL_PLATE" workpieceCount={1}/>
+    </group>;
+  }
+  return null;
+}
+
+function OffshoreMaterialBay({ facilityCode }) {
+  const presetIndex = { "TAG-16": 0, "TAG-18": 1, "TAG-19": 2 }[facilityCode] ?? 0;
+  const presets = [
+    { stack: [8.4,0,8.25], stackRotation: 0, conveyor: [8.4,0,7.05], conveyorRotation: Math.PI / 2, conveyorLength: 2.4, bin: [11.55,0,5.75] },
+    { stack: [11.65,0,5.7], stackRotation: Math.PI / 2, conveyor: [10.45,0,5.7], conveyorRotation: 0, conveyorLength: 2.4, bin: [11.45,0,8.15] },
+    { stack: [8.4,0,2.25], stackRotation: 0, conveyor: [8.4,0,4.05], conveyorRotation: Math.PI / 2, conveyorLength: 2.5, bin: [11.45,0,2.9] },
+  ];
+  const preset = presets[presetIndex];
+  return <group>
+    <PlateStack position={preset.stack} rotationY={preset.stackRotation} count={6} width={4.35} depth={1.8}/>
+    <group position={preset.conveyor} rotation={[0,preset.conveyorRotation,0]}><ConveyorMachine accent="#3a7d8c" alarm={false} warning={false} running seed={170 + presetIndex} conveyorLength={preset.conveyorLength} workpieceStyle="STEEL_PLATE" workpieceCount={1}/></group>
+    <PartsBin position={preset.bin} rotationY={-.08} color="#59686d"/>
+  </group>;
+}
+
+function FactoryContext({ profileKey, facilityCode }) {
   if (profileKey === "DOCK") return null;
   if (profileKey === "ASSEMBLY") return <group>
+    <FactoryConveyorVariation profileKey={profileKey} facilityCode={facilityCode}/>
     <PlateStack position={[-10.2, 0, 6.6]} rotationY={.08} count={6}/>
     <MaterialPallet position={[10.5, 0, 6.6]} rotationY={-.12}/>
     <BlockSection position={[10.1, .25, -6.7]} rotationY={-.05} scale={.65}/>
@@ -538,16 +630,20 @@ function FactoryContext({ profileKey }) {
     <MaterialPallet position={[10.2, 0, -6.2]} rotationY={-.16} width={2.1} depth={1.3}/>
   </group>;
   if (profileKey === "PAINT") return <group>
+    <FactoryConveyorVariation profileKey={profileKey} facilityCode={facilityCode}/>
     <BlockSection position={[0, .1, 5.9]} rotationY={.03} scale={.82} painted/>
     <HoseReel position={[-10.2, 0, 5.8]} rotationY={.18}/><ServicePlatform position={[4, 0, 5.5]} rotationY={-.07}/><MaterialPallet position={[10.3, 0, -5.8]} rotationY={-.09}/>
   </group>;
   if (profileKey === "OUTFITTING") return <group>
+    <OutfittingConveyorNetwork facilityCode={facilityCode}/>
+    <OutfittingExhaustDuct facilityCode={facilityCode}/>
     <PipeRack position={[0, 0, 5.9]} rotationY={-.04}/>
     <PipeSpoolCart position={[0, 0, -5.7]} rotationY={.08}/><PartsBin position={[-10.2, 0, -5.8]} rotationY={.15} color="#4d666d"/><MaterialPallet position={[10.1, 0, 5.8]} rotationY={-.1}/>
   </group>;
   if (profileKey === "OFFSHORE") return <group>
-    <FabricationTrestles position={[0, 0, 0]} rotationY={-.04}/><BlockSection position={[0, .78, 0]} rotationY={-.04} scale={1.05}/>
-    <PlateStack position={[-10.2, 0, 6.2]} rotationY={.1} count={5}/><PipeRack position={[9.8, 0, 6.1]} rotationY={-.08}/>
+    <FabricationTrestles position={[0, 0, 0]}/><BlockSection position={[0, .78, 0]} scale={1.18}/>
+    <OffshoreMaterialBay facilityCode={facilityCode}/>
+    <PlateStack position={[-10.4, 0, 7.4]} rotationY={.08} count={4}/>
   </group>;
   return null;
 }
@@ -632,7 +728,7 @@ function MachineUnit({ asset, position, rotationY = 0, selected, onSelect }) {
   const running = asset.operatingState === "RUNNING";
   const seed = asset.assetCode.split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 100;
   const accent = alarm ? "#ff3b4f" : selected ? "#ff9d38" : warning ? "#ffb23e" : "#23c8ee";
-  const issuePositions = { ROBOT:[0,2.3,0], INSPECTOR:[0,2.45,0], POSITIONER:[0,1.1,.4], BENDER:[0,2.15,0], CONVEYOR:[2.5,.55,0], TRANSPORTER:[1.7,.5,1], CUTTER:[0,2.3,0], FAN:[0,1.65,.55], PUMP:[.7,.8,0], CRANE:[0,3.8,0], BLOCK_CRANE:[0,4.9,0], GOLIATH:[0,6.75,0] };
+  const issuePositions = { ROBOT:[0,2.3,0], INSPECTOR:[0,2.45,0], POSITIONER:[0,1.1,.4], BENDER:[0,2.15,0], CONVEYOR:[2.5,.55,0], TRANSPORTER:[1.7,.5,1], CUTTER:[0,2.3,0], FAN:[0,1.65,.55], PUMP:[.7,.8,0], CRANE:[0,3.8,0], BLOCK_CRANE:[0,6.75,0], GOLIATH:[0,6.75,0] };
 
   const motion = {
     accent,
@@ -654,7 +750,7 @@ function MachineUnit({ asset, position, rotationY = 0, selected, onSelect }) {
 
   return <group position={position} rotation={[0, rotationY, 0]} onClick={(event)=>{event.stopPropagation();onSelect(asset);}} onPointerOver={()=>{document.body.style.cursor="pointer";}} onPointerOut={()=>{document.body.style.cursor="default";}}>
     {fallback}
-    {alarm && <pointLight position={[0, asset.kind === "GOLIATH" ? 6.6 : 1.21, 0]} intensity={10} distance={4} color="#ff2f48"/>}
+    {alarm && <pointLight position={[0, ["GOLIATH", "BLOCK_CRANE"].includes(asset.kind) ? 6.6 : 1.21, 0]} intensity={10} distance={4} color="#ff2f48"/>}
     <mesh position={[0,.04,0]} rotation={[-Math.PI/2,0,0]} scale={ringScale}><ringGeometry args={[1.2,1.28,48]}/><meshBasicMaterial color={accent}/></mesh>
     {alarm && <FaultMarker position={issuePositions[asset.kind]} part={asset.fault.part} seed={seed}/>}
     <Html center position={labelPosition}><button onClick={()=>onSelect(asset)} className={`min-w-[118px] rounded-lg border px-2.5 py-2 text-left shadow-xl backdrop-blur-md ${alarm?"border-red-400/60 bg-[#230b12]/95":"border-cyan-400/35 bg-[#07151f]/95"}`}><span className={`block text-[8px] font-black tracking-wider ${alarm?"text-red-300":"text-cyan-300"}`}>{asset.assetCode}</span><b className="mt-0.5 block whitespace-nowrap text-[10px] text-white">{asset.name}</b><small className={`mt-0.5 block text-[8px] ${alarm?"text-red-300":"text-slate-500"}`}>{alarm?asset.fault.symptom:`${asset.operatingState} · 운전 부하 ${asset.utilization}%`}</small></button></Html>
@@ -673,7 +769,7 @@ function KindFallback({ kind, motion }) {
     case "FAN": return <FanMachine {...motion}/>;
     case "PUMP": return <PumpMachine {...motion}/>;
     case "CRANE": return <CraneMachine {...motion}/>;
-    case "BLOCK_CRANE": return <BlockCraneMachine {...motion}/>;
+    case "BLOCK_CRANE": return <GoliathCraneMachine {...motion}/>;
     case "GOLIATH": return <GoliathCraneMachine {...motion}/>;
     default: return null;
   }
@@ -727,7 +823,7 @@ function RobotMachine({accent,alarm,warning,running,seed,utilization=0,lineSync,
       const arcInstability = liveCondition?.arcInstability || 0;
       const arcSignal = Math.sin(t * (10 + arcInstability * 22) + seed);
       const stableArc = liveCondition ? arcSignal > (-.9 + arcInstability * 1.15) : Math.sin(phase * 2.2) > -.35;
-      const toolActive = running && materialInRange && (toolType === "MARKER" || stableArc);
+      const toolActive = running && materialInRange && (toolType !== "WELDER" || stableArc);
       weldingArc.current.visible = toolActive;
       const pulse = .8 + Math.abs(Math.sin(t * (24 + arcInstability * 20) + seed)) * (.45 + arcInstability * .3);
       weldingArc.current.scale.setScalar(pulse);
@@ -749,14 +845,20 @@ function RobotMachine({accent,alarm,warning,running,seed,utilization=0,lineSync,
             <mesh castShadow position={[0,-.18,0]} rotation={[0,0,.18]}><cylinderGeometry args={[.08,.11,.42,14]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.68} roughness={.34}/></mesh>
             <mesh castShadow position={[-.04,-.47,0]} rotation={[0,0,.18]}><coneGeometry args={[.055,.24,14]}/><meshStandardMaterial color="#30383b" metalness={.72} roughness={.3}/></mesh>
             <group ref={weldingArc} visible={false} position={[-.08,-.62,0]}>
-              <mesh><sphereGeometry args={[.11,12,12]}/><meshBasicMaterial color="#b9f4ff" toneMapped={false}/></mesh>
-              <pointLight color="#65dcff" intensity={7} distance={2.6}/>
-              {toolType !== "MARKER" && [
+              {toolType === "WELDER" && <><mesh><sphereGeometry args={[.11,12,12]}/><meshBasicMaterial color="#b9f4ff" toneMapped={false}/></mesh>
+              <pointLight color="#65dcff" intensity={7} distance={2.6}/></>}
+              {toolType === "WELDER" && [
                 [-.22,-.14,.04], [.18,-.11,-.05], [-.13,-.25,-.12],
                 [.26,-.22,.1], [.06,-.3,.16], [-.28,-.31,.08],
               ].map((position,index) => <mesh key={index} position={position}>
                 <sphereGeometry args={[.025,8,8]}/><meshBasicMaterial color={index%2 ? "#ffb44d" : "#d8f8ff"} toneMapped={false}/>
               </mesh>)}
+              {toolType === "PAINTER" && <group position={[0,-.28,0]} rotation={[0,0,Math.PI]}>
+                <mesh><coneGeometry args={[.24,.7,16,1,true]}/><meshBasicMaterial color="#67d1db" transparent opacity={.28} depthWrite={false} toneMapped={false}/></mesh>
+                {[[-.13,.42,.05],[.12,.5,-.06],[-.2,.6,-.08],[.19,.66,.09],[0,.74,.02]].map((position,index) => <mesh key={index} position={position}>
+                  <sphereGeometry args={[.035 + index * .004,8,8]}/><meshBasicMaterial color="#9ee7e8" transparent opacity={.56} depthWrite={false} toneMapped={false}/>
+                </mesh>)}
+              </group>}
               {toolType === "MARKER" && <mesh position={[0,-.16,0]}>
                 <cylinderGeometry args={[.012,.012,.32,8]}/><meshBasicMaterial color={accent} transparent opacity={.9} toneMapped={false}/>
               </mesh>}
@@ -799,16 +901,18 @@ function InspectorMachine({accent,alarm,warning,running,seed,liveCondition}) {
   </group>;
 }
 
-function PositionerMachine({accent,alarm,warning,running,seed}) {
+function PositionerMachine({accent,alarm,warning,running,seed,lineSync}) {
   const table = useRef();
   useFrame(({clock}) => {
     if (!table.current) return;
     const t = clock.elapsedTime;
     const speed = speedMultiplier(alarm, warning);
     const jitter = alarm ? faultJitter(t, seed) * .04 : 0;
-    table.current.rotation.y = (running ? t * .6 * speed : 0) + jitter;
+    const rotation = (running ? t * .6 * speed : 0) + jitter;
+    if (lineSync === "OFFSHORE") table.current.rotation.x = rotation;
+    else table.current.rotation.y = rotation;
   });
-  return <group><RoundedBox castShadow args={[2.5,.75,1.9]} position={[0,.42,0]} radius={.15}><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.28} roughness={.54}/></RoundedBox><group ref={table} position={[0,1.05,0]}><mesh castShadow><cylinderGeometry args={[.85,.85,.3,32]}/><meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.24} roughness={.48}/></mesh><mesh position={[.6,.02,0]}><boxGeometry args={[.18,.1,.18]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={alarm||warning||running?2:.7}/></mesh></group><mesh position={[0,1.5,0]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.13,.13,2.3,16]}/><meshStandardMaterial color={EQUIPMENT_IVORY_LIGHT} metalness={.3} roughness={.45}/></mesh></group>; }
+  return <group><RoundedBox castShadow args={[2.5,.75,1.9]} position={[0,.42,0]} radius={.15}><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.28} roughness={.54}/></RoundedBox><group ref={table} position={[0,1.05,0]}><mesh castShadow rotation={lineSync === "OFFSHORE" ? [0,0,Math.PI/2] : [0,0,0]}><cylinderGeometry args={[.85,.85,.3,32]}/><meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.24} roughness={.48}/></mesh><mesh position={[.6,.02,0]}><boxGeometry args={[.18,.1,.18]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={alarm||warning||running?2:.7}/></mesh>{lineSync === "OFFSHORE" && <group><mesh castShadow position={[-1.35,0,0]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.18,.18,2.1,18]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.66} roughness={.36}/></mesh><mesh castShadow position={[-2.35,0,0]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.72,.72,.22,24]}/><meshStandardMaterial color={EQUIPMENT_IVORY_LIGHT} metalness={.36} roughness={.44}/></mesh></group>}</group>{lineSync !== "OFFSHORE" && <mesh position={[0,1.5,0]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.13,.13,2.3,16]}/><meshStandardMaterial color={EQUIPMENT_IVORY_LIGHT} metalness={.3} roughness={.45}/></mesh>}</group>; }
 
 function PipeBenderMachine({accent,alarm,warning,running,seed}) {
   const press = useRef();
@@ -833,13 +937,38 @@ function PipeBenderMachine({accent,alarm,warning,running,seed}) {
 const CONVEYOR_LENGTH = 5.3;
 const CONVEYOR_STRIP_COUNT = 4;
 
-function ConveyorMachine({accent,alarm,warning,running,seed,conveyorLength=CONVEYOR_LENGTH,lineSync,workpieceStyle="GENERIC",liveCondition}) {
+function OutfittingConveyorNetwork({ facilityCode }) {
+  const accent = "#21b8c7";
+  const secondary = facilityCode === "TAG-25";
+  const mainZ = secondary ? -1.2 : 0;
+  const mainLength = secondary ? 10.8 : 12.5;
+  const branches = secondary ? [
+    { x: -5, z: -2.15, length: 1.9 },
+    { x: 0, z: .8, length: 4 },
+    { x: 4.2, z: -2.2, length: 2 },
+  ] : [
+    { x: -5.2, z: -1.25, length: 2.5 },
+    { x: -1.75, z: 1.25, length: 2.5 },
+    { x: 1.75, z: -1.25, length: 2.5 },
+  ];
+  return <group>
+    <group position={[0,0,mainZ]}><ConveyorMachine accent={accent} alarm={false} warning={false} running seed={73} conveyorLength={mainLength} workpieceStyle="PIPE_SPOOL" workpieceCount={3}/></group>
+    {branches.map(({x, z, length}, index) => <group key={`${x}-${z}`} position={[x, 0, z]} rotation={[0, Math.PI / 2, 0]}>
+      <ConveyorMachine accent={accent} alarm={false} warning={false} running seed={81 + index} conveyorLength={length} workpieceStyle="PIPE_SPOOL" workpieceCount={0}/>
+    </group>)}
+    {secondary && <group position={[-5,0,.9]} rotation={[0,Math.PI / 2,0]}><ConveyorMachine accent={accent} alarm={false} warning={false} running seed={96} conveyorLength={4.2} workpieceStyle="PIPE_SPOOL" workpieceCount={1}/></group>}
+  </group>;
+}
+
+function ConveyorMachine({accent,alarm,warning,running,seed,conveyorLength=CONVEYOR_LENGTH,lineSync,workpieceStyle="GENERIC",workpieceCount:workpieceCountOverride,liveCondition}) {
   const body = useRef();
   const strips = useRef([]);
   const workpieces = useRef([]);
   const lastWorkpieceId = useRef(liveCondition?.workpieceId);
   const rollerCount = Math.max(9, Math.round(conveyorLength / .58));
-  const workpieceCount = workpieceStyle === "ASSEMBLY_BLOCK" ? 1 : 2;
+  const workpieceCount = Number.isInteger(workpieceCountOverride)
+    ? Math.max(0, workpieceCountOverride)
+    : workpieceStyle === "ASSEMBLY_BLOCK" ? 1 : 2;
   useFrame(({clock}) => {
     const t = clock.elapsedTime;
     const speed = speedMultiplier(alarm, warning);
@@ -928,6 +1057,11 @@ function ConveyorWorkpiece({accent,style}) {
     <mesh position={[0,.22,0]}><boxGeometry args={[.92,.12,.62]}/><meshStandardMaterial color="#b8c4c8" metalness={.68} roughness={.32}/></mesh>
     {[-.36,.36].map((x)=><mesh key={x} position={[x,.32,0]}><boxGeometry args={[.08,.28,.68]}/><meshStandardMaterial color="#d6a52c" metalness={.42} roughness={.4}/></mesh>)}
     <mesh position={[.5,.32,.34]}><sphereGeometry args={[.055,10,10]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={1.6}/></mesh>
+  </group>;
+  if (style === "PIPE_SPOOL") return <group>
+    <mesh castShadow rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[.15,.15,1.22,16]}/><meshStandardMaterial color="#758890" metalness={.76} roughness={.3}/></mesh>
+    {[-.52,.52].map((x) => <mesh key={x} castShadow position={[x,0,0]} rotation={[0,Math.PI / 2,0]}><torusGeometry args={[.24,.065,10,22]}/><meshStandardMaterial color="#aab8bd" metalness={.7} roughness={.31}/></mesh>)}
+    <mesh position={[0,.18,0]}><boxGeometry args={[.42,.12,.18]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={1.15}/></mesh>
   </group>;
   return <RoundedBox castShadow args={[1.25,.24,.9]} radius={.04} smoothness={2}><meshStandardMaterial color="#59646a" metalness={.72} roughness={.36}/></RoundedBox>;
 }
@@ -1066,45 +1200,6 @@ function PumpMachine({accent,alarm,warning,running,seed}) {
       <mesh position={[0,0,.015]} rotation={[0,0,-.65]}><boxGeometry args={[.025,.17,.018]}/><meshBasicMaterial color="#df3648" toneMapped={false}/></mesh>
     </group>
     <mesh position={[.9,1.16,.39]}><sphereGeometry args={[.1,14,14]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={alarm||warning||running?2:.7}/></mesh>
-  </group>;
-}
-
-function BlockCraneMachine({accent,alarm,warning,running,seed,utilization=0}) {
-  const trolley = useRef();
-  const hook = useRef();
-  const velocity = useRef(0);
-  useFrame(({clock}, delta) => {
-    if (!trolley.current) return;
-    const t = clock.elapsedTime;
-    const utilizationRate = THREE.MathUtils.clamp(utilization / 100, 0, 1);
-    const travelLimit = 3.55;
-    const safeDelta = Math.min(delta, .05);
-    const targetX = running ? Math.sin(t * THREE.MathUtils.lerp(.05, .085, utilizationRate)) * travelLimit : trolley.current.position.x;
-    const desiredVelocity = running ? THREE.MathUtils.clamp((targetX - trolley.current.position.x) * .4, -.42, .42) : 0;
-    velocity.current = THREE.MathUtils.damp(velocity.current, desiredVelocity, 1.4, safeDelta);
-    const nextX = trolley.current.position.x + velocity.current * safeDelta;
-    trolley.current.position.x = THREE.MathUtils.clamp(nextX, -travelLimit, travelLimit);
-    if (nextX !== trolley.current.position.x) velocity.current = 0;
-    const jitter = alarm ? faultJitter(t, seed) : 0;
-    trolley.current.position.y = 4.86 + jitter * .006;
-    if (hook.current) hook.current.rotation.z = THREE.MathUtils.damp(hook.current.rotation.z, -velocity.current * .06 + jitter * .005, 1.8, safeDelta);
-  });
-
-  return <group>
-    {[-5.05,5.05].map((x) => <group key={x}>
-      {[-.55,.55].map((z) => <mesh key={z} castShadow position={[x,2.65,z]} rotation={[0,0,x < 0 ? -.055 : .055]}><boxGeometry args={[.38,5.05,.38]}/><meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.26} roughness={.5}/></mesh>)}
-      <RoundedBox castShadow args={[1.05,.34,1.75]} position={[x,.22,0]} radius={.07} smoothness={3}><meshStandardMaterial color={EQUIPMENT_IVORY_SHADE} metalness={.32} roughness={.5}/></RoundedBox>
-    </group>)}
-    <RoundedBox castShadow args={[11.2,.66,1.2]} position={[0,5.25,0]} radius={.08} smoothness={3}><meshStandardMaterial color={EQUIPMENT_IVORY} metalness={.27} roughness={.48}/></RoundedBox>
-    {[-3.85,3.85].map((x) => <mesh key={`block-stop-${x}`} position={[x,4.88,0]}><boxGeometry args={[.16,.36,1.12]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.55} roughness={.42}/></mesh>)}
-    <group ref={trolley} position={[0,4.86,0]}>
-      <RoundedBox castShadow args={[1.12,.44,1.04]} radius={.07} smoothness={3}><meshStandardMaterial color={EQUIPMENT_IVORY_LIGHT} metalness={.3} roughness={.44}/></RoundedBox>
-      <mesh position={[0,.02,.56]}><sphereGeometry args={[.09,12,12]}/><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={alarm||warning||running?2:.7}/></mesh>
-      <group ref={hook} position={[0,-.25,0]}>
-        <mesh position={[0,-1.4,0]}><cylinderGeometry args={[.03,.03,2.8,8]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.7} roughness={.4}/></mesh>
-        <mesh position={[0,-2.78,0]}><torusGeometry args={[.2,.055,10,22]}/><meshStandardMaterial color={EQUIPMENT_MECHANICAL} metalness={.66} roughness={.42}/></mesh>
-      </group>
-    </group>
   </group>;
 }
 

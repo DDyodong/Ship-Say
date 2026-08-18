@@ -43,6 +43,8 @@ const PROFILE_TEMPLATES = {
       ["FAN", "VOC 배기 팬", "구동 베어링", "진동 위험", "베어링 윤활 부족으로 진동값이 상승했습니다."],
       ["FAN", "도장부스 급기 팬", "팬 블레이드", "풍량 저하", "블레이드 표면 도료 부착으로 풍량이 감소했습니다."],
       ["PUMP", "세정액 순환 펌프", "임펠러", "유량 저하", "이물질 유입으로 임펠러 효율이 저하되었습니다."],
+      ["ROBOT", "자동 도장 로봇 A", "분사 노즐", "분사 패턴 편차", "노즐 부착물로 분사 폭이 설정값에서 벗어났습니다."],
+      ["ROBOT", "자동 도장 로봇 B", "도료 공급 호스", "공급 압력 편차", "호스 굴곡 구간에서 도료 공급 저항이 증가했습니다."],
     ],
   },
   DOCK: {
@@ -89,11 +91,26 @@ const EQUIPMENT_RENDER_OVERRIDES = {
   "소부재 마킹 로봇": { lineSync: "SMALLPART", lineStationX: 0, toolType: "MARKER", operatingState: "RUNNING" },
   "소부재 이송 컨베이어": { lineSync: "SMALLPART", conveyorLength: 14, selectionRingScale: [5.7, .85, 1], workpieceStyle: "SMALL_PART", operatingState: "RUNNING" },
   "소부재 집진 설비": { lineSync: "SMALLPART", lineStationX: -4.4, operatingState: "RUNNING" },
+  "VOC 배기 팬": { fixedLayout: true },
+  "도장부스 급기 팬": { fixedLayout: true },
+  "자동 도장 로봇 A": { fixedLayout: true, toolType: "PAINTER", operatingState: "RUNNING" },
+  "자동 도장 로봇 B": { fixedLayout: true, toolType: "PAINTER", operatingState: "RUNNING" },
+  "파이프 벤딩 머신": { fixedLayout: true },
+  "수압 시험 펌프": { fixedLayout: true },
+  "배관 자동 용접기": { fixedLayout: true },
+  "국소 배기 장치": { fixedLayout: true },
+  "대형 블록 탑재 크레인": {
+    labelPosition: [0, 8.35, 0],
+    selectionRingScale: [10.5, 1.5, 1],
+  },
+  "대형 정반 자동 용접기": { fixedLayout: true, lineSync: "OFFSHORE", operatingState: "RUNNING" },
+  "해양구조물 회전 포지셔너": { fixedLayout: true, lineSync: "OFFSHORE", operatingState: "RUNNING" },
+  "후육 강재 절단기": { fixedLayout: true },
   "골리앗 크레인": {
     labelPosition: [0, 8.35, 0],
     selectionRingScale: [10.5, 1.5, 1],
   },
-  // 대형 블록 크레인은 브라우저 정지를 막기 위해 전용 경량 프로시저럴 모델을 사용한다.
+  // 대형 블록 크레인은 도크급 문형 크레인 형상을 재사용해 공장 폭 전체를 가로지르게 한다.
 };
 
 const WORKER_TASKS = {
@@ -119,7 +136,12 @@ function classify(name) {
   return "ASSEMBLY";
 }
 
-function sensorSet(kind, alarm, seed) {
+function sensorSet(kind, alarm, seed, toolType) {
+  if (kind === "ROBOT" && toolType === "PAINTER") return [
+    ["축 진동", alarm ? 8.7 : 2.1, "mm/s", "≤ 4.5"],
+    ["분사 압력", alarm ? 3.1 : 5.2, "bar", "4.8–5.6"],
+    ["도료 유량", alarm ? 68 : 93, "%", "≥ 85"],
+  ].map(([label, value, unit, normalRange], index) => ({ label, value, unit, normalRange, alarm: alarm && index < 2 }));
   const common = {
     ROBOT: [["진동", alarm ? 8.7 : 2.1, "mm/s", "≤ 4.5"], ["모터 온도", alarm ? 82.4 : 54.2, "°C", "≤ 70"], ["용접 전류", 248 + seed, "A", "220–280"]],
     INSPECTOR: [["용접 비드 폭", alarm ? 5.1 : 7.4, "mm", "6.5–8.5"], ["언더컷 깊이", alarm ? 1.2 : 0.18, "mm", "≤ 0.5"], ["용접 결함 확률", alarm ? 78 : 6, "%", "≤ 15"]],
@@ -163,7 +185,7 @@ const rawFactoryCatalog = facilityTags
           confidence: 94 + (facility.id % 5),
           action: `${part} 정밀점검 후 예비품 교체, 정비 완료 전 부하 60% 제한 운전`,
         } : null,
-        sensors: sensorSet(kind, alarm, facility.id + index),
+        sensors: sensorSet(kind, alarm, facility.id + index, EQUIPMENT_RENDER_OVERRIDES[name]?.toolType),
       };
     });
     const workers = WORKER_TASKS[profileKey].map((task, index) => {
