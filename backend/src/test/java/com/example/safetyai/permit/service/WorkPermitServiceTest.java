@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -22,6 +23,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
@@ -133,6 +135,29 @@ class WorkPermitServiceTest {
         verify(jdbcTemplate).update("DELETE FROM risk_scores WHERE permit_id = ?", 10L);
         verify(jdbcTemplate).update("DELETE FROM similar_accident_results WHERE permit_id = ?", 10L);
         verify(jdbcTemplate).update("DELETE FROM permit_analysis_results WHERE permit_id = ?", 10L);
+    }
+
+    @Test
+    void permanentDeleteDetachesPreservedPpeChecksBeforeDeletingPermit() {
+        AuthService.AuthenticatedUser admin = user(1L, "ADMIN");
+        when(authService.authenticateBearer("Bearer token")).thenReturn(Optional.of(admin));
+        when(jdbcTemplate.queryForList(
+            "SELECT applicant_id, status FROM work_permits WHERE id = ?",
+            10L
+        )).thenReturn(List.of(Map.of("applicant_id", 2L, "status", "deleted")));
+        when(jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM safety_events WHERE permit_id = ?",
+            Integer.class,
+            10L
+        )).thenReturn(0);
+
+        Map<String, Object> response = workPermitService.permanentDelete("Bearer token", 10L);
+
+        assertThat(response).containsEntry("deleted", true).containsEntry("id", 10L);
+        InOrder deletionOrder = inOrder(jdbcTemplate);
+        deletionOrder.verify(jdbcTemplate)
+            .update("UPDATE personal_ppe_checks SET permit_id = NULL WHERE permit_id = ?", 10L);
+        deletionOrder.verify(jdbcTemplate).update("DELETE FROM work_permits WHERE id = ?", 10L);
     }
 
     @Test

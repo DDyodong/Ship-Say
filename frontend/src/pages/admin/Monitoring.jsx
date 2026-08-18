@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { Siren, Video } from "lucide-react";
+import { Video } from "lucide-react";
 import { SectionHead } from "../../components/common";
 import LiveHlsPlayer from "../../components/monitoring/LiveHlsPlayer";
 
@@ -13,7 +13,7 @@ const LIVE_STREAMS = {
   3: import.meta.env.VITE_CAMERA04_HLS_URL || `${CAMERA_STREAM_BASE}/processed-camera04/index.m3u8`,
 };
 
-function Monitoring({ notify }) {
+function Monitoring() {
   const cameras = ["B-07 상부 작업장", "C-03 배관 구역", "A-12 도장 구역", "D-02 자재 적치장"];
   const [liveFailed, setLiveFailed] = useState({});
   const [liveReady, setLiveReady] = useState({});
@@ -60,12 +60,6 @@ function Monitoring({ notify }) {
                   <span>{isReady ? "정상 모니터링" : "영상 연결 준비 중"}</span>
                 </div>
               </div>
-              <button
-                className="alert-action"
-                onClick={() => notify(`${name} 현장 반장에게 경고를 전송했습니다.`)}
-              >
-                <Siren />현장 경고 전송
-              </button>
             </div>
           );
         })}

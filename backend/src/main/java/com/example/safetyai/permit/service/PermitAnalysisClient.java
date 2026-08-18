@@ -17,6 +17,7 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
@@ -75,7 +76,18 @@ public class PermitAnalysisClient {
             }
             return response;
         } catch (RestClientResponseException exception) {
-            throw new ApiException(HttpStatus.BAD_GATEWAY, analysisError(exception));
+            // 분석 서비스가 응답은 했지만 4xx로 거절한 경우(예: PDF 양식을 못 읽음)는
+            // 우리 쪽 요청/입력 문제이지 인프라 장애가 아니므로 422로 내려준다.
+            // 서비스가 아예 죽었거나 5xx를 준 경우에만 502(Bad Gateway)를 유지한다.
+            HttpStatus mappedStatus = exception.getStatusCode().is4xxClientError()
+                ? HttpStatus.UNPROCESSABLE_ENTITY
+                : HttpStatus.BAD_GATEWAY;
+            throw new ApiException(mappedStatus, analysisError(exception));
+        } catch (ResourceAccessException exception) {
+            // 분석 서비스에 연결 자체가 안 되는 경우(다운·타임아웃). 응답이 없어 위
+            // RestClientResponseException으로는 안 잡히므로 별도로 처리하지 않으면
+            // 502 대신 스택트레이스가 그대로 노출되는 500으로 새어나간다.
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "작업허가서 분석 서비스에 연결하지 못했습니다.");
         }
     }
 

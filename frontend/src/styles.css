@@ -3729,6 +3729,39 @@ button {
   margin-top: 9px;
 }
 
+.manual-decision-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #ff5f5744;
+}
+
+.manual-decision-row>span {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-right: 2px;
+}
+
+.manual-decision-row .outline-btn {
+  margin-top: 0;
+  padding: 7px 11px;
+}
+
+.manual-decision-row .outline-btn.reject {
+  color: #ff7c74;
+  border-color: #ff5f5766;
+}
+
+.manual-decision-row .outline-btn.reject:hover:not(:disabled) {
+  background: #ff5f571a;
+}
+
 .ai-chip.running {
   animation: permit-analysis-pulse 1.4s ease-in-out infinite;
 }

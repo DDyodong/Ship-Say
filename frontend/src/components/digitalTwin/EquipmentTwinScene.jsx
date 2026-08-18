@@ -76,6 +76,32 @@ const EQUIPMENT_LAYOUTS = {
   ],
 };
 
+// 컨베이어·로봇 셀·대형 크레인처럼 공정축에 고정되는 설비는 정렬을 유지한다.
+// 펌프·팬·대차 같은 보조 설비에만 공장 코드 기반의 작은 변형을 적용해,
+// 같은 프로필을 쓰는 공장도 복사한 듯 똑같아 보이지 않도록 한다.
+const FIXED_PROCESS_KINDS = new Set(["ROBOT", "CONVEYOR", "INSPECTOR", "CUTTER", "BLOCK_CRANE", "GOLIATH"]);
+const CONCEPT_LAYOUT_VARIANTS = [
+  { x: .36, z: -.2, rotation: .055 },
+  { x: -.28, z: .34, rotation: -.07 },
+  { x: .18, z: .42, rotation: .09 },
+  { x: -.42, z: -.16, rotation: -.045 },
+];
+
+function withFacilityLayoutVariation(asset, placement, facilityCode, index) {
+  if (asset.lineSync || FIXED_PROCESS_KINDS.has(asset.kind)) return placement;
+  const facilityNumber = Number(String(facilityCode || "0").match(/\d+/)?.[0] || 0);
+  const variant = CONCEPT_LAYOUT_VARIANTS[(facilityNumber + index) % CONCEPT_LAYOUT_VARIANTS.length];
+  const mobility = asset.kind === "TRANSPORTER" ? 1.35 : ["PUMP", "FAN"].includes(asset.kind) ? 1 : .62;
+  const variedX = placement.position[0] + variant.x * mobility;
+  const dockQuayX = ["TAG-22", "TAG-23"].includes(facilityCode) && ["PUMP", "TRANSPORTER"].includes(asset.kind)
+    ? Math.sign(placement.position[0]) * Math.max(5.85, Math.abs(variedX))
+    : variedX;
+  return {
+    position: [dockQuayX, placement.position[1], placement.position[2] + variant.z * mobility],
+    rotationY: placement.rotationY + variant.rotation * mobility,
+  };
+}
+
 const LABEL_POSITION_BY_KIND = {
   ROBOT: [0, 4.35, 0],
   INSPECTOR: [0, 3.35, 0],
@@ -106,58 +132,11 @@ const SELECTION_RING_SCALE_BY_KIND = {
   GOLIATH: [10.5, 1.5, 1],
 };
 
-// ---------------------------------------------------------------------------
-// REAL CAD (GrabCAD STEP) 연동
-// ---------------------------------------------------------------------------
-// STEP 파일은 브라우저에서 occt-import-js(WASM, OpenCascade 빌드)로 직접 파싱합니다.
-// 별도 변환 서버 없이 클라이언트에서만 동작합니다.
-//
-// 1) 아래 5개 STEP 파일을 프로젝트의 정적 파일 경로(보통 public/cad)에 넣어주세요.
-//    robot-arm.step, jib-crane.step, welding-station.step, spray-robot.step, gantry-crane.step
-// 2) CAD_BASE_PATH 가 실제 배포 시 그 폴더를 가리키도록 맞춰주세요.
-//    (Vite/CRA 기준 public/cad 에 두면 기본값 "/cad" 그대로 동작합니다)
-// 3) 용량이 큰 파일(welding-station 39MB, spray-robot 70MB, gantry-crane 63MB)은
-//    첫 파싱에 시간이 걸릴 수 있습니다. 로딩 중에는 기존 프로시저럴 모델이 그대로 보이다가
-//    준비되면 실제 CAD로 자동 교체됩니다.
+// 로봇 관절 끝단은 경량 GLB를 재사용한다. 나머지 설비는 화면에서 직접 구성한
+// 프로시저럴 모델을 사용해 대용량 CAD가 배포 결과물에 포함되지 않게 한다.
 const CAD_BASE_PATH = "/cad";
-const OCCT_SRC = "https://unpkg.com/occt-import-js@0.0.23/dist/occt-import-js.js";
-
-// asset.kind → 기본 CAD 매핑. 특정 설비 하나만 다른 CAD를 쓰고 싶으면
-// factoryEquipmentCatalog 쪽 데이터에 asset.cadModel / asset.cadTargetHeight 를
-// 추가하면 kind 매핑보다 우선 적용됩니다. 예)
-//   { assetCode: "ASS-04-03", kind: "ROBOT", cadModel: "welding-station.step", cadTargetHeight: 2.3, ... }
-const KIND_TO_CAD = {
-  // 관절 애니메이션이 필요한 로봇은 정적 CAD 대신 아래의 관절형 모델을 사용한다.
-};
-
-let occtEnginePromise = null;
-function loadOcctEngine() {
-  if (occtEnginePromise) return occtEnginePromise;
-  occtEnginePromise = new Promise((resolve, reject) => {
-    if (window.occtimportjs) {
-      window.occtimportjs().then(resolve).catch(reject);
-      return;
-    }
-    const existing = document.querySelector(`script[src="${OCCT_SRC}"]`);
-    const onReady = () => window.occtimportjs().then(resolve).catch(reject);
-    if (existing) {
-      existing.addEventListener("load", onReady);
-      existing.addEventListener("error", () => reject(new Error("occt-import-js 로드 실패")));
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = OCCT_SRC;
-    script.async = true;
-    script.onload = onReady;
-    script.onerror = () => reject(new Error("occt-import-js 로드 실패"));
-    document.head.appendChild(script);
-  });
-  return occtEnginePromise;
-}
-
-// 같은 STEP 파일을 여러 설비/여러 공장에서 재사용해도 한 번만 파싱하도록 캐시.
-const cadModelCache = new Map();
 const gltfLoader = new GLTFLoader();
+let robotHeadPromise = null;
 
 function normalizeCadGroup(group, targetHeight) {
   group.updateMatrixWorld(true);
@@ -178,149 +157,19 @@ function normalizeCadGroup(group, targetHeight) {
   return group;
 }
 
-function loadCadGroup(file, targetHeight) {
-  const cacheKey = `${file}:${targetHeight}`;
-  if (cadModelCache.has(cacheKey)) return cadModelCache.get(cacheKey);
-
-  const promise = (async () => {
-    if (file.toLowerCase().endsWith(".glb")) {
-      const gltf = await gltfLoader.loadAsync(`${CAD_BASE_PATH}/${file}`);
-      const group = gltf.scene;
-      group.traverse((child) => {
-        if (!child.isMesh) return;
-        child.material = CAD_IVORY_MATERIAL;
-        child.castShadow = true;
-        child.receiveShadow = true;
-      });
-      return normalizeCadGroup(group, targetHeight);
-    }
-
-    const occt = await loadOcctEngine();
-    const res = await fetch(`${CAD_BASE_PATH}/${file}`);
-    if (!res.ok) throw new Error(`CAD 파일 로드 실패 (${res.status}): ${file}`);
-    const buffer = new Uint8Array(await res.arrayBuffer());
-    const result = occt.ReadStepFile(buffer, {
-      linearUnit: "millimeter",
-      linearDeflectionType: "bounding_box_ratio",
-      linearDeflection: 0.01,
-      angularDeflection: 0.4,
+function loadRobotHeadGroup() {
+  if (robotHeadPromise) return robotHeadPromise;
+  robotHeadPromise = gltfLoader.loadAsync(`${CAD_BASE_PATH}/robot-head.glb`).then((gltf) => {
+    const group = gltf.scene;
+    group.traverse((child) => {
+      if (!child.isMesh) return;
+      child.material = CAD_IVORY_MATERIAL;
+      child.castShadow = true;
+      child.receiveShadow = true;
     });
-    if (!result.success || !result.meshes.length) throw new Error(`STEP 파싱 실패: ${file}`);
-
-    const group = new THREE.Group();
-    for (const m of result.meshes) {
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute("position", new THREE.Float32BufferAttribute(m.attributes.position.array, 3));
-      if (m.attributes.normal) {
-        geometry.setAttribute("normal", new THREE.Float32BufferAttribute(m.attributes.normal.array, 3));
-      }
-      geometry.setIndex(Array.from(m.index.array));
-      if (!m.attributes.normal) geometry.computeVertexNormals();
-      // 도장된 산업용 금속 느낌 — 살짝 광택(clearcoat) 있는 물리 재질
-      const mesh = new THREE.Mesh(geometry, CAD_IVORY_MATERIAL);
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      group.add(mesh);
-    }
-
-    // STEP 원점/스케일이 제각각이라, 바닥에 붙이고 높이를 targetHeight에 맞춰 정규화한다.
-    return normalizeCadGroup(group, targetHeight);
-  })();
-
-  cadModelCache.set(cacheKey, promise);
-  return promise;
-}
-
-// 레퍼런스 이미지의 "파란 스캔 오버레이"(디지털 트윈 홀로그램) 효과.
-// 프레넬 림 글로우 + 위아래로 흐르는 스캔 밴드를 셰이더로 그려서 선택/알람 설비 위에 덧씌운다.
-const SCAN_VERT = `
-  varying vec3 vNormal;
-  varying vec3 vViewDir;
-  varying float vWorldY;
-  void main() {
-    vNormal = normalize(normalMatrix * normal);
-    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-    vViewDir = normalize(-mvPosition.xyz);
-    vWorldY = (modelMatrix * vec4(position, 1.0)).y;
-    gl_Position = projectionMatrix * mvPosition;
-  }
-`;
-const SCAN_FRAG = `
-  uniform float uTime;
-  uniform vec3 uColor;
-  uniform float uBaseHeight;
-  uniform float uHeight;
-  varying vec3 vNormal;
-  varying vec3 vViewDir;
-  varying float vWorldY;
-  void main() {
-    float fresnel = pow(1.0 - max(dot(normalize(vNormal), normalize(vViewDir)), 0.0), 2.2);
-    float h = clamp((vWorldY - uBaseHeight) / uHeight, 0.0, 1.0);
-    float band = pow(max(sin(h * 20.0 - uTime * 2.0) * 0.5 + 0.5, 0.0), 8.0);
-    float glow = fresnel * 0.65 + band * 0.55;
-    gl_FragColor = vec4(uColor, clamp(glow, 0.0, 1.0));
-  }
-`;
-
-function ScanOverlay({ group, color }) {
-  const meshes = useMemo(() => {
-    const list = [];
-    group.traverse((child) => { if (child.isMesh) list.push(child); });
-    return list;
-  }, [group]);
-  const bounds = useMemo(() => {
-    const box = new THREE.Box3().setFromObject(group);
-    return { min: box.min.y, height: Math.max(box.max.y - box.min.y, 1e-3) };
-  }, [group]);
-  const uniformsRef = useRef(
-    meshes.map(() => ({
-      uTime: { value: 0 },
-      uColor: { value: new THREE.Color(color) },
-      uBaseHeight: { value: bounds.min },
-      uHeight: { value: bounds.height },
-    }))
-  );
-  useEffect(() => {
-    uniformsRef.current.forEach((u) => u.uColor.value.set(color));
-  }, [color]);
-  useFrame(({ clock }) => {
-    uniformsRef.current.forEach((u) => { u.uTime.value = clock.elapsedTime; });
+    return normalizeCadGroup(group, .72);
   });
-  const scale = [group.scale.x * 1.015, group.scale.y * 1.015, group.scale.z * 1.015];
-  return <group position={group.position} scale={scale}>
-    {meshes.map((mesh, i) => <mesh key={i} geometry={mesh.geometry}>
-      <shaderMaterial
-        transparent depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.FrontSide}
-        uniforms={uniformsRef.current[i]} vertexShader={SCAN_VERT} fragmentShader={SCAN_FRAG}
-      />
-    </mesh>)}
-  </group>;
-}
-
-// 실제 STEP CAD를 로드해서 보여준다. 로딩 중이거나 실패하면 기존 프로시저럴 모델(fallback)을 그대로 쓴다.
-// scanActive가 true면(선택됨/알람) 위 홀로그램 스캔 오버레이를 겹쳐 그린다.
-function CadModel({ file, targetHeight, modelScale = [1, 1, 1], fallback, scanActive, scanColor }) {
-  const [group, setGroup] = useState(null);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    setGroup(null);
-    setFailed(false);
-    loadCadGroup(file, targetHeight)
-      .then((loaded) => { if (!cancelled) setGroup(loaded.clone(true)); })
-      .catch((err) => {
-        console.error("[EquipmentTwinScene] CAD load failed:", file, err);
-        if (!cancelled) setFailed(true);
-      });
-    return () => { cancelled = true; };
-  }, [file, targetHeight]);
-
-  if (!group || failed) return fallback;
-  return <group scale={modelScale}>
-    <primitive object={group} />
-    {scanActive && <ScanOverlay group={group} color={scanColor}/>}
-  </group>;
+  return robotHeadPromise;
 }
 
 // 작업자는 3D로 표현하지 않는다 — 실제 GPS/UWB 위치 연동 전까지는 좌표를 지어낼 수밖에 없고,
@@ -329,13 +178,13 @@ function CadModel({ file, targetHeight, modelScale = [1, 1, 1], fallback, scanAc
 function EquipmentTwinScene({ factory, selectedAsset, onSelectAsset }) {
   const controlsRef = useRef();
   const cameraPosition = factory.profileKey === "DOCK" ? [18, 12, 22] : [13.5, 8.5, 16];
+  const dockState = factory.profileKey === "DOCK" && factory.code === "TAG-23" ? "FLOODING" : "DRY_BUILDING";
   const alarmIndex = factory.equipment.findIndex((asset) => asset.fault);
-  const hasRealCad = factory.equipment.some((asset) => asset.cadModel || KIND_TO_CAD[asset.kind]);
   const layout = EQUIPMENT_LAYOUTS[factory.profileKey] || DEFAULT_LAYOUT;
-  const placements = factory.equipment.map((_, index) => layout[index] || DEFAULT_LAYOUT[index] || {
+  const placements = factory.equipment.map((asset, index) => withFacilityLayoutVariation(asset, layout[index] || DEFAULT_LAYOUT[index] || {
     position: [index * 3 - 4.5, 0, 0],
     rotationY: 0,
-  });
+  }, factory.code, index));
   const resetCamera = () => {
     if (!controlsRef.current) return;
     controlsRef.current.object.position.set(...cameraPosition);
@@ -350,7 +199,8 @@ function EquipmentTwinScene({ factory, selectedAsset, onSelectAsset }) {
         <hemisphereLight intensity={0.55} color="#f4f7f9" groundColor="#171c21"/>
         <directionalLight castShadow position={[10, 15, 10]} intensity={2.3} color="#fff6e6" shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-bias={-0.0015}/>
         <pointLight position={[0, 7, 0]} intensity={5} color="#ffffff" distance={30} decay={2}/>
-        <FactoryFloor profileKey={factory.profileKey}/>
+        <FactoryFloor profileKey={factory.profileKey} dockState={dockState}/>
+        <FactoryContext profileKey={factory.profileKey}/>
         {factory.profileKey === "ASSEMBLY" && <AssemblySafetyPartitions/>}
         <SafetyZone alarmPosition={placements[alarmIndex]?.position}/>
         {factory.equipment.map((asset, index) => <MachineUnit key={asset.assetCode} asset={asset} {...placements[index]}
@@ -363,11 +213,11 @@ function EquipmentTwinScene({ factory, selectedAsset, onSelectAsset }) {
       <div className="flex items-center gap-2 text-[9px] font-black tracking-[.15em] text-cyan-300"><ScanLine size={13}/> EQUIPMENT TWIN</div>
       <p className="mt-1 text-[10px] text-slate-400">설비를 선택하면 부품 단위 진단 정보가 연동됩니다.</p>
       <div className="mt-1.5 flex items-center gap-1.5">
-        <span className="sim-badge inline-flex">SIMULATION</span>
-        {hasRealCad && <span className="inline-flex rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[8px] font-black text-emerald-300">REAL CAD</span>}
+        <span className="sim-badge inline-flex">VALIDATION MODE</span>
       </div>
     </div>
     <button onClick={resetCamera} className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-[#07131e]/85 text-slate-300 backdrop-blur-xl hover:text-white" aria-label="3D 화면 초기화"><RotateCcw size={15}/></button>
+    {factory.profileKey === "DOCK" && <div className={`absolute bottom-4 right-4 rounded-xl border px-3 py-2 text-[9px] font-black backdrop-blur-xl ${dockState === "FLOODING" ? "border-cyan-300/30 bg-cyan-400/10 text-cyan-200" : "border-amber-300/25 bg-[#1a1710]/90 text-amber-200"}`}><span className="block text-[8px] tracking-[.14em] opacity-70">DOCK CONDITION</span>{dockState === "FLOODING" ? "FLOODING · 침수 진행" : "DRY BUILDING · 선박 건조 중"}</div>}
     <div className="absolute bottom-4 left-4 flex items-center gap-2 rounded-xl border border-white/10 bg-[#07131e]/85 px-3 py-2 text-[9px] text-slate-400 backdrop-blur-xl"><Box size={13} className="text-cyan-300"/> 드래그 회전 · 휠 확대 · 설비 클릭</div>
   </div>;
 }
@@ -588,9 +438,158 @@ function OverheadStructure({ accent }) {
   </group>;
 }
 
-function FactoryFloor({ profileKey }) {
-  const accent = { ASSEMBLY: "#0091c2", CUTTING: "#1f9d76", PAINT: "#d97a1f", DOCK: "#8b5fc9", OUTFITTING: "#2fa3ad" }[profileKey] || "#3a7d8c";
+const CONTEXT_STEEL = "#66747a";
+const CONTEXT_STEEL_DARK = "#3e4b51";
+const CONTEXT_WOOD = "#7b6446";
+const CONTEXT_YELLOW = "#b88924";
+
+function PlateStack({ position, rotationY = 0, count = 5, width = 3.4, depth = 1.8 }) {
+  return <group position={position} rotation={[0, rotationY, 0]}>
+    <MaterialPallet width={width + .35} depth={depth + .3}/>
+    {Array.from({length: count}).map((_, index) => <mesh key={index} castShadow position={[0, .28 + index * .075, 0]}>
+      <boxGeometry args={[width, .055, depth]}/><meshStandardMaterial color={index % 2 ? CONTEXT_STEEL : "#7b888d"} metalness={.76} roughness={.42}/>
+    </mesh>)}
+    {[-width * .32, width * .32].map((x) => <mesh key={x} position={[x, .5, 0]}><boxGeometry args={[.055, .04, depth + .08]}/><meshStandardMaterial color="#b8732d" metalness={.45} roughness={.48}/></mesh>)}
+  </group>;
+}
+
+function MaterialPallet({ position = [0, 0, 0], rotationY = 0, width = 2.4, depth = 1.45 }) {
+  return <group position={position} rotation={[0, rotationY, 0]}>
+    {[[-depth * .38], [0], [depth * .38]].map(([z], index) => <mesh key={index} castShadow position={[0, .08, z]}><boxGeometry args={[width, .14, .18]}/><meshStandardMaterial color={CONTEXT_WOOD} roughness={.78}/></mesh>)}
+    {[-width * .38, 0, width * .38].map((x) => <mesh key={x} castShadow position={[x, .18, 0]}><boxGeometry args={[.18, .12, depth]}/><meshStandardMaterial color="#957951" roughness={.76}/></mesh>)}
+  </group>;
+}
+
+function PartsBin({ position, rotationY = 0, color = "#54666f" }) {
+  return <group position={position} rotation={[0, rotationY, 0]}>
+    <mesh castShadow position={[0, .48, 0]}><boxGeometry args={[1.45, .9, 1.05]}/><meshStandardMaterial color={color} metalness={.52} roughness={.5}/></mesh>
+    <mesh position={[0, .92, 0]}><boxGeometry args={[1.3, .08, .9]}/><meshStandardMaterial color="#263238" metalness={.62} roughness={.42}/></mesh>
+    {[-.58, .58].flatMap((x) => [-.38, .38].map((z) => <mesh key={`${x}-${z}`} position={[x, .08, z]}><cylinderGeometry args={[.07, .07, .12, 10]}/><meshStandardMaterial color="#252b2d" roughness={.8}/></mesh>))}
+  </group>;
+}
+
+function BlockSection({ position, rotationY = 0, scale = 1, painted = false }) {
+  const shellColor = painted ? "#6e8792" : CONTEXT_STEEL_DARK;
+  return <group position={position} rotation={[0, rotationY, 0]} scale={scale}>
+    <RoundedBox castShadow args={[4.4, 1.05, 2.6]} position={[0, .68, 0]} radius={.18} smoothness={3}><meshStandardMaterial color={shellColor} metalness={.68} roughness={painted ? .38 : .48}/></RoundedBox>
+    <mesh castShadow position={[0, 1.45, 0]}><boxGeometry args={[3.65, .5, 2.05]}/><meshStandardMaterial color={painted ? "#869ca4" : "#77858a"} metalness={.62} roughness={.43}/></mesh>
+    {[-1.3, 0, 1.3].map((x) => <mesh key={x} position={[x, 1.78, 0]}><boxGeometry args={[.11, .55, 2.12]}/><meshStandardMaterial color="#9d6b2f" metalness={.46} roughness={.48}/></mesh>)}
+  </group>;
+}
+
+function PipeRack({ position, rotationY = 0 }) {
+  const pipeColors = ["#6e7c82", "#7b898e", "#55656c"];
+  return <group position={position} rotation={[0, rotationY, 0]}>
+    {[-1.7, 1.7].map((x) => <group key={x}>{[-.68, .68].map((z) => <mesh key={z} position={[x, .72, z]}><boxGeometry args={[.14, 1.35, .14]}/><meshStandardMaterial color={CONTEXT_YELLOW} metalness={.4} roughness={.5}/></mesh>)}</group>)}
+    {[.48, 1.02].map((y) => <mesh key={y} position={[0, y, 0]}><boxGeometry args={[3.65, .12, 1.65]}/><meshStandardMaterial color="#3f4b50" metalness={.58} roughness={.47}/></mesh>)}
+    {pipeColors.flatMap((color, row) => [-.48, 0, .48].map((z, index) => <mesh key={`${row}-${index}`} castShadow position={[0, .62 + row * .28, z]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[.11 + row * .025, .11 + row * .025, 3.35, 16]}/><meshStandardMaterial color={color} metalness={.72} roughness={.37}/></mesh>))}
+  </group>;
+}
+
+function HoseReel({ position, rotationY = 0 }) {
+  return <group position={position} rotation={[0, rotationY, 0]}>
+    <mesh castShadow position={[0, .85, 0]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[.72, .72, .42, 24]}/><meshStandardMaterial color="#45545a" metalness={.58} roughness={.46}/></mesh>
+    <mesh position={[0, .85, .24]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[.48, .1, 10, 28]}/><meshStandardMaterial color="#b86f32" roughness={.55}/></mesh>
+    {[-.52, .52].map((x) => <mesh key={x} position={[x, .45, 0]}><boxGeometry args={[.12, .9, .62]}/><meshStandardMaterial color={CONTEXT_YELLOW} metalness={.38} roughness={.5}/></mesh>)}
+  </group>;
+}
+
+function ServicePlatform({ position, rotationY = 0 }) {
+  return <group position={position} rotation={[0, rotationY, 0]}>
+    {[-1.15, 1.15].flatMap((x) => [-.62, .62].map((z) => <mesh key={`${x}-${z}`} castShadow position={[x, .78, z]}><boxGeometry args={[.1, 1.55, .1]}/><meshStandardMaterial color={CONTEXT_YELLOW} metalness={.42} roughness={.48}/></mesh>))}
+    <mesh castShadow position={[0, 1.48, 0]}><boxGeometry args={[2.55, .14, 1.45]}/><meshStandardMaterial color="#626d70" metalness={.62} roughness={.44}/></mesh>
+    {[-1.15, 1.15].map((x) => <mesh key={x} position={[x, 1.98, 0]}><boxGeometry args={[.07, .95, 1.35]}/><meshStandardMaterial color={CONTEXT_YELLOW} metalness={.4} roughness={.48}/></mesh>)}
+    {[-.58, .58].map((z) => <mesh key={z} position={[0, 2.42, z]}><boxGeometry args={[2.4, .07, .07]}/><meshStandardMaterial color={CONTEXT_YELLOW} metalness={.4} roughness={.48}/></mesh>)}
+    {Array.from({length: 5}).map((_, index) => <mesh key={index} position={[-1.27, .28 + index * .28, 0]}><boxGeometry args={[.08, .06, 1.25]}/><meshStandardMaterial color="#4c585c" metalness={.55} roughness={.48}/></mesh>)}
+  </group>;
+}
+
+function PipeSpoolCart({ position, rotationY = 0 }) {
+  return <group position={position} rotation={[0, rotationY, 0]}>
+    <RoundedBox castShadow args={[3.1, .24, 1.4]} position={[0, .38, 0]} radius={.07} smoothness={3}><meshStandardMaterial color="#4b5a60" metalness={.56} roughness={.5}/></RoundedBox>
+    {[-1.15, 1.15].flatMap((x) => [-.55, .55].map((z) => <mesh key={`${x}-${z}`} position={[x, .16, z]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[.16, .16, .12, 14]}/><meshStandardMaterial color="#252b2d" roughness={.78}/></mesh>))}
+    <mesh castShadow position={[0, 1.02, 0]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[.18, .18, 2.55, 18]}/><meshStandardMaterial color="#74848a" metalness={.72} roughness={.36}/></mesh>
+    {[-1.05, 1.05].map((x) => <mesh key={x} position={[x, 1.02, 0]} rotation={[0, Math.PI / 2, 0]}><torusGeometry args={[.52, .12, 10, 26]}/><meshStandardMaterial color="#64747a" metalness={.68} roughness={.39}/></mesh>)}
+  </group>;
+}
+
+function FabricationTrestles({ position, rotationY = 0 }) {
+  return <group position={position} rotation={[0, rotationY, 0]}>
+    {[-1.25, 1.25].map((z) => <group key={z} position={[0, 0, z]}>
+      {[-1.55, 1.55].map((x) => <mesh key={x} castShadow position={[x, .48, 0]} rotation={[0, 0, x < 0 ? -.22 : .22]}><boxGeometry args={[.22, 1.05, .32]}/><meshStandardMaterial color="#77633f" metalness={.36} roughness={.58}/></mesh>)}
+      <mesh castShadow position={[0, .92, 0]}><boxGeometry args={[3.45, .22, .48]}/><meshStandardMaterial color="#8c7449" metalness={.32} roughness={.6}/></mesh>
+    </group>)}
+  </group>;
+}
+
+function FactoryContext({ profileKey }) {
+  if (profileKey === "DOCK") return null;
+  if (profileKey === "ASSEMBLY") return <group>
+    <PlateStack position={[-10.2, 0, 6.6]} rotationY={.08} count={6}/>
+    <MaterialPallet position={[10.5, 0, 6.6]} rotationY={-.12}/>
+    <BlockSection position={[10.1, .25, -6.7]} rotationY={-.05} scale={.65}/>
+  </group>;
+  if (profileKey === "CUTTING") return <group>
+    <PlateStack position={[9.6, 0, 5.8]} rotationY={-.08} count={8} width={4.1} depth={2.1}/>
+    <PartsBin position={[10.3, 0, -5.7]} rotationY={.12}/><PartsBin position={[8.45, 0, -6]} rotationY={-.08} color="#665d4d"/>
+  </group>;
+  if (profileKey === "SMALLPART") return <group>
+    <PartsBin position={[9.8, 0, 5.8]} rotationY={.12}/><PartsBin position={[8.05, 0, 6.15]} rotationY={-.08} color="#526d68"/>
+    <MaterialPallet position={[10.2, 0, -6.2]} rotationY={-.16} width={2.1} depth={1.3}/>
+  </group>;
+  if (profileKey === "PAINT") return <group>
+    <BlockSection position={[0, .1, 5.9]} rotationY={.03} scale={.82} painted/>
+    <HoseReel position={[-10.2, 0, 5.8]} rotationY={.18}/><ServicePlatform position={[4, 0, 5.5]} rotationY={-.07}/><MaterialPallet position={[10.3, 0, -5.8]} rotationY={-.09}/>
+  </group>;
+  if (profileKey === "OUTFITTING") return <group>
+    <PipeRack position={[0, 0, 5.9]} rotationY={-.04}/>
+    <PipeSpoolCart position={[0, 0, -5.7]} rotationY={.08}/><PartsBin position={[-10.2, 0, -5.8]} rotationY={.15} color="#4d666d"/><MaterialPallet position={[10.1, 0, 5.8]} rotationY={-.1}/>
+  </group>;
+  if (profileKey === "OFFSHORE") return <group>
+    <FabricationTrestles position={[0, 0, 0]} rotationY={-.04}/><BlockSection position={[0, .78, 0]} rotationY={-.04} scale={1.05}/>
+    <PlateStack position={[-10.2, 0, 6.2]} rotationY={.1} count={5}/><PipeRack position={[9.8, 0, 6.1]} rotationY={-.08}/>
+  </group>;
+  return null;
+}
+
+function KeelBlocks() {
+  return <group>{[-5.2, -2.6, 0, 2.6, 5.2].flatMap((z) => [-1.35, 1.35].map((x) => <group key={`${x}-${z}`} position={[x, .16, z]}>
+    <mesh castShadow><boxGeometry args={[.72, .32, .72]}/><meshStandardMaterial color="#a28455" roughness={.76}/></mesh>
+    <mesh castShadow position={[0, .25, 0]} rotation={[0, 0, x < 0 ? -.12 : .12]}><boxGeometry args={[.58, .22, .66]}/><meshStandardMaterial color="#c3a06a" roughness={.7}/></mesh>
+  </group>))}</group>;
+}
+
+function DockShip({ flooded }) {
+  const hullColor = flooded ? "#496572" : "#59676d";
+  return <group position={[0, flooded ? 1 : 1.25, .6]}>
+    <mesh castShadow rotation={[Math.PI / 2, 0, 0]} scale={[1, 1, .36]}><capsuleGeometry args={[2.05, 8.8, 8, 28]}/><meshStandardMaterial color={hullColor} metalness={.7} roughness={.38}/></mesh>
+    <RoundedBox castShadow args={[3.55, .32, 8.4]} position={[0, .82, 0]} radius={.08} smoothness={3}><meshStandardMaterial color={flooded ? "#81959d" : "#76848a"} metalness={.6} roughness={.43}/></RoundedBox>
+    {[-3.2, -1.6, 0, 1.6, 3.2].map((z) => <mesh key={z} position={[0, 1.14, z]}><boxGeometry args={[3.3, .08, .12]}/><meshStandardMaterial color="#b47832" metalness={.46} roughness={.48}/></mesh>)}
+    <RoundedBox castShadow args={[2.25, .9, 1.5]} position={[0, 1.38, 2.2]} radius={.08} smoothness={3}><meshStandardMaterial color="#aab6ba" metalness={.4} roughness={.48}/></RoundedBox>
+  </group>;
+}
+
+function DockEnvironment({ dockState }) {
+  const flooded = dockState === "FLOODING";
+  return <group>
+    <mesh receiveShadow position={[0, -.2, 0]}><boxGeometry args={[30, .3, 22]}/><meshStandardMaterial color="#747c7f" metalness={.42} roughness={.68}/></mesh>
+    <mesh receiveShadow position={[0, -.08, 0]}><boxGeometry args={[10.2, .12, 19.4]}/><meshStandardMaterial color="#27363c" metalness={.28} roughness={.72}/></mesh>
+    {[-5.35, 5.35].map((x) => <mesh key={x} castShadow receiveShadow position={[x, .16, 0]}><boxGeometry args={[.5, .62, 20]}/><meshStandardMaterial color="#9ba0a0" metalness={.34} roughness={.7}/></mesh>)}
+    {[-9.8, 9.8].map((z) => <mesh key={z} castShadow receiveShadow position={[0, .13, z]}><boxGeometry args={[10.7, .52, .48]}/><meshStandardMaterial color="#8b9294" metalness={.32} roughness={.7}/></mesh>)}
+    {!flooded && <><KeelBlocks/><mesh position={[-2.7, .02, -6.6]} rotation={[-Math.PI / 2, 0, 0]} scale={[1.7, .7, 1]}><circleGeometry args={[1, 32]}/><meshStandardMaterial color="#33484f" transparent opacity={.5} roughness={.18}/></mesh></>}
+    {flooded && <mesh position={[0, .38, 0]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[9.7, 18.9, 12, 20]}/><meshStandardMaterial color="#237d99" transparent opacity={.72} metalness={.12} roughness={.2}/></mesh>}
+    <DockShip flooded={flooded}/>
+    {[-8.7, 8.7].flatMap((x) => [-7, -2.4, 2.4, 7].map((z) => <group key={`${x}-${z}`} position={[x, .15, z]}>
+      <mesh castShadow position={[0, .25, 0]}><cylinderGeometry args={[.18, .24, .5, 14]}/><meshStandardMaterial color="#c49b32" metalness={.42} roughness={.5}/></mesh>
+      <mesh position={[0, .52, 0]}><torusGeometry args={[.2, .055, 8, 18]}/><meshStandardMaterial color="#3e4649" metalness={.55} roughness={.5}/></mesh>
+    </group>))}
+  </group>;
+}
+
+function FactoryFloor({ profileKey, dockState }) {
   const { map, normalMap } = useDiamondPlateTexture();
+  if (profileKey === "DOCK") return <DockEnvironment dockState={dockState}/>;
+  const accent = { ASSEMBLY: "#0091c2", CUTTING: "#1f9d76", PAINT: "#d97a1f", DOCK: "#8b5fc9", OUTFITTING: "#2fa3ad" }[profileKey] || "#3a7d8c";
   return <group>
     <mesh receiveShadow position={[0, -.15, 0]}>
       <boxGeometry args={[30, .25, 22]}/>
@@ -649,16 +648,13 @@ function MachineUnit({ asset, position, rotationY = 0, selected, onSelect }) {
     toolType: asset.toolType,
     liveCondition: asset.liveCondition,
   };
-  const cad = asset.cadModel
-    ? { file: asset.cadModel, targetHeight: asset.cadTargetHeight || 2.2, modelScale: asset.cadScale || [1, 1, 1] }
-    : KIND_TO_CAD[asset.kind];
   const fallback = <KindFallback kind={asset.kind} motion={motion}/>;
   const labelPosition = asset.labelPosition || LABEL_POSITION_BY_KIND[asset.kind] || [0, 3.5, 0];
   const ringScale = asset.selectionRingScale || SELECTION_RING_SCALE_BY_KIND[asset.kind] || [1, 1, 1];
 
   return <group position={position} rotation={[0, rotationY, 0]} onClick={(event)=>{event.stopPropagation();onSelect(asset);}} onPointerOver={()=>{document.body.style.cursor="pointer";}} onPointerOut={()=>{document.body.style.cursor="default";}}>
-    {cad ? <CadModel file={cad.file} targetHeight={cad.targetHeight} modelScale={cad.modelScale} fallback={fallback} scanActive={alarm || selected} scanColor={accent}/> : fallback}
-    {alarm && <pointLight position={[0, asset.kind === "GOLIATH" ? 6.6 : (cad?.targetHeight || 2.2) * 0.55, 0]} intensity={10} distance={4} color="#ff2f48"/>}
+    {fallback}
+    {alarm && <pointLight position={[0, asset.kind === "GOLIATH" ? 6.6 : 1.21, 0]} intensity={10} distance={4} color="#ff2f48"/>}
     <mesh position={[0,.04,0]} rotation={[-Math.PI/2,0,0]} scale={ringScale}><ringGeometry args={[1.2,1.28,48]}/><meshBasicMaterial color={accent}/></mesh>
     {alarm && <FaultMarker position={issuePositions[asset.kind]} part={asset.fault.part} seed={seed}/>}
     <Html center position={labelPosition}><button onClick={()=>onSelect(asset)} className={`min-w-[118px] rounded-lg border px-2.5 py-2 text-left shadow-xl backdrop-blur-md ${alarm?"border-red-400/60 bg-[#230b12]/95":"border-cyan-400/35 bg-[#07151f]/95"}`}><span className={`block text-[8px] font-black tracking-wider ${alarm?"text-red-300":"text-cyan-300"}`}>{asset.assetCode}</span><b className="mt-0.5 block whitespace-nowrap text-[10px] text-white">{asset.name}</b><small className={`mt-0.5 block text-[8px] ${alarm?"text-red-300":"text-slate-500"}`}>{alarm?asset.fault.symptom:`${asset.operatingState} · 운전 부하 ${asset.utilization}%`}</small></button></Html>
@@ -687,7 +683,7 @@ function RobotCadHead() {
   const [head, setHead] = useState(null);
   useEffect(() => {
     let cancelled = false;
-    loadCadGroup("robot-head.glb", .72)
+    loadRobotHeadGroup()
       .then((loaded) => { if (!cancelled) setHead(loaded.clone(true)); })
       .catch(() => {});
     return () => { cancelled = true; };

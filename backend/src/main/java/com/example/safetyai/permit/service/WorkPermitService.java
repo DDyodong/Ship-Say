@@ -397,6 +397,7 @@ public class WorkPermitService {
             throw new ApiException(HttpStatus.CONFLICT, "안전 이벤트에 연결된 허가서는 영구 삭제할 수 없습니다.");
         }
 
+        jdbcTemplate.update("UPDATE personal_ppe_checks SET permit_id = NULL WHERE permit_id = ?", id);
         clearAnalysisData(id);
         jdbcTemplate.update("DELETE FROM work_permits WHERE id = ?", id);
         return Map.of("deleted", true, "id", id);

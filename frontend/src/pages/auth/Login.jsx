@@ -82,10 +82,6 @@ function Login({ initialUsername, onLogin, onRegister, notify, theme, onToggleTh
             </div>
           </div>
 
-          <div className="flex gap-10 text-white/40 text-[10px] font-bold uppercase tracking-widest">
-            <div className="flex flex-col gap-1"><span className="text-brand">Precision</span><span>99.9% Detection</span></div>
-            <div className="flex flex-col gap-1"><span className="text-brand">Response</span><span>&lt; 0.1s Real-time</span></div>
-          </div>
         </div>
       </div>
 

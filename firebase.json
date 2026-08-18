@@ -33,7 +33,7 @@
       }
     ],
     "predeploy": [
-      "corepack pnpm@10.15.0 --dir frontend run build"
+      "npm --prefix frontend run build"
     ]
   }
 }

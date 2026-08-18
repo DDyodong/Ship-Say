@@ -303,9 +303,11 @@ function Permits({ notify, session }) {
     }
   };
 
-  const finalizeDecision = async () => {
+  // decisionOverride: AI 분석이 실패해 추천 판정이 없을 때, 관리자가 원문 허가서를 직접
+  // 확인하고 수동으로 선택한 상태 코드(approved/conditional_approved/rejected)를 그대로 확정한다.
+  const finalizeDecision = async (decisionOverride) => {
     if (!detail || decisionSubmitting) return;
-    const decision = decisionCodeMap[effectiveDecision];
+    const decision = decisionOverride || decisionCodeMap[effectiveDecision];
     if (!decision) return notify("분석 완료 후 승인할 수 있습니다.");
     setDecisionSubmitting(true);
     try {
@@ -423,7 +425,11 @@ function Permits({ notify, session }) {
           {attachedFile ? <div className="doc-preview"><FileText/><div><b>{attachedFile.original_name}</b><span>{formatSize(attachedFile.file_size)}</span></div><button type="button" title="허가서 미리보기" aria-label={`${attachedFile.original_name} 미리보기`} onClick={() => openPreview(attachedFile)}><Eye/></button></div> : <div className="doc-preview"><FileText/><div><b>첨부 파일 없음</b><span>허가서 파일이 연결되지 않았습니다.</span></div></div>}
           <div className="permit-assigned-summary"><span>배정 작업자</span>{detail.assignedWorkers?.length ? <div>{detail.assignedWorkers.map(worker => <b key={worker.id}>{worker.name}<small>{worker.employee_no}</small></b>)}</div> : <em>배정된 작업자가 없습니다.</em>}</div>
           <div className="permit-assigned-summary"><span>보충작업</span>{parseJsonValue(detail.supplementary_work, []).length ? <div>{parseJsonValue(detail.supplementary_work, []).map(item => <b key={item}>{item}</b>)}</div> : <em>해당 없음</em>}</div>
-          {analysisRun.status === "failed" ? <div className="analysis-failed"><AlertTriangle/><div><b>작업허가서 분석에 실패했습니다</b><p>{analysisRun.error_message || "분석 서비스 상태를 확인한 뒤 다시 시도해 주세요."}</p><button className="outline-btn" type="button" onClick={requestAnalysis}>다시 분석</button></div></div> : <>
+          {analysisRun.status === "failed" ? <div className="analysis-failed"><AlertTriangle/><div><b>작업허가서 분석에 실패했습니다</b><p>{analysisRun.error_message || "분석 서비스 상태를 확인한 뒤 다시 시도해 주세요."}</p><button className="outline-btn" type="button" onClick={requestAnalysis}>다시 분석</button>
+            {/* AI 추천 판정이 없어 아래 공용 승인 버튼(analysisFinished 필요)을 못 쓰므로,
+                원문 허가서를 직접 확인한 관리자가 여기서 상태를 수동으로 확정할 수 있게 한다. */}
+            <div className="manual-decision-row"><span>AI 추천 없이 직접 처리</span><button className="outline-btn" type="button" disabled={decisionSubmitting} onClick={() => finalizeDecision("approved")}>수동 승인</button><button className="outline-btn" type="button" disabled={decisionSubmitting} onClick={() => finalizeDecision("conditional_approved")}>수동 조건부 승인</button><button className="outline-btn reject" type="button" disabled={decisionSubmitting} onClick={() => finalizeDecision("rejected")}>수동 반려</button></div>
+          </div></div> : <>
             <h4>SIMOPS 충돌 분석</h4>
             {analysisFinished ? <div className="analysis-result-list">
               <div className={`analysis-decision ${effectiveRisk === "반려" ? "hard" : effectiveRisk === "보류" ? "conditional" : "approved"}`}><b>{effectiveDecision || "판정 완료"}</b><span>단일허가 위반 {permitViolations.length}건 · 동시작업 충돌 {simopsConflicts.length}건</span></div>

@@ -73,9 +73,8 @@ const PROFILE_TEMPLATES = {
   },
 };
 
-// 설비 이름 → 실제 CAD(STEP) 오버라이드.
-// EquipmentTwinScene의 KIND_TO_CAD(ROBOT/CRANE 기본값)보다 우선 적용됨.
-const EQUIPMENT_CAD_OVERRIDES = {
+// 설비별 배치·애니메이션 표현 오버라이드.
+const EQUIPMENT_RENDER_OVERRIDES = {
   "자동 용접 로봇": { lineSync: "ASSEMBLY", lineStationX: -1.1 },
   "강재 이송 컨베이어": {
     lineSync: "ASSEMBLY",
@@ -94,10 +93,7 @@ const EQUIPMENT_CAD_OVERRIDES = {
     labelPosition: [0, 8.35, 0],
     selectionRingScale: [10.5, 1.5, 1],
   },
-  // 용접 설비는 37MB welding-station.step 대신 3.9MB 공용 로봇 암을 사용한다.
   // 대형 블록 크레인은 브라우저 정지를 막기 위해 전용 경량 프로시저럴 모델을 사용한다.
-  // spray-robot.step: 현재 PAINT 프로필에 ROBOT 설비가 없어 미사용.
-  // PAINT 쪽에 스프레이 로봇 설비를 추가하면 여기에 매핑 추가.
 };
 
 const WORKER_TASKS = {
@@ -154,9 +150,9 @@ const rawFactoryCatalog = facilityTags
         assetCode: `${profileKey.slice(0, 3)}-${String(facility.id).padStart(2, "0")}-${String(index + 1).padStart(2, "0")}`,
         name,
         kind,
-        ...(EQUIPMENT_CAD_OVERRIDES[name] || {}),
+        ...(EQUIPMENT_RENDER_OVERRIDES[name] || {}),
         status: alarm ? "ALARM" : index === (faultIndex + 1) % profile.equipment.length ? "WARNING" : "NORMAL",
-        operatingState: EQUIPMENT_CAD_OVERRIDES[name]?.operatingState || (index % 2 ? "STANDBY" : "RUNNING"),
+        operatingState: EQUIPMENT_RENDER_OVERRIDES[name]?.operatingState || (index % 2 ? "STANDBY" : "RUNNING"),
         utilization: 62 + ((facility.id * 11 + index * 9) % 34),
         fault: alarm ? {
           part,
