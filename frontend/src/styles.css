@@ -69,7 +69,7 @@ button {
 
 .brand em {
   font-style: normal;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--orange);
   border: 1px solid rgba(255,116,23,.45);
   padding: 4px 7px;
@@ -85,7 +85,7 @@ button {
 .eyebrow {
   display: block;
   color: var(--cyan);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: .16em;
   margin-bottom: 10px;
@@ -151,7 +151,7 @@ button {
   border: 1px solid rgba(48,198,242,.35);
   border-radius: 7px;
   padding: 8px 11px;
-  font-size: 12px;
+  font-size: 13px;
   box-shadow: 0 10px 30px #0008;
 }
 
@@ -213,7 +213,7 @@ button {
 }
 
 .feature-strip span {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   margin-top: 3px;
 }
@@ -222,7 +222,7 @@ button {
   position: absolute;
   bottom: 22px;
   color: #52677b;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .login-wrap {
@@ -265,7 +265,7 @@ button {
 .login-head p {
   margin: 4px 0 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .login-card label {
@@ -369,7 +369,7 @@ button {
 }
 
 .role-choice small {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
   margin-top: 4px;
 }
@@ -410,7 +410,7 @@ button {
   justify-content: center;
   gap: 6px;
   color: #71869a;
-  font-size: 10px;
+  font-size: 12px;
   margin-top: 16px;
 }
 
@@ -424,7 +424,7 @@ button {
   background: #0b1b29;
   border-radius: 0 0 18px 18px;
   border-top: 1px solid var(--border);
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
 }
 
@@ -495,7 +495,7 @@ button {
 }
 
 .side-brand span {
-  font-size: 8px;
+  font-size: 10px;
   color: #708599;
   letter-spacing: .13em;
 }
@@ -531,12 +531,12 @@ button {
 }
 
 .site-select span {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted);
 }
 
 .site-select b {
-  font-size: 11px;
+  font-size: 12px;
   margin-top: 2px;
 }
 
@@ -581,7 +581,7 @@ button {
   color: white;
   border-radius: 9px;
   padding: 1px 6px;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .side-bottom {
@@ -613,11 +613,11 @@ button {
 }
 
 .user-chip b {
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .user-chip small {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted);
   margin-top: 2px;
 }
@@ -632,7 +632,7 @@ button {
   gap: 8px;
   padding: 9px;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .logout svg {
@@ -657,7 +657,7 @@ button {
 }
 
 .topbar>div>span {
-  font-size: 9px;
+  font-size: 11px;
   color: #62788d;
 }
 
@@ -674,7 +674,7 @@ button {
 }
 
 .live,.updated {
-  font-size: 10px;
+  font-size: 12px;
   color: #8da1b3;
   display: flex;
   align-items: center;
@@ -710,7 +710,7 @@ button {
   top: -5px;
   background: var(--red);
   font-style: normal;
-  font-size: 8px;
+  font-size: 10px;
   border-radius: 8px;
   padding: 1px 5px;
 }
@@ -841,7 +841,7 @@ button {
   border-radius: 6px;
   background: var(--red);
   color: #fff;
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 700;
   font-style: normal;
   display: flex;
@@ -905,7 +905,7 @@ button {
 .welcome p {
   margin: 7px 0 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .weather {
@@ -919,7 +919,7 @@ button {
 }
 
 .weather span {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
 }
 
@@ -930,7 +930,7 @@ button {
 
 .weather small {
   color: var(--green);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .stat-grid {
@@ -984,7 +984,7 @@ button {
 }
 
 .stat small {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted);
 }
 
@@ -994,7 +994,7 @@ button {
 }
 
 .stat em {
-  font-size: 9px;
+  font-size: 11px;
   color: #71869a;
   font-style: normal;
 }
@@ -1026,7 +1026,7 @@ button {
 }
 
 .panel-head span {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--cyan);
 }
 
@@ -1043,14 +1043,14 @@ button {
 }
 
 .permit-top small {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted);
 }
 
 .badge {
   border-radius: 10px;
   padding: 3px 8px;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .badge.cyan {
@@ -1077,7 +1077,7 @@ button {
   display: flex;
   gap: 16px;
   color: #899bad;
-  font-size: 9px;
+  font-size: 11px;
   border-bottom: 1px solid var(--border);
   padding-bottom: 14px;
 }
@@ -1104,11 +1104,11 @@ button {
 }
 
 .condition b {
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .condition p {
-  font-size: 10px;
+  font-size: 12px;
   color: #96a7b7;
   margin: 4px 0 0;
 }
@@ -1154,11 +1154,11 @@ button {
 }
 
 .task b {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .task small {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--muted);
   margin-top: 2px;
 }
@@ -1197,7 +1197,7 @@ button {
 }
 
 .emergency span {
-  font-size: 9px;
+  font-size: 11px;
   color: #9a7e84;
   margin-top: 2px;
 }
@@ -1207,7 +1207,7 @@ button {
   border: 0;
   border-radius: 7px;
   padding: 9px 13px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   display: flex;
   gap: 6px;
@@ -1231,7 +1231,7 @@ button {
 }
 
 .section-head p {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   margin: 5px 0 0;
 }
@@ -1240,7 +1240,7 @@ button {
   height: 40px;
   padding: 0 16px;
   border-radius: 7px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0;
   box-shadow: 0 5px 16px #e95f0024;
@@ -1261,7 +1261,7 @@ button {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  font-size: 10px;
+  font-size: 12px;
   cursor: pointer;
 }
 
@@ -1319,7 +1319,7 @@ button {
 .permit-progress-panel .permit-progress-title-row h4,
 .permit-progress-panel .permit-progress-title {
   color: var(--text);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   line-height: 1.35;
   letter-spacing: -.01em;
@@ -1344,7 +1344,7 @@ button {
   margin-left: auto;
   padding: 6px 12px;
   flex: 0 0 auto;
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1;
 }
 
@@ -1432,7 +1432,7 @@ button {
 }
 
 .mic-stage p {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
   max-width: 420px;
   line-height: 1.7;
@@ -1460,11 +1460,11 @@ button {
 
 .transcript span {
   color: var(--cyan);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .transcript p {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.6;
   margin: 5px 0;
 }
@@ -1474,7 +1474,7 @@ button {
   color: #c3d0da;
   border: 1px solid var(--border);
   border-radius: 5px;
-  font-size: 9px;
+  font-size: 11px;
   padding: 4px;
 }
 
@@ -1492,12 +1492,12 @@ button {
 }
 
 .language-card span {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--cyan);
 }
 
 .language-card p {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.8;
 }
 
@@ -1511,7 +1511,7 @@ button {
 }
 
 .understand h4 {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .faces {
@@ -1526,7 +1526,7 @@ button {
   background: #102839;
   display: grid;
   place-items: center;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .faces span.checked {
@@ -1540,7 +1540,7 @@ button {
 }
 
 .understand p {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted);
 }
 
@@ -1550,7 +1550,7 @@ button {
 }
 
 .progress-head span {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--cyan);
 }
 
@@ -1618,11 +1618,11 @@ button {
 }
 
 .check-list b {
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .check-list small {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted);
   margin-top: 3px;
 }
@@ -1643,7 +1643,7 @@ button {
 }
 
 .single-panel h3 {
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .chip-row {
@@ -1658,7 +1658,7 @@ button {
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 7px 11px;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .chip-row button.active {
@@ -1684,18 +1684,18 @@ button {
 }
 
 .upload-zone b {
-  font-size: 11px;
+  font-size: 12px;
   color: #b6c4d0;
   margin-top: 8px;
 }
 
 .upload-zone span {
-  font-size: 8px;
+  font-size: 10px;
   margin: 3px 0 10px;
 }
 
 .text-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   margin-top: 18px;
 }
@@ -1711,7 +1711,7 @@ button {
   margin-top: 7px;
   padding: 12px;
   resize: vertical;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .danger-submit {
@@ -1726,7 +1726,7 @@ button {
   justify-content: center;
   gap: 8px;
   font-weight: 800;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .report-guide {
@@ -1748,7 +1748,7 @@ button {
 
 .report-guide p,.report-guide li {
   color: #899cad;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.7;
 }
 
@@ -1800,7 +1800,7 @@ button {
 .map-pin {
   position: absolute;
   z-index: 3;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -1815,7 +1815,7 @@ button {
 
 .map-pin small {
   display: block;
-  font-size: 7px;
+  font-size: 10px;
   color: #91a5b5;
 }
 
@@ -1875,17 +1875,17 @@ button {
 }
 
 .event-row b {
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .event-row small {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--muted);
   margin-top: 3px;
 }
 
 .event-row time {
-  font-size: 8px;
+  font-size: 10px;
   color: #718699;
 }
 
@@ -1918,7 +1918,7 @@ button {
 }
 
 .mini-chart span {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--muted);
   margin-bottom: -16px;
 }
@@ -1952,7 +1952,7 @@ button {
 .donut span {
   z-index: 2;
   text-align: center;
-  font-size: 8px;
+  font-size: 10px;
   color: var(--muted);
 }
 
@@ -1968,7 +1968,7 @@ button {
 }
 
 .donut-wrap li {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted);
   margin: 10px 0;
 }
@@ -2072,7 +2072,7 @@ button {
 
 .camera-preparing small {
   color: #7892a3;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .camera-head .is-preparing i {
@@ -2087,7 +2087,7 @@ button {
   top: 10px;
   display: flex;
   justify-content: space-between;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .camera-head span {
@@ -2110,11 +2110,11 @@ button {
 }
 
 .camera-name b {
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .camera-name span {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--muted);
 }
 
@@ -2124,7 +2124,7 @@ button {
 }
 
 .detect-box span {
-  font-size: 7px;
+  font-size: 10px;
   background: var(--red);
   padding: 2px 4px;
 }
@@ -2153,7 +2153,7 @@ button {
   justify-content: center;
   align-items: center;
   gap: 7px;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .alert-action svg {
@@ -2185,12 +2185,12 @@ button {
 }
 
 .ppe-scope-banner b {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text);
 }
 
 .ppe-scope-banner span {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted);
 }
 
@@ -2204,7 +2204,7 @@ button {
   border-radius: 10px;
   background: #091925;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .ppe-monitor-state svg {
@@ -2273,12 +2273,12 @@ button {
 }
 
 .ppe-worker b {
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .ppe-worker small,
 .ppe-work-meta small {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--muted);
 }
 
@@ -2286,7 +2286,7 @@ button {
   gap: 5px;
   padding: 6px 9px;
   border-radius: 999px;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -2317,7 +2317,7 @@ button {
 }
 
 .ppe-work-meta span {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -2339,12 +2339,12 @@ button {
 }
 
 .ppe-equipment-result span {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--muted);
 }
 
 .ppe-equipment-result b {
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .ppe-equipment-result.safe b {
@@ -2376,7 +2376,7 @@ button {
   align-items: center;
   gap: 6px;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .ppe-monitor-card footer>span svg {
@@ -2395,7 +2395,7 @@ button {
   border-radius: 6px;
   background: #30c6f210;
   color: var(--cyan);
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .ppe-monitor-card footer button svg {
@@ -2464,12 +2464,12 @@ button {
 
 .ppe-flow-banner b {
   color: var(--text);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .ppe-flow-banner span {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .ppe-flow-banner > svg {
@@ -2519,7 +2519,7 @@ button {
 .ppe-summary-grid span,
 .ppe-summary-grid em {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 10px;
   font-style: normal;
 }
 
@@ -2530,7 +2530,7 @@ button {
 .ppe-summary-grid b small {
   margin-left: 2px;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .ppe-toolbar {
@@ -2563,7 +2563,7 @@ button {
   outline: 0;
   background: transparent;
   color: var(--text);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .ppe-filter-tabs {
@@ -2579,7 +2579,7 @@ button {
   border-radius: 999px;
   background: transparent;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .ppe-filter-tabs button.active {
@@ -2646,7 +2646,7 @@ button {
 .ppe-work-identity small,
 .ppe-work-identity p {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .ppe-work-identity h3 {
@@ -2671,11 +2671,11 @@ button {
 
 .ppe-work-progress span {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .ppe-work-progress b {
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .ppe-work-progress button {
@@ -2687,7 +2687,7 @@ button {
   border-radius: 8px;
   background: #30c6f210;
   color: var(--cyan);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -2745,12 +2745,12 @@ button {
 }
 
 .ppe-evidence-row b {
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .ppe-evidence-row small {
   color: var(--muted);
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .ppe-not-submitted {
@@ -2774,12 +2774,12 @@ button {
 }
 
 .ppe-not-submitted b {
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .ppe-not-submitted span {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .light-theme .ppe-flow-banner {
@@ -2916,7 +2916,7 @@ button {
   border: 0;
   outline: 0;
   color: white;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .permit-list>button {
@@ -2941,7 +2941,7 @@ button {
 }
 
 .permit-list button small {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--muted);
 }
 
@@ -2950,12 +2950,12 @@ button {
 }
 
 .permit-list button>b {
-  font-size: 11px;
+  font-size: 12px;
   margin: 8px 0 3px;
 }
 
 .permit-list button>span {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--muted);
 }
 
@@ -2970,7 +2970,7 @@ button {
 }
 
 .analysis-head span {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--muted);
 }
 
@@ -3017,11 +3017,11 @@ button {
 }
 
 .doc-preview b {
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .doc-preview span {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--muted);
 }
 
@@ -3035,7 +3035,7 @@ button {
 }
 
 .analysis-panel h4 {
-  font-size: 11px;
+  font-size: 12px;
   margin: 18px 0 8px;
 }
 
@@ -3053,11 +3053,11 @@ button {
 }
 
 .collision b {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .collision p {
-  font-size: 9px;
+  font-size: 11px;
   color: #a99385;
   margin: 4px 0;
 }
@@ -3074,11 +3074,11 @@ button {
 }
 
 .approval-item b {
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .approval-item small {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--muted);
   margin-top: 3px;
 }
@@ -3107,7 +3107,7 @@ button {
 }
 
 .risk-hero>div:first-child span {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted);
 }
 
@@ -3117,12 +3117,12 @@ button {
 }
 
 .risk-hero>div:first-child strong small {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
 }
 
 .risk-hero>div:first-child b {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--green);
 }
 
@@ -3161,7 +3161,7 @@ button {
   position: absolute;
   z-index: 3;
   bottom: 2px;
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .gauge span:last-child {
@@ -3169,7 +3169,7 @@ button {
 }
 
 .factors>b {
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .factors p {
@@ -3177,7 +3177,7 @@ button {
   grid-template-columns: 100px 1fr 30px;
   gap: 8px;
   align-items: center;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .factors p>i,.block-risk>div>i {
@@ -3194,7 +3194,7 @@ button {
 }
 
 .factors strong {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--orange);
 }
 
@@ -3216,7 +3216,7 @@ button {
   align-items: center;
   padding: 12px 0;
   border-bottom: 1px solid var(--border);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .block-risk>div>i em.red {
@@ -3240,7 +3240,7 @@ button {
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 6px;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .settings-grid {
@@ -3278,17 +3278,17 @@ button {
 }
 
 .setting-card b {
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .setting-card p {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted);
   margin: 4px 0;
 }
 
 .setting-card small {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--cyan);
 }
 
@@ -3317,12 +3317,12 @@ button {
 .table-head {
   background: #0d2231;
   color: #7f94a5;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .table-row {
   border-bottom: 1px solid var(--border);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .table-row span:last-child {
@@ -3670,12 +3670,12 @@ button {
 
 .analysis-decision b {
   color: #5fe0a7;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .analysis-decision span {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .analysis-decision.conditional {
@@ -3706,13 +3706,13 @@ button {
 }
 
 .analysis-safe b,.analysis-failed b {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .analysis-safe p,.analysis-failed p,.collision small {
   margin: 4px 0 0;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .analysis-failed {
@@ -3740,7 +3740,7 @@ button {
 }
 
 .manual-decision-row>span {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--muted);
   text-transform: uppercase;
@@ -3816,14 +3816,14 @@ button {
 .report-notification-controls b,
 .report-alert-target b {
   color: var(--text);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .report-notification-controls small,
 .report-alert-target span,
 .report-notify-confirm small {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .report-notify-confirm {
@@ -3873,7 +3873,7 @@ button {
 
 .report-alert-head span {
   color: var(--cyan);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: .12em;
 }
@@ -3923,7 +3923,7 @@ button {
   display: block;
   margin-bottom: 6px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -3963,19 +3963,19 @@ button {
 
 .report-alert-preview small {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .report-alert-preview b {
   margin-top: 5px;
   color: var(--text);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .report-alert-preview p {
   margin: 4px 0 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.55;
 }
 
@@ -3984,7 +3984,7 @@ button {
   gap: 7px;
   margin: 12px 0;
   color: var(--orange);
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.5;
 }
 
@@ -4005,7 +4005,7 @@ button {
   padding: 0 16px;
   border-radius: 8px;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 750;
   letter-spacing: -.01em;
 }
@@ -4021,7 +4021,7 @@ button {
 }
 
 .report-alert-head span {
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.2;
   letter-spacing: .14em;
 }
@@ -4040,12 +4040,12 @@ button {
 
 .report-alert-target span {
   gap: 3px;
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.35;
 }
 
 .report-alert-target b {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -4055,14 +4055,14 @@ button {
 
 .report-alert-dialog>label>span {
   margin-bottom: 7px;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
 .report-alert-dialog input,
 .report-alert-dialog textarea {
   font-family: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   line-height: 1.55;
   letter-spacing: -.01em;
@@ -4084,24 +4084,24 @@ button {
 }
 
 .report-alert-preview small {
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.4;
 }
 
 .report-alert-preview b {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
 .report-alert-preview p {
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.55;
 }
 
 .report-alert-caution {
   align-items: center;
   margin: 13px 0 0;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 650;
 }
 
@@ -4115,7 +4115,7 @@ button {
   padding: 0 15px;
   border-radius: 8px;
   font-family: inherit;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 750;
 }
 
@@ -4157,14 +4157,14 @@ button {
 }
 
 .permit-list-empty>b {
-  font-size: 11px;
+  font-size: 12px;
   color: #b8c7d2;
 }
 
 .permit-list-empty>span {
   max-width: 210px;
   margin-top: 5px;
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.6;
 }
 
@@ -4202,7 +4202,7 @@ button {
 }
 
 .permit-welcome>span {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   color: var(--cyan);
   letter-spacing: .16em;
@@ -4217,7 +4217,7 @@ button {
   max-width: 440px;
   margin: 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.8;
 }
 
@@ -4257,14 +4257,14 @@ button {
 }
 
 .approval-empty b {
-  font-size: 11px;
+  font-size: 12px;
   color: #cbd8e1;
 }
 
 .approval-empty small {
   margin-top: 4px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.6;
 }
 
@@ -4284,7 +4284,7 @@ button {
   padding: 0 14px;
   border-radius: 6px;
   font-family: inherit;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   line-height: 1;
   letter-spacing: 0;
@@ -4329,13 +4329,13 @@ button {
   border-radius: 10px;
   border: 1px solid var(--border);
   background: #25c8840d;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .permit-decision-status p {
   margin: 0;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .analysis-panel .permit-review-btn {
@@ -4395,7 +4395,7 @@ button {
 .selected-file {
   margin-top: 7px;
   color: #dce6ee;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .danger-submit {
@@ -4417,7 +4417,7 @@ button {
 }
 
 .report-count span {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
 }
 
@@ -4427,7 +4427,7 @@ button {
 }
 
 .report-count b small {
-  font-size: 10px;
+  font-size: 12px;
   margin-left: 3px;
   color: var(--muted);
 }
@@ -4442,11 +4442,11 @@ button {
 }
 
 .latest-report b {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .latest-report small {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--cyan);
 }
 
@@ -4461,7 +4461,7 @@ button {
 .empty-report {
   padding: 22px 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   text-align: center;
 }
 
@@ -5126,7 +5126,7 @@ button {
 }
 
 .my-report-list b {
-  font-size: 10px;
+  font-size: 12px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -5135,7 +5135,7 @@ button {
 .my-report-list small {
   margin-top: 3px;
   color: var(--cyan);
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .my-report-list em,.my-report-result-head .my-status {
@@ -5147,7 +5147,7 @@ button {
   display: inline-flex;
   padding: 3px 7px;
   border-radius: 10px;
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .my-status.received {
@@ -5183,7 +5183,7 @@ button {
 }
 
 .my-report-result-head>span {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -5229,7 +5229,7 @@ button {
   display: grid;
   place-items: center;
   background: #173041;
-  font-size: 7px;
+  font-size: 10px;
   font-style: normal;
 }
 
@@ -5238,7 +5238,7 @@ button {
 }
 
 .my-report-progress small {
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .my-report-progress>span.active {
@@ -5258,13 +5258,13 @@ button {
 }
 
 .my-action-result>b {
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .my-action-result>p {
   margin: 5px 0;
   color: #a8b8c4;
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.65;
 }
 
@@ -5273,7 +5273,7 @@ button {
   align-items: center;
   gap: 4px;
   color: #6f8798;
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .my-action-result>small svg {
@@ -5315,10 +5315,10 @@ button {
 }
 
 .equipment-review-draft-icon svg { width: 21px; }
-.equipment-review-draft-body span { color: #ff9c5a; font-size: 8px; font-weight: 900; letter-spacing: .12em; }
+.equipment-review-draft-body span { color: #ff9c5a; font-size: 10px; font-weight: 900; letter-spacing: .12em; }
 .equipment-review-draft-body h3 { margin: 4px 0; color: var(--text); font-size: 13px; }
-.equipment-review-draft-body p { margin: 0; color: #b6c6d1; font-size: 9px; }
-.equipment-review-draft-body small { display: block; margin-top: 5px; color: var(--muted); font-size: 8px; line-height: 1.5; }
+.equipment-review-draft-body p { margin: 0; color: #b6c6d1; font-size: 11px; }
+.equipment-review-draft-body small { display: block; margin-top: 5px; color: var(--muted); font-size: 10px; line-height: 1.5; }
 .equipment-review-draft-actions { display: flex; gap: 7px; }
 .equipment-review-draft-actions svg { width: 14px; }
 
@@ -5368,7 +5368,7 @@ button {
   border-radius: 6px;
   background: transparent;
   color: #8ba0b1;
-  font-size: 9px;
+  font-size: 11px;
   cursor: pointer;
 }
 
@@ -5410,7 +5410,7 @@ button {
 
 .worker-report-toolbar h3 small {
   color: var(--cyan);
-  font-size: 9px;
+  font-size: 11px;
   margin-left: 5px;
 }
 
@@ -5436,7 +5436,7 @@ button {
   outline: 0;
   background: transparent;
   color: #e7f0f7;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .worker-report-filters {
@@ -5453,7 +5453,7 @@ button {
   background: #0b1e2c;
   color: #8ba0b1;
   padding: 0 11px;
-  font-size: 8px;
+  font-size: 10px;
   cursor: pointer;
 }
 
@@ -5499,12 +5499,12 @@ button {
 .worker-report-list>button>small {
   display: block;
   color: var(--cyan);
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .worker-report-list>button>b {
   display: block;
-  font-size: 12px;
+  font-size: 13px;
   margin: 5px 0;
 }
 
@@ -5512,7 +5512,7 @@ button {
   height: 32px;
   margin: 0;
   color: #9aabba;
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.7;
   overflow: hidden;
   display: -webkit-box;
@@ -5526,7 +5526,7 @@ button {
   gap: 9px;
   margin-top: 10px;
   color: #708697;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .report-list-meta span {
@@ -5539,12 +5539,20 @@ button {
   width: 11px;
 }
 
+.report-permit-number {
+  color: #73d8f3;
+}
+
+.report-permit-number.deleted {
+  color: #a7b5c0;
+}
+
 .report-status {
   display: inline-flex;
   align-items: center;
   border-radius: 11px;
   padding: 3px 8px;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .report-status.received {
@@ -5583,7 +5591,7 @@ button {
 }
 
 .report-detail-head>div:first-child span {
-  font-size: 9px;
+  font-size: 11px;
   color: #8499aa;
 }
 
@@ -5652,7 +5660,7 @@ button {
 .report-detail-source dt,.report-detail-source dd {
   margin: 0;
   padding: 10px;
-  font-size: 9px;
+  font-size: 11px;
   display: flex;
   align-items: center;
 }
@@ -5675,13 +5683,13 @@ button {
 }
 
 .report-description b {
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .report-description p {
   margin: 6px 0 0;
   color: #aab9c5;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.7;
 }
 
@@ -5718,8 +5726,8 @@ button {
   grid-row: 1 / 3;
 }
 
-.report-action-history > button b { font-size: 11px; }
-.report-action-history > button small { color: #657f90; font-size: 9px; }
+.report-action-history > button b { font-size: 12px; }
+.report-action-history > button small { color: #657f90; font-size: 11px; }
 .report-action-history > button > svg { width: 17px; transition: transform .2s ease; }
 .report-action-history > button.expanded > svg { transform: rotate(180deg); }
 
@@ -5741,7 +5749,7 @@ button {
   border-radius: 999px;
   color: #72ddf7;
   background: rgba(33, 188, 230, .1);
-  font-size: 8px;
+  font-size: 10px;
   font-style: normal;
   font-weight: 900;
   text-align: center;
@@ -5752,10 +5760,10 @@ button {
   background: rgba(255, 117, 24, .12);
 }
 
-.report-action-history-list article b { color: #e4f4fa; font-size: 10px; }
-.report-action-history-list article p { margin: 5px 0; color: #b3c8d3; font-size: 10px; line-height: 1.6; white-space: pre-wrap; }
-.report-action-history-list article small { color: #607887; font-size: 8px; }
-.report-action-history-empty { padding: 14px 0 2px; border-top: 1px solid rgba(255,255,255,.06); color: #657f90; font-size: 10px; text-align: center; }
+.report-action-history-list article b { color: #e4f4fa; font-size: 12px; }
+.report-action-history-list article p { margin: 5px 0; color: #b3c8d3; font-size: 12px; line-height: 1.6; white-space: pre-wrap; }
+.report-action-history-list article small { color: #607887; font-size: 10px; }
+.report-action-history-empty { padding: 14px 0 2px; border-top: 1px solid rgba(255,255,255,.06); color: #657f90; font-size: 12px; text-align: center; }
 
 .ai-report-result {
   margin-top: 12px;
@@ -5785,13 +5793,13 @@ button {
 }
 
 .ai-result-title b {
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .ai-result-title span {
   margin-top: 2px;
   color: var(--cyan);
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .ai-result-metrics {
@@ -5822,18 +5830,18 @@ button {
 }
 
 .ai-result-metrics span {
-  font-size: 8px;
+  font-size: 10px;
   color: #788fa0;
 }
 
 .ai-result-metrics b {
-  font-size: 12px;
+  font-size: 13px;
   color: #eef6fa;
   margin-top: 3px;
 }
 
 .ai-result-metrics b small {
-  font-size: 7px;
+  font-size: 10px;
   color: #748b9b;
   margin-left: 2px;
 }
@@ -5865,11 +5873,11 @@ button {
 }
 
 .ai-result-text b {
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .ai-result-text p {
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.65;
   color: #9bacb9;
   margin: 5px 0 0;
@@ -5879,8 +5887,65 @@ button {
   display: block;
   margin-top: 9px;
   color: #718899;
-  font-size: 7px;
+  font-size: 10px;
 }
+
+.report-permit-reference {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-top: 12px;
+  padding: 11px 13px;
+  border: 1px solid rgba(48,198,242,.28);
+  border-radius: 8px;
+  background: rgba(48,198,242,.065);
+}
+
+.report-permit-reference>svg {
+  width: 18px;
+  color: var(--cyan);
+}
+
+.report-permit-reference>span {
+  display: grid;
+  gap: 2px;
+}
+
+.report-permit-reference small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.report-permit-reference b {
+  color: #e7f3f8;
+  font-size: 13px;
+}
+
+.report-permit-reference>i {
+  margin-left: auto;
+  padding: 4px 8px;
+  border-radius: 10px;
+  background: rgba(132,164,192,.12);
+  color: #aab9c5;
+  font-size: 12px;
+  font-style: normal;
+}
+
+.report-permit-reference.deleted {
+  border-color: rgba(132,164,192,.24);
+  background: rgba(132,164,192,.055);
+}
+
+.report-permit-reference.deleted>svg {
+  color: #94a5b3;
+}
+
+.light-theme .report-permit-number { color: #087d9f; }
+.light-theme .report-permit-number.deleted { color: #5e707d; }
+.light-theme .report-permit-reference { border-color: #a9d3de; background: #edf8fa; }
+.light-theme .report-permit-reference.deleted { border-color: #cbd6dd; background: #f5f7f8; }
+.light-theme .report-permit-reference b { color: #203746; }
+.light-theme .report-permit-reference>i { color: #536875; background: #e4eaee; }
 
 .equipment-event-result {
   border-color: #ff741746;
@@ -5905,8 +5970,8 @@ button {
 }
 
 .equipment-event-grid span,.equipment-event-grid b { display: block; }
-.equipment-event-grid span { color: #788fa0; font-size: 8px; }
-.equipment-event-grid b { margin-top: 4px; color: #eef6fa; font-size: 10px; }
+.equipment-event-grid span { color: #788fa0; font-size: 10px; }
+.equipment-event-grid b { margin-top: 4px; color: #eef6fa; font-size: 12px; }
 
 .ai-pending-message {
   display: flex;
@@ -5924,13 +5989,13 @@ button {
 }
 
 .ai-pending-message b {
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .ai-pending-message p {
   margin: 4px 0 0;
   color: #8297a6;
-  font-size: 8px;
+  font-size: 10px;
   line-height: 1.6;
 }
 
@@ -5939,7 +6004,7 @@ button {
 }
 
 .report-progress>b {
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .report-progress>div {
@@ -5955,7 +6020,7 @@ button {
   align-items: center;
   gap: 5px;
   color: #6e8394;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .report-progress span:before {
@@ -6016,11 +6081,11 @@ button {
   justify-content: space-between;
   gap: 10px;
   color: var(--text);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
 }
 
-.report-action-assignee>span small { color: var(--muted); font-size: 8px; font-weight: 400; }
+.report-action-assignee>span small { color: var(--muted); font-size: 10px; font-weight: 400; }
 
 .report-action-assignee select {
   width: 100%;
@@ -6032,13 +6097,13 @@ button {
   outline: 0;
   background: #07141f;
   color: #dbe7ee;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .report-action-assignee select:focus { border-color: #30c6f266; }
 
 .report-action-comment>span {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -6054,7 +6119,7 @@ button {
   border-radius: 7px;
   outline: 0;
   color: #dbe7ee;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .report-action-comment textarea:focus {
@@ -6091,7 +6156,7 @@ button {
   color: var(--green);
   padding: 0 16px;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 750;
   line-height: 1;
   letter-spacing: -.01em;
@@ -6111,7 +6176,7 @@ button {
   color: #ff8b94;
   padding: 0 16px;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 750;
   cursor: pointer;
 }
@@ -6139,7 +6204,7 @@ button {
   justify-content: center;
   gap: 8px;
   color: #738999;
-  font-size: 10px;
+  font-size: 12px;
   text-align: center;
 }
 
@@ -6174,7 +6239,7 @@ button {
   border: 1px solid #ffffff32;
   border-radius: 6px;
   background: #03101dcc;
-  font-size: 8px;
+  font-size: 10px;
   opacity: 0;
   transform: translateY(4px);
   transition: .18s;
@@ -6215,7 +6280,7 @@ button {
   position: absolute;
   bottom: 15px;
   color: #8da1af;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .lightbox-close {
@@ -6247,7 +6312,7 @@ button {
 }
 
 .ai-pending-message>b {
-  font-size: 10px;
+  font-size: 12px;
 }
 
 @media (max-width:1180px) {
@@ -6334,7 +6399,7 @@ button {
 
 .modal-head span {
   color: var(--cyan);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: .14em;
 }
@@ -6374,7 +6439,7 @@ button {
 
 .permit-form-grid label>span {
   color: #9db1c1;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -6438,7 +6503,7 @@ button {
 .permit-upload>b {
   min-width: 0;
   overflow: hidden;
-  font-size: 12px;
+  font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -6447,7 +6512,7 @@ button {
   min-width: 0;
   overflow: hidden;
   color: #7f95a6;
-  font-size: 10px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -6483,7 +6548,7 @@ button {
   min-height: 40px;
   padding: 0 16px;
   border-radius: 8px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -6556,7 +6621,7 @@ button {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 10px;
+  font-size: 12px;
   cursor: pointer;
 }
 
@@ -6669,7 +6734,7 @@ button {
   padding: 0 13px;
   border-radius: 6px;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   line-height: 1;
   letter-spacing: 0;
@@ -6827,7 +6892,7 @@ button {
   border-radius: 999px;
   background: #102633;
   color: #8fa7b6;
-  font-size: 11px;
+  font-size: 12px;
   white-space: nowrap;
 }
 
@@ -6879,7 +6944,7 @@ button {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .permit-trash-info small i {
@@ -6910,7 +6975,7 @@ button {
 .permit-trash-status {
   width: max-content;
   color: #ee8993;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: .08em;
 }
@@ -6924,7 +6989,7 @@ button {
   height: 33px;
   min-height: 33px;
   padding: 0 11px;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .permit-trash-empty {
@@ -6934,7 +6999,7 @@ button {
   border: 1px dashed #2d4656;
   border-radius: 9px;
   background: #0b1c27a6;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .light-theme .permit-trash {
@@ -7062,7 +7127,7 @@ button {
 .twin-header>div:first-child>span {
   display: block;
   color: var(--cyan);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: .16em;
   margin-bottom: 7px;
@@ -7077,7 +7142,7 @@ button {
 .twin-header p {
   margin: 6px 0 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .twin-live {
@@ -7085,7 +7150,7 @@ button {
   align-items: center;
   gap: 7px;
   color: var(--green);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -7145,7 +7210,7 @@ button {
 }
 
 .twin-stat span {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted);
 }
 
@@ -7155,7 +7220,7 @@ button {
 }
 
 .twin-stat small {
-  font-size: 8px;
+  font-size: 10px;
   color: #657b8d;
 }
 
@@ -7183,14 +7248,14 @@ button {
 }
 
 .twin-panel-head span {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--muted);
   margin-top: 3px;
 }
 
 .live-dot,.scenario-chip {
   font-style: normal;
-  font-size: 8px;
+  font-size: 10px;
   color: var(--green);
   background: #36d39a12;
   border: 1px solid #36d39a35;
@@ -7267,18 +7332,18 @@ button {
 
 .facility-name {
   fill: #ecf5fa;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
 }
 
 .facility-meta {
   fill: #9bb1c0;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .facility-enter {
   fill: #4ed2f4;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
 }
 
@@ -7311,12 +7376,12 @@ button {
 
 .yard-legend text {
   fill: #b5c5cf;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .yard-legend .legend-help {
   fill: #6f8798;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .yard-legend circle.legend-low {
@@ -7367,11 +7432,11 @@ button {
 }
 
 .facility-list b {
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .facility-list small {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--muted);
   margin-top: 3px;
 }
@@ -7418,11 +7483,11 @@ button {
 }
 
 .yard-note b {
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .yard-note span {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--muted);
   line-height: 1.6;
   margin-top: 4px;
@@ -7447,7 +7512,7 @@ button {
   background: #0a1d2a;
   border-radius: 7px;
   padding: 8px 10px;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .twin-back svg {
@@ -7494,7 +7559,7 @@ button {
 
 .shop-zone-label {
   fill: #648194;
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: .12em;
 }
 
@@ -7531,13 +7596,13 @@ button {
 
 .robot-code {
   fill: #e5f2f7;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
 }
 
 .robot-state {
   fill: #5dcaec;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .twin-robot.alarm .robot-base,.twin-robot.alarm .robot-label-bg {
@@ -7586,7 +7651,7 @@ button {
 
 .shop-camera text {
   fill: #55c7e8;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .shop-overlay {
@@ -7621,12 +7686,12 @@ button {
 }
 
 .shop-overlay b {
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .shop-overlay small {
   color: var(--muted);
-  font-size: 7px;
+  font-size: 10px;
   margin-top: 2px;
 }
 
@@ -7656,7 +7721,7 @@ button {
   place-items: center;
   background: #102a3a;
   color: #7890a1;
-  font-size: 9px;
+  font-size: 11px;
   border: 1px solid var(--border);
 }
 
@@ -7682,12 +7747,12 @@ button {
 }
 
 .process-step b {
-  font-size: 9px;
+  font-size: 11px;
   white-space: nowrap;
 }
 
 .process-step small {
-  font-size: 7px;
+  font-size: 10px;
   color: var(--muted);
   margin-top: 2px;
 }
@@ -7740,11 +7805,11 @@ button {
 }
 
 .robot-summary b {
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .robot-summary span {
-  font-size: 7px;
+  font-size: 10px;
   color: var(--muted);
   margin-top: 3px;
 }
@@ -7791,7 +7856,7 @@ button {
 }
 
 .metric span {
-  font-size: 7px;
+  font-size: 10px;
   color: var(--muted);
 }
 
@@ -7801,7 +7866,7 @@ button {
 }
 
 .metric b small {
-  font-size: 7px;
+  font-size: 10px;
   color: #7990a1;
   margin-left: 3px;
 }
@@ -7825,12 +7890,12 @@ button {
 }
 
 .axis-grid small {
-  font-size: 6px;
+  font-size: 10px;
   color: #6c8497;
 }
 
 .axis-grid b {
-  font-size: 10px;
+  font-size: 12px;
   margin-top: 2px;
 }
 
@@ -7841,7 +7906,7 @@ button {
   border-radius: 6px;
   display: flex;
   justify-content: space-between;
-  font-size: 7px;
+  font-size: 10px;
   color: var(--muted);
 }
 
@@ -7868,7 +7933,7 @@ button {
   border: 1px solid var(--border);
   border-radius: 7px;
   padding: 0 11px;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .scenario-controls button {
@@ -7878,7 +7943,7 @@ button {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -7901,7 +7966,7 @@ button {
 }
 
 .scenario-panel>p {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--muted);
   line-height: 1.7;
   margin: 10px 0 0;
@@ -7938,11 +8003,11 @@ button {
 }
 
 .alarm-item b {
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .alarm-item span {
-  font-size: 7px;
+  font-size: 10px;
   color: var(--muted);
   margin-top: 2px;
 }
@@ -7952,12 +8017,12 @@ button {
   background: #ff526312;
   color: #ff8290;
   border-radius: 5px;
-  font-size: 7px;
+  font-size: 10px;
   padding: 4px 7px;
 }
 
 .alarm-item>small {
-  font-size: 7px;
+  font-size: 10px;
   color: var(--green);
 }
 
@@ -7968,7 +8033,7 @@ button {
   justify-content: center;
   gap: 7px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .empty-state svg {
@@ -8006,17 +8071,17 @@ button {
 }
 
 .history-toggle b {
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .history-toggle span {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--muted);
   margin-top: 2px;
 }
 
 .history-toggle strong {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--cyan);
 }
 
@@ -8057,7 +8122,7 @@ button {
   gap: 14px;
   align-items: center;
   padding-top: 8px;
-  font-size: 7px;
+  font-size: 10px;
   color: var(--muted);
 }
 
@@ -8105,7 +8170,7 @@ button {
 }
 
 .twin-state span {
-  font-size: 9px;
+  font-size: 11px;
   margin-top: 5px;
 }
 
@@ -8120,7 +8185,7 @@ button {
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 8px 14px;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 @keyframes robot-work {
@@ -8315,7 +8380,7 @@ button {
   color: #8196a6;
   border-radius: 5px;
   padding: 0 9px;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .yard-filters button.active {
@@ -8342,7 +8407,7 @@ button {
 .yard-zoom span {
   min-width: 38px;
   text-align: center;
-  font-size: 8px;
+  font-size: 10px;
   color: #a9bbc6;
 }
 
@@ -8356,7 +8421,7 @@ button {
 
 .yard-zone-labels text {
   fill: #78a4b5;
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: .1em;
   opacity: .55;
 }
@@ -8447,11 +8512,11 @@ button {
 }
 
 .yard-facility .facility-name {
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .yard-facility .facility-meta {
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .dock-basin {
@@ -8489,7 +8554,7 @@ button {
 
 .yard-compass text,.yard-scale text {
   fill: #8ba6b4;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .yard-scale path {
@@ -8509,7 +8574,7 @@ button {
   border: 1px solid #31576a;
   border-radius: 8px;
   padding: 9px 12px;
-  font-size: 8px;
+  font-size: 10px;
   color: #aec0ca;
   backdrop-filter: blur(8px);
 }
@@ -8569,18 +8634,18 @@ button {
 }
 
 .yard-selection-card>span {
-  font-size: 7px;
+  font-size: 10px;
   color: var(--cyan);
   letter-spacing: .1em;
 }
 
 .yard-selection-card>b {
-  font-size: 12px;
+  font-size: 13px;
   margin-top: 4px;
 }
 
 .yard-selection-card>p {
-  font-size: 8px;
+  font-size: 10px;
   color: var(--muted);
   margin: 5px 0 9px;
 }
@@ -8605,7 +8670,7 @@ button {
   border: 1px solid var(--border);
   background: #0d2938;
   border-radius: 5px;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .facility-list-panel {
@@ -8637,7 +8702,7 @@ button {
 }
 
 .facility-list button strong {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 @media (max-width:1250px) {
@@ -8749,7 +8814,7 @@ button {
   align-items: center;
   gap: 6px;
   color: #70899a;
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: .02em;
 }
 
@@ -8786,13 +8851,13 @@ button {
 }
 
 .yard-scene-brand b {
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: .14em;
   color: #85e6ff;
 }
 
 .yard-scene-brand span {
-  font-size: 6px;
+  font-size: 10px;
   color: #58798a;
   letter-spacing: .12em;
   margin-top: 3px;
@@ -8809,7 +8874,7 @@ button {
   display: grid;
   place-items: center;
   color: #87c9dc;
-  font-size: 8px;
+  font-size: 10px;
   pointer-events: none;
 }
 
@@ -8850,19 +8915,19 @@ button {
 }
 
 .three-facility-label span {
-  font-size: 6px;
+  font-size: 10px;
   letter-spacing: .12em;
   color: #48d9fa;
 }
 
 .three-facility-label b {
-  font-size: 10px;
+  font-size: 12px;
   color: #f0f8fb;
   margin-top: 3px;
 }
 
 .three-facility-label small {
-  font-size: 6px;
+  font-size: 10px;
   color: #7e9aaa;
   margin-top: 3px;
 }
@@ -8925,11 +8990,11 @@ button {
 }
 
 .shop-scene-status b {
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .shop-scene-status span {
-  font-size: 6px;
+  font-size: 10px;
   color: #6f8998;
   margin-top: 2px;
 }
@@ -8946,7 +9011,7 @@ button {
   border: 1px solid rgba(255,179,0,.45);
   background: rgba(255,179,0,.12);
   color: #ffb300;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
   letter-spacing: .08em;
   white-space: nowrap;
@@ -8970,7 +9035,7 @@ button {
   color: #6b8798;
   border-radius: 7px;
   padding: 7px 10px;
-  font-size: 7px;
+  font-size: 10px;
   pointer-events: none;
 }
 
@@ -8996,18 +9061,18 @@ button {
 }
 
 .three-robot-label span {
-  font-size: 6px;
+  font-size: 10px;
   color: #46d5f6;
   letter-spacing: .08em;
 }
 
 .three-robot-label b {
-  font-size: 9px;
+  font-size: 11px;
   margin: 2px 0;
 }
 
 .three-robot-label small {
-  font-size: 6px;
+  font-size: 10px;
   color: #8198a8;
 }
 
@@ -9018,7 +9083,7 @@ button {
   border: 1px solid rgba(70,193,225,.3);
   border-radius: 5px;
   padding: 4px 7px;
-  font-size: 6px;
+  font-size: 10px;
 }
 
 .operations-grid {
@@ -9044,7 +9109,7 @@ button {
 }
 
 .operation-kpis span {
-  font-size: 7px;
+  font-size: 10px;
   color: #758c9d;
 }
 
@@ -9063,7 +9128,7 @@ button {
 }
 
 .operation-kpis small {
-  font-size: 7px;
+  font-size: 10px;
   color: #637b8d;
 }
 
@@ -9148,7 +9213,7 @@ button {
   align-items: center;
   gap: 6px;
   color: #70899a;
-  font-size: 8px;
+  font-size: 10px;
   margin-right: 4px;
 }
 
@@ -9191,7 +9256,7 @@ button {
 }
 
 .shop-camera-controls>span {
-  font-size: 7px;
+  font-size: 10px;
   color: #708999;
   padding: 0 6px;
 }
@@ -9203,7 +9268,7 @@ button {
   border-radius: 6px;
   background: rgba(4,18,27,.88);
   color: #b8d0da;
-  font-size: 7px;
+  font-size: 10px;
   box-shadow: 0 8px 24px #0008;
 }
 
@@ -9251,12 +9316,12 @@ button {
 
 .ppe-detection span {
   color: #8298a9;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .ppe-detection b {
   margin-top: 5px;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .ppe-detection.on b {
@@ -9293,7 +9358,7 @@ button {
   width: 100%;
   margin-bottom: 7px;
   color: #9eb2bf;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .permit-worker-field legend small {
@@ -9356,13 +9421,13 @@ button {
 
 .permit-worker-options b {
   color: #e7f0f4;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .permit-worker-options small {
   margin-top: 3px;
   color: #6e8797;
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .permit-worker-empty {
@@ -9370,7 +9435,7 @@ button {
   border: 1px dashed rgba(89,147,169,.2);
   border-radius: 7px;
   color: #6e8797;
-  font-size: 8px;
+  font-size: 10px;
   text-align: center;
 }
 
@@ -9386,7 +9451,7 @@ button {
   display: block;
   margin-bottom: 7px;
   color: #718999;
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -9402,18 +9467,18 @@ button {
   border-radius: 6px;
   color: #dce9ee;
   background: rgba(48,198,242,.05);
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .permit-assigned-summary small {
   margin-left: 5px;
   color: #668595;
-  font-size: 6px;
+  font-size: 10px;
 }
 
 .permit-assigned-summary em {
   color: #637c8c;
-  font-size: 8px;
+  font-size: 10px;
   font-style: normal;
 }
 
@@ -9429,7 +9494,7 @@ button {
 .light-theme .permit-assigned-summary > span {
   margin-bottom: 8px;
   color: #607888;
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: .01em;
 }
 
@@ -9535,7 +9600,7 @@ button {
   position: relative;
   padding-left: 14px;
   color: #8298aa;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: .035em;
 }
@@ -9585,7 +9650,7 @@ button {
 }
 
 .topnav-menu>button small {
-  font-size: 8px;
+  font-size: 10px;
   line-height: 1;
 }
 
@@ -9626,7 +9691,7 @@ button {
   height: 15px;
   border-radius: 8px;
   border: 2px solid #07131f;
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .topnav-profile {
@@ -9714,7 +9779,7 @@ button {
 .profile-summary small {
   margin-bottom: 3px;
   color: #71889a;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .profile-summary b {
@@ -9734,7 +9799,7 @@ button {
   border-radius: 10px;
   background: transparent;
   color: #91a5b5;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   transition: color .18s ease,background-color .18s ease;
@@ -9789,4 +9854,72 @@ button {
   .profile-trigger { height: 38px; }
   .profile-trigger>svg { display: none; }
   .profile-menu { position: fixed; top: 66px; right: 10px; }
+}
+
+/* Readability baseline: keep the dense dashboard layout while making Korean text easier to scan. */
+:root {
+  --muted: #9babb9;
+  --border: rgba(151,181,205,.27);
+}
+
+body {
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.app-shell:not(.light-theme) {
+  color: #f1f6fa;
+}
+
+.app-shell:not(.light-theme) .sidebar nav button,
+.app-shell:not(.light-theme) .topnav-menu>button,
+.app-shell:not(.light-theme) .profile-trigger,
+.app-shell:not(.light-theme) .top-actions>button {
+  color: #a7b8c5;
+}
+
+.app-shell:not(.light-theme) input::placeholder,
+.app-shell:not(.light-theme) textarea::placeholder {
+  color: #91a3b1;
+  opacity: 1;
+}
+
+.app-shell:not(.light-theme) .text-slate-500,
+.app-shell:not(.light-theme) .text-slate-600,
+.app-shell:not(.light-theme) .text-slate-700 {
+  color: #9babb9 !important;
+}
+
+.app-shell:not(.light-theme) .worker-report-list>button>p,
+.app-shell:not(.light-theme) .report-list-meta,
+.app-shell:not(.light-theme) .report-detail-head>div:first-child span,
+.app-shell:not(.light-theme) .report-detail-source dt,
+.app-shell:not(.light-theme) .equipment-review-draft-body small {
+  color: #a6b7c4;
+}
+
+.app-shell.light-theme {
+  --border: #c9d6de;
+  --muted: #526675;
+  color: #142531;
+}
+
+.light-theme input::placeholder,
+.light-theme textarea::placeholder {
+  color: #667986;
+  opacity: 1;
+}
+
+.light-theme .twin-theme-page .text-slate-600,
+.light-theme .twin-theme-page .text-slate-700 {
+  color: #526276 !important;
+}
+
+.light-theme .worker-report-list>button>p,
+.light-theme .report-list-meta,
+.light-theme .report-detail-head>div:first-child span,
+.light-theme .report-detail-source dt,
+.light-theme .equipment-review-draft-body small {
+  color: #526675;
 }

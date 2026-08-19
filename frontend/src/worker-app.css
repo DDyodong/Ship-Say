@@ -7,8 +7,8 @@
   --worker-green: #36d39a;
   --worker-red: #ff5263;
   --worker-text: #ecf4fb;
-  --worker-muted: #8293a6;
-  --worker-border: #2b4052;
+  --worker-muted: #a0b0bd;
+  --worker-border: #3a5367;
   width: 100%;
   min-height: 100vh;
   display: flex;
@@ -63,7 +63,7 @@
   overflow: hidden;
   margin: 4px 0 0;
   color: var(--worker-muted);
-  font-size: 10px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -142,7 +142,7 @@
 .worker-muted {
   margin: 0;
   color: var(--worker-muted);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.55;
 }
 
@@ -178,13 +178,13 @@
 
 .worker-notification-heading > b {
   color: var(--worker-cyan);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .worker-notification-empty {
   padding: 18px 4px 6px;
   color: var(--worker-muted);
-  font-size: 11px;
+  font-size: 12px;
   text-align: center;
 }
 
@@ -233,19 +233,19 @@
 
 .worker-notification-copy b {
   color: var(--worker-text);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .worker-notification-copy p {
   margin: 3px 0;
   color: var(--worker-muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
 .worker-notification-copy small {
   color: #708898;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .worker-notification-list article > button {
@@ -258,7 +258,7 @@
   border-radius: 8px;
   color: var(--worker-cyan);
   background: rgba(35, 210, 232, .08);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   cursor: pointer;
 }
@@ -279,7 +279,7 @@
   align-items: center;
   gap: 5px;
   color: var(--worker-green);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -303,13 +303,13 @@
 .worker-info-row span {
   flex: 1;
   color: var(--worker-muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .worker-info-row b {
   max-width: 70%;
   color: var(--worker-text);
-  font-size: 12px;
+  font-size: 13px;
   text-align: right;
   line-height: 1.4;
 }
@@ -346,7 +346,7 @@
 
 .worker-section-title span {
   color: var(--worker-muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .worker-action-card {
@@ -405,7 +405,7 @@
 .worker-action-card small {
   margin-top: 4px;
   color: var(--worker-muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .worker-action-card > svg {
@@ -470,7 +470,7 @@
 
 .worker-eyebrow {
   color: var(--worker-cyan);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: .12em;
 }
@@ -517,11 +517,11 @@
 
 .worker-photo-preview > b {
   color: var(--worker-text);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .worker-photo-preview > span {
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .worker-photo-preview input {
@@ -567,7 +567,7 @@
   border-radius: 9px;
   color: var(--worker-text);
   background: var(--worker-surface);
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -622,7 +622,7 @@
 .worker-ppe-status small {
   margin-top: 3px;
   color: var(--worker-muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .worker-ppe-status button {
@@ -634,7 +634,7 @@
   border-radius: 7px;
   color: var(--worker-cyan);
   background: var(--worker-surface-alt);
-  font-size: 9px;
+  font-size: 11px;
   cursor: pointer;
 }
 
@@ -646,7 +646,7 @@
   display: block;
   margin: 17px 0 7px;
   color: var(--worker-muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .worker-field {
@@ -658,7 +658,7 @@
   outline: none;
   color: var(--worker-text);
   background: var(--worker-surface-alt);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .worker-field:focus {
@@ -703,12 +703,12 @@
 
 .worker-report-record > div b {
   color: var(--worker-cyan);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .worker-report-record > div span {
   color: var(--worker-orange);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -725,7 +725,7 @@
   display: block;
   margin-top: 9px;
   color: #657b8d;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .worker-completion-report {
@@ -742,13 +742,13 @@
 
 .worker-completion-report > b {
   color: var(--worker-orange);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .worker-completion-report > p {
   margin: 4px 0 9px;
   color: var(--worker-muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .worker-completion-report textarea {
@@ -827,7 +827,7 @@
 
 .worker-profile-permission-box span {
   color: var(--worker-muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .worker-profile-permission-box b {
@@ -839,7 +839,7 @@
 .worker-profile-permission-box small {
   margin-top: 5px;
   color: #91a5b4;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -854,7 +854,7 @@
 .worker-server-caption {
   margin: 14px 0;
   color: var(--worker-muted);
-  font-size: 9px;
+  font-size: 11px;
   text-align: center;
 }
 
@@ -886,7 +886,7 @@
   max-width: 290px;
   margin: 7px 0 0;
   color: var(--worker-muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.55;
 }
 
@@ -921,7 +921,7 @@
 
 .worker-bottom-nav button b {
   margin-top: 2px;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 500;
   line-height: 1.15;
   overflow-wrap: anywhere;

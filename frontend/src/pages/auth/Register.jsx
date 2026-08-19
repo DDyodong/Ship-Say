@@ -59,9 +59,9 @@ function Register({ onBack, onRegistered, notify, theme, onToggleTheme }) {
     } catch (error) { notify(error.message); } finally { setSubmitting(false); }
   };
 
-  const labelCls = "text-[9px] font-black text-slate-300 dark:text-white/30 uppercase tracking-[0.15em] group-focus-within:text-brand transition-colors";
+  const labelCls = "text-[11px] font-black text-slate-300 dark:text-white/30 uppercase tracking-[0.15em] group-focus-within:text-brand transition-colors";
   const inputCls = "w-full py-2 pr-8 text-base font-bold text-dark dark:text-white outline-none bg-transparent border-b-2 border-slate-200 dark:border-white/15 focus:border-brand focus:pl-2 transition-all duration-300 placeholder:text-slate-200 dark:placeholder:text-white/20";
-  const pillCls = (active) => `shrink-0 px-3.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1 transition-colors ${
+  const pillCls = (active) => `shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-black uppercase tracking-widest flex items-center gap-1 transition-colors ${
     active ? "bg-emerald-50 text-emerald-600" : "bg-dark text-white dark:bg-white dark:text-dark hover:bg-brand dark:hover:bg-brand dark:hover:text-white"}`;
 
   return <div className={isDark ? "dark" : ""}>
@@ -99,7 +99,7 @@ function Register({ onBack, onRegistered, notify, theme, onToggleTheme }) {
           </div>
 
           <div className="bg-white/5 backdrop-blur-2xl border border-white/10 p-4 rounded-2xl">
-            <p className="text-white/60 text-[10px] font-bold leading-relaxed uppercase tracking-widest">
+            <p className="text-white/60 text-[12px] font-bold leading-relaxed uppercase tracking-widest">
               Authorized Personnel Only.<br/>Verification Required.
             </p>
           </div>
@@ -135,7 +135,7 @@ function Register({ onBack, onRegistered, notify, theme, onToggleTheme }) {
             </div>
 
             <div className="flex items-center justify-between -mt-2.5">
-              <span className="text-[10px] font-bold text-slate-400 dark:text-white/40">이름·사번 입력 후 인증이 필요합니다.</span>
+              <span className="text-[12px] font-bold text-slate-400 dark:text-white/40">이름·사번 입력 후 인증이 필요합니다.</span>
               <button type="button" onClick={verifyEmployee} className={pillCls(employeeVerified)}>
                 {employeeVerified ? `${employeeRole === "ADMIN" ? "관리자" : "작업자"} 인증됨` : "사번인증"}
                 {employeeVerified && <Check size={11}/>}
@@ -177,19 +177,19 @@ function Register({ onBack, onRegistered, notify, theme, onToggleTheme }) {
 
             <div className="flex flex-wrap gap-x-4 gap-y-1 -mt-3">
               {[["length", "10~16자"], ["letter", "영문"], ["number", "숫자"], ["special", "특수문자"]].map(([key, label]) => (
-                <span key={key} className={`text-[10px] font-bold flex items-center gap-1 ${passwordRules[key] ? "text-emerald-600" : "text-slate-300 dark:text-white/20"}`}>
+                <span key={key} className={`text-[12px] font-bold flex items-center gap-1 ${passwordRules[key] ? "text-emerald-600" : "text-slate-300 dark:text-white/20"}`}>
                   <Check size={10}/>{label}
                 </span>
               ))}
             </div>
 
             <div className="flex items-center justify-between gap-3">
-              <label className="flex items-center gap-2 text-[11px] font-bold text-slate-500 dark:text-white/50">
+              <label className="flex items-center gap-2 text-[12px] font-bold text-slate-500 dark:text-white/50">
                 <input type="checkbox" checked={termsAgreed} onChange={(e) => setTermsAgreed(e.target.checked)} className="w-3.5 h-3.5 accent-brand"/>
                 <span><b className="text-dark dark:text-white">[필수]</b> 이용약관 및 개인정보 수집·이용에 동의합니다.</span>
               </label>
               <button type="button" onClick={() => setTermsOpen(true)}
-                className="shrink-0 text-[10px] font-black text-slate-400 dark:text-white/40 hover:text-brand transition-colors uppercase tracking-widest">내용 보기</button>
+                className="shrink-0 text-[12px] font-black text-slate-400 dark:text-white/40 hover:text-brand transition-colors uppercase tracking-widest">내용 보기</button>
             </div>
 
             <button type="submit" disabled={!canSubmit || submitting}

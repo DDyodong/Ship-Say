@@ -235,15 +235,15 @@ function EquipmentTwinScene({ factory, selectedAsset, onSelectAsset }) {
       </Suspense>
     </Canvas>
     <div className="absolute left-4 top-4 rounded-xl border border-white/10 bg-[#07131e]/85 px-3 py-2 backdrop-blur-xl">
-      <div className="flex items-center gap-2 text-[9px] font-black tracking-[.15em] text-cyan-300"><ScanLine size={13}/> EQUIPMENT TWIN</div>
-      <p className="mt-1 text-[10px] text-slate-400">설비를 선택하면 부품 단위 진단 정보가 연동됩니다.</p>
+      <div className="flex items-center gap-2 text-[11px] font-black tracking-[.15em] text-cyan-300"><ScanLine size={13}/> EQUIPMENT TWIN</div>
+      <p className="mt-1 text-[12px] text-slate-400">설비를 선택하면 부품 단위 진단 정보가 연동됩니다.</p>
       <div className="mt-1.5 flex items-center gap-1.5">
         <span className="sim-badge inline-flex">VALIDATION MODE</span>
       </div>
     </div>
     <button onClick={resetCamera} className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-[#07131e]/85 text-slate-300 backdrop-blur-xl hover:text-white" aria-label="3D 화면 초기화"><RotateCcw size={15}/></button>
-    {factory.profileKey === "DOCK" && <div className={`absolute bottom-4 right-4 rounded-xl border px-3 py-2 text-[9px] font-black backdrop-blur-xl ${dockState === "FLOODING" ? "border-cyan-300/30 bg-cyan-400/10 text-cyan-200" : "border-amber-300/25 bg-[#1a1710]/90 text-amber-200"}`}><span className="block text-[8px] tracking-[.14em] opacity-70">DOCK CONDITION</span>{dockState === "FLOODING" ? "FLOODING · 침수 진행" : "DRY BUILDING · 선박 건조 중"}</div>}
-    <div className="absolute bottom-4 left-4 flex items-center gap-2 rounded-xl border border-white/10 bg-[#07131e]/85 px-3 py-2 text-[9px] text-slate-400 backdrop-blur-xl"><Box size={13} className="text-cyan-300"/> 드래그 회전 · 휠 확대 · 설비 클릭</div>
+    {factory.profileKey === "DOCK" && <div className={`absolute bottom-4 right-4 rounded-xl border px-3 py-2 text-[11px] font-black backdrop-blur-xl ${dockState === "FLOODING" ? "border-cyan-300/30 bg-cyan-400/10 text-cyan-200" : "border-amber-300/25 bg-[#1a1710]/90 text-amber-200"}`}><span className="block text-[10px] tracking-[.14em] opacity-70">DOCK CONDITION</span>{dockState === "FLOODING" ? "FLOODING · 침수 진행" : "DRY BUILDING · 선박 건조 중"}</div>}
+    <div className="absolute bottom-4 left-4 flex items-center gap-2 rounded-xl border border-white/10 bg-[#07131e]/85 px-3 py-2 text-[11px] text-slate-400 backdrop-blur-xl"><Box size={13} className="text-cyan-300"/> 드래그 회전 · 휠 확대 · 설비 클릭</div>
   </div>;
 }
 
@@ -261,7 +261,7 @@ function SafetyZone({ alarmPosition }) {
   return <group position={[alarmPosition[0], .04, alarmPosition[2]]}>
     <mesh rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[2.1, 2.22, 64]}/><meshBasicMaterial color="#ff354d" transparent opacity={.92}/></mesh>
     <mesh ref={pulseRef} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[2.1, 64]}/><meshBasicMaterial color="#ff263f" transparent opacity={.12} depthWrite={false}/></mesh>
-    <Html center position={[0, .18, -2.45]} distanceFactor={10}><div className="whitespace-nowrap rounded-lg border border-red-400/50 bg-[#260810]/90 px-2.5 py-1.5 text-[8px] font-black text-red-200">AI 위험 반경 · 8m</div></Html>
+    <Html center position={[0, .18, -2.45]} distanceFactor={10}><div className="whitespace-nowrap rounded-lg border border-red-400/50 bg-[#260810]/90 px-2.5 py-1.5 text-[10px] font-black text-red-200">AI 위험 반경 · 8m</div></Html>
   </group>;
 }
 
@@ -741,7 +741,7 @@ function MachineUnit({ asset, position, rotationY = 0, selected, onSelect }) {
     {alarm && <pointLight position={[0, ["GOLIATH", "BLOCK_CRANE"].includes(asset.kind) ? 6.6 : 1.21, 0]} intensity={10} distance={4} color="#ff2f48"/>}
     <mesh position={[0,transporterRing ? .012 : .04,0]} rotation={[-Math.PI/2,0,0]} scale={ringScale}><ringGeometry args={ringGeometryArgs}/><meshBasicMaterial color={accent} transparent={transporterRing} opacity={transporterRing ? .78 : 1} depthWrite={!transporterRing} polygonOffset polygonOffsetFactor={-2}/></mesh>
     {alarm && <FaultMarker position={issuePositions[asset.kind]} part={asset.fault.part} seed={seed}/>}
-    <Html center position={labelPosition}><button onClick={()=>onSelect(asset)} className={`min-w-[118px] rounded-lg border px-2.5 py-2 text-left shadow-xl backdrop-blur-md ${alarm?"border-red-400/60 bg-[#230b12]/95":"border-cyan-400/35 bg-[#07151f]/95"}`}><span className={`block text-[8px] font-black tracking-wider ${alarm?"text-red-300":"text-cyan-300"}`}>{asset.assetCode}</span><b className="mt-0.5 block whitespace-nowrap text-[10px] text-white">{asset.name}</b><small className={`mt-0.5 block text-[8px] ${alarm?"text-red-300":"text-slate-500"}`}>{alarm?asset.fault.symptom:`${asset.operatingState} · 운전 부하 ${asset.utilization}%`}</small></button></Html>
+    <Html center position={labelPosition}><button onClick={()=>onSelect(asset)} className={`min-w-[118px] rounded-lg border px-2.5 py-2 text-left shadow-xl backdrop-blur-md ${alarm?"border-red-400/60 bg-[#230b12]/95":"border-cyan-400/35 bg-[#07151f]/95"}`}><span className={`block text-[10px] font-black tracking-wider ${alarm?"text-red-300":"text-cyan-300"}`}>{asset.assetCode}</span><b className="mt-0.5 block whitespace-nowrap text-[12px] text-white">{asset.name}</b><small className={`mt-0.5 block text-[10px] ${alarm?"text-red-300":"text-slate-500"}`}>{alarm?asset.fault.symptom:`${asset.operatingState} · 운전 부하 ${asset.utilization}%`}</small></button></Html>
   </group>;
 }
 
@@ -1279,6 +1279,6 @@ function CraneMachine({accent,alarm,warning,running,seed}) {
 function FaultMarker({position,part,seed=0}) {
   const ring = useRef();
   useFrame(({clock}) => { if (ring.current) { const s = 1 + Math.abs(faultJitter(clock.elapsedTime, seed)) * .3; ring.current.scale.setScalar(s); } });
-  return <group position={position}><mesh ref={ring}><sphereGeometry args={[.16,18,18]}/><meshBasicMaterial color="#ff2f48"/></mesh><pointLight intensity={12} distance={3.2} color="#ff2f48"/><mesh rotation={[Math.PI/2,0,0]}><torusGeometry args={[.32,.035,10,28]}/><meshBasicMaterial color="#ff5368"/></mesh><Html center position={[0,.6,0]} distanceFactor={9}><div className="whitespace-nowrap rounded-lg border border-red-400/60 bg-[#260810]/95 px-2 py-1 text-[9px] font-black text-red-200 shadow-[0_0_18px_rgba(255,47,72,.5)]">이상 부품 · {part}</div></Html></group>; }
+  return <group position={position}><mesh ref={ring}><sphereGeometry args={[.16,18,18]}/><meshBasicMaterial color="#ff2f48"/></mesh><pointLight intensity={12} distance={3.2} color="#ff2f48"/><mesh rotation={[Math.PI/2,0,0]}><torusGeometry args={[.32,.035,10,28]}/><meshBasicMaterial color="#ff5368"/></mesh><Html center position={[0,.6,0]} distanceFactor={9}><div className="whitespace-nowrap rounded-lg border border-red-400/60 bg-[#260810]/95 px-2 py-1 text-[11px] font-black text-red-200 shadow-[0_0_18px_rgba(255,47,72,.5)]">이상 부품 · {part}</div></Html></group>; }
 
 export default EquipmentTwinScene;

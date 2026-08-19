@@ -388,9 +388,11 @@ function Permits({ notify, session }) {
     if (!window.confirm(`${permit.permit_no} 허가서를 영구 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
     setTrashBusyId(permit.id);
     try {
-      await apiRequest(`/api/work-permits/${permit.id}/permanent`, { method: "DELETE", headers: authorization });
+      const result = await apiRequest(`/api/work-permits/${permit.id}/permanent`, { method: "DELETE", headers: authorization });
       await loadTrash();
-      notify(`${permit.permit_no} 허가서를 영구 삭제했습니다.`);
+      notify(result.detachedEvents > 0
+        ? `${permit.permit_no} 허가서를 영구 삭제하고 안전 이벤트 ${result.detachedEvents}건의 연결을 해제했습니다.`
+        : `${permit.permit_no} 허가서를 영구 삭제했습니다.`);
     } catch (error) {
       notify(error.message);
     } finally {

@@ -216,6 +216,15 @@ public class SafetyEventRepository {
                    se.status,
                    se.severity,
                    se.event_time AS eventTime,
+                   COALESCE(
+                       wp.permit_no,
+                       JSON_UNQUOTE(JSON_EXTRACT(se.payload, '$.detachedPermitNo'))
+                   ) AS relatedPermitNo,
+                   CASE
+                       WHEN wp.id IS NOT NULL THEN 'linked'
+                       WHEN JSON_EXTRACT(se.payload, '$.detachedPermitNo') IS NOT NULL THEN 'deleted'
+                       ELSE NULL
+                   END AS relatedPermitState,
                    COALESCE(se.reporter_id, se.target_user_id) AS targetUserId,
                    COALESCE(u.name, target.name) AS reporterName,
                    COALESCE(u.employee_no, target.employee_no) AS employeeNo,
@@ -250,6 +259,7 @@ public class SafetyEventRepository {
             LEFT JOIN users u ON u.id = se.reporter_id
             LEFT JOIN users target ON target.id = se.target_user_id
             LEFT JOIN files f ON f.id = se.file_id
+            LEFT JOIN work_permits wp ON wp.id = se.permit_id
             WHERE se.source_type IN ('user_report', 'ai_ppe', 'system_alert', 'equipment_alert')
             """ + statusCondition + sourceCondition + " ORDER BY se.event_time DESC";
         if (!statusCondition.isEmpty() && !sourceCondition.isEmpty()) {

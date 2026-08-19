@@ -388,19 +388,30 @@ public class WorkPermitService {
     @Transactional
     public Map<String, Object> permanentDelete(String authorization, long id) {
         requireAuthorizedPermitUser(authenticate(authorization), id, true);
-        Integer linkedEvents = jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM safety_events WHERE permit_id = ?",
-            Integer.class,
+        String permitNo = jdbcTemplate.queryForObject(
+            "SELECT permit_no FROM work_permits WHERE id = ?",
+            String.class,
             id
         );
-        if (linkedEvents != null && linkedEvents > 0) {
-            throw new ApiException(HttpStatus.CONFLICT, "안전 이벤트에 연결된 허가서는 영구 삭제할 수 없습니다.");
-        }
-
+        int detachedEvents = jdbcTemplate.update(
+            """
+                UPDATE safety_events
+                   SET payload = JSON_SET(
+                           COALESCE(payload, JSON_OBJECT()),
+                           '$.detachedPermitId', ?,
+                           '$.detachedPermitNo', ?
+                       ),
+                       permit_id = NULL
+                 WHERE permit_id = ?
+                """,
+            id,
+            permitNo,
+            id
+        );
         jdbcTemplate.update("UPDATE personal_ppe_checks SET permit_id = NULL WHERE permit_id = ?", id);
         clearAnalysisData(id);
         jdbcTemplate.update("DELETE FROM work_permits WHERE id = ?", id);
-        return Map.of("deleted", true, "id", id);
+        return Map.of("deleted", true, "id", id, "detachedEvents", detachedEvents);
     }
 
     private AuthService.AuthenticatedUser authenticate(String authorization) {

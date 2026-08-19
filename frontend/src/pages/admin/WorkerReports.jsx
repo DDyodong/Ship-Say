@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  AlertTriangle, BellRing, BrainCircuit, CheckCircle2, ChevronDown, Clock3, FileImage, MapPin,
+  AlertTriangle, BellRing, BrainCircuit, CheckCircle2, ChevronDown, Clock3, FileImage, FileText, MapPin,
   Factory, Maximize2, Search, Send, ShieldCheck, Siren, Trash2, UserRound, Wrench, X,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -322,7 +322,7 @@ function WorkerReports({ session, notify }) {
             return <button key={report.id} className={selectedId===report.id?"selected":""} onClick={()=>setSelectedId(report.id)}>
               <div className="report-list-top"><span className={`badge ${source.badge}`}>{source.label}</span><span className={`report-status ${report.status}`}>{statusLabels[report.status] || report.status}</span></div>
               <small>{report.reportNo}</small><b>{riskLabels[report.eventType] || report.title}</b><p>{report.description}</p>
-              <div className="report-list-meta"><span>{report.sourceType === "equipment_alert" ? <Factory/> : <UserRound/>}{report.sourceType === "equipment_alert" ? report.facilityName : maskName(report.reporterName)}</span><span>{report.sourceType === "equipment_alert" ? report.assetCode : report.employeeNo}</span><span><Clock3/>{formatDate(report.eventTime)}</span></div>
+              <div className="report-list-meta"><span>{report.sourceType === "equipment_alert" ? <Factory/> : <UserRound/>}{report.sourceType === "equipment_alert" ? report.facilityName : maskName(report.reporterName)}</span><span>{report.sourceType === "equipment_alert" ? report.assetCode : report.employeeNo}</span>{report.relatedPermitNo&&<span className={`report-permit-number ${report.relatedPermitState}`}><FileText/>{report.relatedPermitNo}</span>}<span><Clock3/>{formatDate(report.eventTime)}</span></div>
             </button>;
           })}
         </div>
@@ -334,6 +334,7 @@ function WorkerReports({ session, notify }) {
             <div><dt>위험 유형</dt><dd>{riskLabels[selected.eventType] || selected.title}</dd></div><div><dt>{isEquipmentAlert?"대상 설비":isAiPpe||isSystemAlert?"대상 작업자":"신고자"}</dt><dd>{isEquipmentAlert?`${selected.assetName} · ${selected.assetCode}`:maskName(selected.reporterName)}</dd></div><div><dt>{isEquipmentAlert?"담당 작업자":"사번"}</dt><dd>{isEquipmentAlert?(selected.targetUserId?`${maskName(selected.reporterName)} · ${selected.employeeNo || "사번 없음"}`:"미배정"):(selected.employeeNo || "-")}</dd></div><div><dt>{isEquipmentAlert?"이벤트 접수":isAiPpe?"감지 시각":isSystemAlert?"알림 시각":"신고 시각"}</dt><dd>{formatDate(selected.eventTime)}</dd></div>
           </dl></div>
           <div className="report-description"><b>{isEquipmentAlert?"설비 이상 내용":isAiPpe?"AI 판정 내용":"작업자 상세 내용"}</b><p>{selected.description}</p></div>
+          {selected.relatedPermitNo&&<div className={`report-permit-reference ${selected.relatedPermitState}`}><FileText/><span><small>{selected.relatedPermitState === "deleted" ? "삭제된 작업허가서" : "관련 작업허가서"}</small><b>{selected.relatedPermitNo}</b></span>{selected.relatedPermitState === "deleted"&&<i>연결 해제됨</i>}</div>}
           {["user_report", "equipment_alert"].includes(selected.sourceType)&&<div className="report-action-history">
             <button type="button" className={expandedHistoryId === selected.id ? "expanded" : ""} onClick={toggleActionHistory}>
               <span><Clock3/><b>처리 이력 보기</b><small>관리자 요청과 Worker 완료 보고 내용을 확인합니다.</small></span>

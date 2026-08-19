@@ -63,7 +63,7 @@ body,
   border: 1px solid rgba(132, 164, 192, .14);
   border-radius: 8px;
   background: rgba(8, 21, 34, .72);
-  color: #7890a2;
+  color: #9bafbe;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -122,7 +122,7 @@ body,
 .terms-consent label span {
   margin: 0;
   color: #aabac6;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -137,19 +137,19 @@ body,
   border-bottom: 1px solid #668094;
   background: transparent;
   color: #8298a9;
-  font-size: 9px;
+  font-size: 11px;
   cursor: pointer;
 }
 
 .terms-banner b {
   color: #b5c5d0;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .terms-banner small {
   margin-top: 2px;
   color: #60778a;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 
@@ -186,7 +186,7 @@ body,
 
 .terms-modal header span {
   color: var(--cyan);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: .14em;
 }
@@ -215,14 +215,14 @@ body,
 .terms-modal-content {
   padding: 10px 0 5px;
   color: #aabac7;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.75;
 }
 
 .terms-modal-content h4 {
   margin: 16px 0 5px;
   color: #edf5f8;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .terms-modal-content p {
@@ -260,7 +260,7 @@ body,
 
 .terms-notice {
   color: #7d93a4;
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .terms-modal-confirm {
@@ -322,7 +322,7 @@ body,
   background: #ff74170a;
   color: var(--orange);
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   display: flex;
   align-items: center;
@@ -399,7 +399,7 @@ body,
   background: linear-gradient(145deg, rgba(17, 42, 57, .98), rgba(8, 26, 38, .98));
   box-shadow: 0 16px 38px rgba(0, 0, 0, .4), 0 0 0 1px rgba(255, 255, 255, .025) inset;
   color: #b8c8d2;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 1.55;
   opacity: 0;
@@ -450,7 +450,7 @@ body,
 .password-rule-title b {
   display: block;
   color: #edf5f8;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: -.02em;
   line-height: 1.35;
@@ -460,7 +460,7 @@ body,
   display: block;
   margin-top: 2px;
   color: #7f96a7;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 400;
   line-height: 1.4;
 }
@@ -481,7 +481,7 @@ body,
   border-radius: 7px;
   background: rgba(255, 255, 255, .025);
   color: #8298a8;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
@@ -520,7 +520,7 @@ body,
   display: block;
   margin-top: 10px;
   color: #718999;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 400;
   line-height: 1.45;
   letter-spacing: .015em;
@@ -600,7 +600,7 @@ body,
   background: transparent;
   color: #c7d4dc;
   font-family: inherit;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -619,7 +619,7 @@ body,
   display: block;
   margin: 0;
   color: #758b9b;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.7;
 }
 

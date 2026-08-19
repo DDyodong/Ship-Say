@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
@@ -138,7 +139,7 @@ class WorkPermitServiceTest {
     }
 
     @Test
-    void permanentDeleteDetachesPreservedPpeChecksBeforeDeletingPermit() {
+    void permanentDeleteDetachesSafetyEventsAndPpeChecksBeforeDeletingPermit() {
         AuthService.AuthenticatedUser admin = user(1L, "ADMIN");
         when(authService.authenticateBearer("Bearer token")).thenReturn(Optional.of(admin));
         when(jdbcTemplate.queryForList(
@@ -146,15 +147,30 @@ class WorkPermitServiceTest {
             10L
         )).thenReturn(List.of(Map.of("applicant_id", 2L, "status", "deleted")));
         when(jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM safety_events WHERE permit_id = ?",
-            Integer.class,
+            "SELECT permit_no FROM work_permits WHERE id = ?",
+            String.class,
             10L
-        )).thenReturn(0);
+        )).thenReturn("PTW-2026-10");
+        when(jdbcTemplate.update(
+            argThat(sql -> sql.contains("UPDATE safety_events")),
+            eq(10L),
+            eq("PTW-2026-10"),
+            eq(10L)
+        )).thenReturn(2);
 
         Map<String, Object> response = workPermitService.permanentDelete("Bearer token", 10L);
 
-        assertThat(response).containsEntry("deleted", true).containsEntry("id", 10L);
+        assertThat(response)
+            .containsEntry("deleted", true)
+            .containsEntry("id", 10L)
+            .containsEntry("detachedEvents", 2);
         InOrder deletionOrder = inOrder(jdbcTemplate);
+        deletionOrder.verify(jdbcTemplate).update(
+            argThat(sql -> sql.contains("UPDATE safety_events") && sql.contains("detachedPermitNo")),
+            eq(10L),
+            eq("PTW-2026-10"),
+            eq(10L)
+        );
         deletionOrder.verify(jdbcTemplate)
             .update("UPDATE personal_ppe_checks SET permit_id = NULL WHERE permit_id = ?", 10L);
         deletionOrder.verify(jdbcTemplate).update("DELETE FROM work_permits WHERE id = ?", 10L);

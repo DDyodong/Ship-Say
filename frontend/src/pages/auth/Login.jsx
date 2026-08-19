@@ -68,7 +68,7 @@ function Login({ initialUsername, onLogin, onRegister, notify, theme, onToggleTh
             <div className="w-10 h-10 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white">
               <ShieldCheck size={18}/>
             </div>
-            <span className="text-white font-bold tracking-[0.3em] uppercase text-[11px]">Smart Shipyard AI System</span>
+            <span className="text-white font-bold tracking-[0.3em] uppercase text-[12px]">Smart Shipyard AI System</span>
           </div>
 
           <div className="max-w-2xl">
@@ -95,7 +95,7 @@ function Login({ initialUsername, onLogin, onRegister, notify, theme, onToggleTh
 
           <div className="space-y-8">
             <label className="block space-y-1.5 group">
-              <span className="text-[10px] font-black text-slate-300 dark:text-white/30 uppercase tracking-[0.2em] group-focus-within:text-brand transition-colors flex items-center gap-1.5">
+              <span className="text-[12px] font-black text-slate-300 dark:text-white/30 uppercase tracking-[0.2em] group-focus-within:text-brand transition-colors flex items-center gap-1.5">
                 <UserRound size={12}/> 아이디
               </span>
               <input autoComplete="username" value={form.username}
@@ -104,14 +104,14 @@ function Login({ initialUsername, onLogin, onRegister, notify, theme, onToggleTh
                 aria-invalid={!!fieldErrors.username}
                 className={`w-full py-3 text-lg font-bold text-dark dark:text-white outline-none placeholder:text-slate-200 dark:placeholder:text-white/20 bg-transparent border-b-2 transition-all duration-300 focus:pl-2 ${
                   fieldErrors.username ? "border-danger focus:border-danger" : "border-slate-200 dark:border-white/15 focus:border-brand"}`}/>
-              {fieldErrors.username && <p className="flex items-center gap-1.5 text-[12px] font-bold text-danger pt-0.5">
+              {fieldErrors.username && <p className="flex items-center gap-1.5 text-[13px] font-bold text-danger pt-0.5">
                 <AlertCircle size={13}/> {fieldErrors.username}
               </p>}
             </label>
 
             <label className="block space-y-1.5 group">
               <div className="flex justify-between items-end">
-                <span className="text-[10px] font-black text-slate-300 dark:text-white/30 uppercase tracking-[0.2em] group-focus-within:text-brand transition-colors flex items-center gap-1.5">
+                <span className="text-[12px] font-black text-slate-300 dark:text-white/30 uppercase tracking-[0.2em] group-focus-within:text-brand transition-colors flex items-center gap-1.5">
                   <LockKeyhole size={12}/> 비밀번호
                 </span>
               </div>
@@ -127,7 +127,7 @@ function Login({ initialUsername, onLogin, onRegister, notify, theme, onToggleTh
                   {showPassword ? <EyeOff size={16}/> : <Eye size={16}/>}
                 </button>
               </div>
-              {fieldErrors.password && <p className="flex items-center gap-1.5 text-[12px] font-bold text-danger pt-0.5">
+              {fieldErrors.password && <p className="flex items-center gap-1.5 text-[13px] font-bold text-danger pt-0.5">
                 <AlertCircle size={13}/> {fieldErrors.password}
               </p>}
             </label>
@@ -139,7 +139,7 @@ function Login({ initialUsername, onLogin, onRegister, notify, theme, onToggleTh
               </button>
             </div>
 
-            <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400 dark:text-white/40">
+            <div className="flex items-center gap-2 text-[12px] font-bold text-slate-400 dark:text-white/40">
               <ShieldCheck size={13} className="text-brand"/> Spring Security · 역할 기반 접근 제어(RBAC)
             </div>
           </div>
