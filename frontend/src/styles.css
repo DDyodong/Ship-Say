@@ -2321,6 +2321,91 @@ button {
   font-weight: 700;
 }
 
+.ppe-evidence-body {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.ppe-evidence-photo {
+  flex: 0 0 110px;
+  min-height: 78px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #06131e;
+}
+
+.ppe-evidence-photo-state {
+  width: 100%;
+  height: 100%;
+  min-height: 78px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: #446175;
+}
+
+.ppe-evidence-photo-state svg {
+  width: 18px;
+}
+
+.ppe-evidence-photo-state.error small {
+  font-size: 9px;
+  color: var(--muted);
+}
+
+.ppe-evidence-photo > button {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+  color: #fff;
+}
+
+.ppe-evidence-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ppe-evidence-photo > button span {
+  position: absolute;
+  inset: auto 5px 5px 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 4px 6px;
+  border: 1px solid #ffffff32;
+  border-radius: 5px;
+  background: #03101dcc;
+  font-size: 9px;
+  opacity: 0;
+  transition: .18s;
+}
+
+.ppe-evidence-photo > button span svg {
+  width: 10px;
+  height: 10px;
+}
+
+.ppe-evidence-photo > button:hover span,
+.ppe-evidence-photo > button:focus-visible span {
+  opacity: 1;
+}
+
+.ppe-evidence-body .ppe-equipment-grid {
+  flex: 1;
+  min-width: 0;
+}
+
 .ppe-equipment-grid {
   display: grid;
   grid-template-columns: repeat(5,minmax(0,1fr));
@@ -2411,6 +2496,11 @@ button {
   background: #f7f9fb;
 }
 
+.light-theme .ppe-evidence-photo,
+.light-theme .ppe-evidence-photo-state {
+  background: #f7f9fb;
+}
+
 @media (max-width: 900px) {
   .ppe-equipment-grid {
     grid-template-columns: repeat(2,minmax(0,1fr));
@@ -2418,6 +2508,16 @@ button {
 }
 
 @media (max-width: 600px) {
+  .ppe-evidence-body {
+    flex-direction: column;
+  }
+
+  .ppe-evidence-photo {
+    flex: 0 0 auto;
+    width: 100%;
+    height: 140px;
+  }
+
   .ppe-scope-banner {
     grid-template-columns: auto 1fr;
   }

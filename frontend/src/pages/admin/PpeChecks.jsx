@@ -10,12 +10,14 @@ import {
   HardHat,
   ImageOff,
   LoaderCircle,
+  Maximize2,
   RefreshCw,
   Search,
   ShieldAlert,
   TriangleAlert,
   UserRoundCheck,
   UsersRound,
+  X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { apiBlob, apiRequest } from "../../api/client";
@@ -66,6 +68,81 @@ function EquipmentResult({ label, value, manual = false }) {
       <span>{label}</span>
       <b>{result.label}</b>
     </div>
+  );
+}
+
+function EvidencePhoto({ fileId, authorization, label, alt }) {
+  const [photoUrl, setPhotoUrl] = useState("");
+  const [status, setStatus] = useState("loading");
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    let objectUrl = "";
+    setPhotoUrl("");
+    setStatus("loading");
+    if (!fileId) {
+      setStatus("error");
+      return undefined;
+    }
+    apiBlob(`/api/files/${fileId}/download`, { headers: authorization })
+      .then(blob => {
+        if (!active) return;
+        objectUrl = URL.createObjectURL(blob);
+        setPhotoUrl(objectUrl);
+        setStatus("ready");
+      })
+      .catch(() => {
+        if (active) setStatus("error");
+      });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [fileId, authorization]);
+
+  useEffect(() => {
+    if (!expanded) return undefined;
+    const closeOnEscape = event => { if (event.key === "Escape") setExpanded(false); };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [expanded]);
+
+  return (
+    <>
+      <div className="ppe-evidence-photo">
+        {status === "ready" ? (
+          <button type="button" onClick={() => setExpanded(true)} aria-label={`${label} 크게 보기`}>
+            <img src={photoUrl} alt={alt} />
+            <span><Maximize2 /> 크게 보기</span>
+          </button>
+        ) : status === "loading" ? (
+          <div className="ppe-evidence-photo-state">
+            <LoaderCircle className="spin" />
+          </div>
+        ) : (
+          <div className="ppe-evidence-photo-state error">
+            <ImageOff />
+            <small>불러오기 실패</small>
+          </div>
+        )}
+      </div>
+      {expanded && photoUrl && (
+        <div
+          className="report-photo-lightbox"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${label} 원본 보기`}
+          onClick={() => setExpanded(false)}
+        >
+          <button type="button" className="lightbox-close" onClick={() => setExpanded(false)} aria-label="닫기">
+            <X />
+          </button>
+          <img src={photoUrl} alt={alt} onClick={event => event.stopPropagation()} />
+          <span>사진 바깥을 클릭하거나 ESC 키를 누르면 닫힙니다.</span>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -291,12 +368,20 @@ function PpeChecks({ session, notify }) {
 
                         {item.submitted ? (
                           <>
-                            <div className="ppe-equipment-grid">
-                              <EquipmentResult label="안전모" value={item.helmetOn} />
-                              <EquipmentResult label="하네스" value={item.harnessOn} />
-                              <EquipmentResult label="용접면" value={item.weldingMaskOn} />
-                              <EquipmentResult label="안전화" value={item.safetyShoesConfirmed} manual />
-                              <EquipmentResult label="안전복" value={item.workwearConfirmed} manual />
+                            <div className="ppe-evidence-body">
+                              <EvidencePhoto
+                                fileId={item.fileId}
+                                authorization={authorization}
+                                label={`${item.workerName || "작업자"} 제출 사진`}
+                                alt={`${item.workerName || "작업자"}이 제출한 보호구 착용 사진`}
+                              />
+                              <div className="ppe-equipment-grid">
+                                <EquipmentResult label="안전모" value={item.helmetOn} />
+                                <EquipmentResult label="하네스" value={item.harnessOn} />
+                                <EquipmentResult label="용접면" value={item.weldingMaskOn} />
+                                <EquipmentResult label="안전화" value={item.safetyShoesConfirmed} manual />
+                                <EquipmentResult label="안전복" value={item.workwearConfirmed} manual />
+                              </div>
                             </div>
                             <div className="ppe-evidence-row">
                               <div>
